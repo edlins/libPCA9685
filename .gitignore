@@ -1,0 +1,4 @@
+# ignore binaries
+picontrol
+*.o
+*.so.*
