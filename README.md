@@ -216,8 +216,5 @@ FUNCTIONS
 
 TODO
 
-	len vs NUMCHANNELS not used consistently in PCA9685_setPWMVals()
 	add PCA9685_getPWMVal() and PCA9685_getPWMVals()
-	use unsigned char for addr throughout (instead of int)
-	use unsigned char for reg throughout (instead of int)
 	many other things..
