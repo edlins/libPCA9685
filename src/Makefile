@@ -1,35 +1,50 @@
-# Makefile for libpca9685 and example
+# Makefile for libPCA9685
+
+# name and version (all other values derived)
+NAME=PCA9685
+VERS_MAJ=0
+VERS_MIN=2
+
+
+
+# constants
+VERSION=$(VERS_MAJ).$(VERS_MIN)
+SRC=$(NAME).c
+HDR=$(NAME).h
+LIB=lib$(NAME)
+LIBFILE=$(LIB).o
+DYNLIBFILE=$(LIB).so
+DYNLIBFILEVERS=$(LIB).so.$(VERSION)
 
 # parameters:
 CC = gcc
-CFLAGS = -ansi -pedantic -Wall -g
+CFLAGS = -ansi -pedantic -Wall -g -std=c99
 
 # targets:
-all: libpca9685.so.0.1
+all: $(DYNLIBFILEVERS)
 
-libpca9685.so.0.1: libpca9685.o
-	$(CC) -shared -Wl,-soname,libpca9685.so -o libpca9685.so.0.1 \
-	      libpca9685.o
+$(DYNLIBFILEVERS): $(LIBFILE)
+	$(CC) -shared -Wl,-soname,$(DYNLIBFILE) -o $(DYNLIBFILEVERS) $(LIBFILE)
 
-libpca9685.o: pca9685.c pca9685.h
-	$(CC) $(CFLAGS) -c pca9685.c -o libpca9685.o
-
+$(LIBFILE): $(SRC) $(HDR)
+	$(CC) $(CFLAGS) -c $(SRC) -o $(LIBFILE)
 
 .PHONEY: clean
 clean:
-	rm -f libpca9685.o libpca9685.so.0.1
+	rm -f *.o *.so.*
 
 .PHONEY: install
 install:
 	install -m 0755 -d /usr/local/include
-	install -m 0644 pca9685.h /usr/local/include
+	install -m 0644 $(HDR) /usr/local/include
 	install -m 0755 -d /usr/local/lib
-	install -m 0755 libpca9685.so.0.1 /usr/local/lib/libpca9685.so.0.1
-	ln -sf /usr/local/lib/libpca9685.so.0.1 /usr/local/lib/libpca9685.so
+	install -m 0755 $(DYNLIBFILEVERS) /usr/local/lib/$(DYNLIBFILEVERS)
+	ln -sf /usr/local/lib/$(DYNLIBFILEVERS) /usr/local/lib/$(DYNLIBFILE)
 	ldconfig
 
 .PHONEY: uninstall
 uninstall:
-	rm -f /usr/local/include/pca9685.h
-	rm -f /usr/local/lib/libpca9685.*
+	rm -f /usr/local/include/$(HDR)
+	rm -f /usr/local/lib/$(DYNLIBFILE)
+	rm -f /usr/local/lib/$(DYNLIBFILEVERS)
 	ldconfig

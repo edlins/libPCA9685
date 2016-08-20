@@ -1,19 +1,17 @@
-pca9685 README
+PCA9685 README
 
-	This software is a library for fast and efficient control of a
-	PCA9685 16-channel 12-bit PWM/servo driver via an I2C interface
-	on a Raspberry Pi platform.
+	This is a library for fast and efficient control of a PCA9685
+	16-channel 12-bit PWM/servo driver via an I2C interface on a
+	Raspberry Pi platform.
 	This library was written to provide methods for both reading and
 	writing all PWM channel values as quickly as possible.
-	Existing implementations are often limited to reading or writing
-	a single register at a time, which incurs significant overhead
-	of the underlying ioctl() calls when updating all channels one-
-	by-one.
-	Many implementations do not even have the ability to read arbitrary
-	registers due to the lack of support for combined I2C transactions
-	with a reStart condition.
-	This library was also written to require the fewest dependencies
-	and so does not require wiringPi or other such add-on libraries.
+
+	Features include:
+	* Bulk update all PWM channels in one ioctl() transaction
+	* Bulk read any/all registers in one ioctl() combined transaction
+	* Minimal dependencies (does not require wiringPi)
+	* Not using SMBus functions with their limitations
+
 	This library bypasses the smbus library and the read() and write()
 	functions and provides functions for direct I2C control via ioctl()
 	which allows for fast and efficient block reading and writing of
@@ -34,8 +32,8 @@ pca9685 README
 
 DEPENDENCIES
 
-	pca9685 requires two working and loaded i2c kernel modules
-	(i2c_bcm-2708 and i2c_dev) in order to access the i2c bus via the
+	PCA9685 requires two working and loaded I2C kernel modules
+	(i2c_bcm-2708 and i2c_dev) in order to access the I2C bus via the
 	/dev/i2c-N device files.
 	On the intended Raspbian platforms, as of 20160819, this is
 	accomplished by adding the following lines to the /boot/config.txt
@@ -44,7 +42,7 @@ DEPENDENCIES
 	dtparam=i2c_arm=on
 	dtparam=i2c_arm_baudrate=1000000
 
-	The first line enables the i2c system and the second line raises
+	The first line enables the I2C system and the second line raises
 	the baudrate from the default 100kHz to 1MHz which is the speed
 	of Fast-mode plus (Fm+) devices such as the PCA9685.
 	Also, this library requires combined transactions which are not
@@ -68,11 +66,11 @@ DEPENDENCIES
 	following (search for "i2c"):
 
 	Aug 17 19:33:53 raspberrypi kernel: [    5.718973]
-		i2c /dev entries driver
+	i2c /dev entries driver
 	[...]
 	Aug 17 19:33:53 raspberrypi kernel: [    9.086281]
-		bcm2708_i2c 20804000.i2c: BSC 1 Controller at 0x20804000
-		(irq 77) (baudrate 1000000)
+	bcm2708_i2c 20804000.i2c: BSC 1 Controller at 0x20804000
+	(irq 77) (baudrate 1000000)
 
 	And the file /sys/modele/i2c_bcm2708/parameters/combined should
 	contain the one line:
@@ -90,9 +88,28 @@ CONNECTION
 	If using multiple power supplies, make sure their GND's are
 	connected to each other, and connected to one of the Pi's GND pins.
 
+	After satisfying the dependencies and making the connections
+	you should be able to run:
+
+	$ i2cdetect 1
+
+	Which should output:
+
+	     0  1  2  3  4  5  6  7  8  9  a  b  c  d  e  f
+	00:          -- -- -- -- -- -- -- -- -- -- -- -- -- 
+	10: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+	20: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+	30: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+	40: 40 -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+	50: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+	60: -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- -- 
+	70: -- -- -- -- -- -- -- --                         
+
+	Which shows the PCA9685 responding at address 0x40 on I2C bus 1.
+
 INSTALL
 
-	You can include pca9685.h and pca9685.c directly in your project
+	You can include PCA9685.h and PCA9685.c directly in your project
 	or compile the object file and use it as a dynamically linked
         library instead.
 	To compile the library, navigate into the src folder and run:
@@ -100,15 +117,15 @@ INSTALL
 	$ make
 	$ sudo make install
 
-	This will install libpca9685.so in your /usr/local/lib directory,
-	and pca9685.h in your /usr/local/include directory.
+	This will install libPCA9685.so in your /usr/local/lib directory,
+	and PCA9685.h in your /usr/local/include directory.
 	To include the files add the following line to your source:
 
-	#include <pca9685.h>
+	#include <PCA9685.h>
 
-	And include the pca9685 library in your linking:
+	And include the PCA9685 library in your linking:
 
-	-lpca9685
+	-lPCA9685
 
 	Enjoy your superfast Pi PWMing!
 
@@ -120,7 +137,7 @@ FUNCTIONS
 
 
 	----------------------------------------------------------------
-	int setupI2C(int adpt, int addr);
+	int PCA9685_openI2C(int adpt, int addr);
 	----------------------------------------------------------------
 	adpt:	integer adpt number ("1" in most cases)
 	addr:	integer default I2C slave address (only matters if using
@@ -133,7 +150,7 @@ FUNCTIONS
 
 
 	----------------------------------------------------------------
-	int initpca(int fd, int addr, int freq);
+	int PCA9685_initPWM(int fd, int addr, int freq);
 	----------------------------------------------------------------
 	fd:	integer file descriptor for an I2C bus
 	addr:	integer I2C slave address of the PCA9685 (default "0x40")
@@ -146,16 +163,15 @@ FUNCTIONS
 
 
 	----------------------------------------------------------------
-	int setEachPwmBatch(int fd, int addr, int len, int* vals);
+	int PCA9685_setPWMVals(int fd, int addr, int* vals);
 	----------------------------------------------------------------
 	fd:	integer file descriptor for an I2C bus
 	addr:	integer I2C slave address of the PCA9685
-	len:	length of the vals array, the number of channels to update
 	vals:	array of integer values used to set the LEDnOFF registers
 	returns an integer, zero for success, non-zero for failure
 
 	Updates all PWM register values on a PCA9685 device based on an
-	array of integers.
+	array of integers of length _PCA9685_CHANS (16).
 	Each PWM channel has a pair of ON registers and a pair of OFF
 	registers.
 	This function sets the ON registers to 0x00 (turn on at the
@@ -167,15 +183,16 @@ FUNCTIONS
 
 
 
-	The following function provides read functionality which most users
-	will probably not require.
+	The following internal function provides read functionality which
+	most users will probably not require.
 	There are additional functions providing lower-level access to I2C
-	combined transactions.
-	Please refer to the pca9685.c source to understand how those work.
+	combined transactions and PCA9685 registers.
+	Please refer to the PCA9685.c source to understand how those work.
 
 	----------------------------------------------------------------
-	int readI2C(int fd, unsigned char addr, unsigned char startReg,
-	            int len, unsigned char* readBuf);
+	int _PCA9685_readI2CReg(int fd, unsigned char addr,
+	                        unsigned char startReg, int len, 
+	                        unsigned char* readBuf);
 	----------------------------------------------------------------
 	Reads len number of register values on a PCA9685 device into
 	an array of unsigned chars.
@@ -199,8 +216,8 @@ FUNCTIONS
 
 TODO
 
-	len vs NUMCHANNELS not used consistently in setEachPwmBatch()
-	rename functions more consistently
+	len vs NUMCHANNELS not used consistently in PCA9685_setPWMVals()
+	add PCA9685_getPWMVal() and PCA9685_getPWMVals()
 	use unsigned char for addr throughout (instead of int)
-	move #define constants from src into header
+	use unsigned char for reg throughout (instead of int)
 	many other things..
