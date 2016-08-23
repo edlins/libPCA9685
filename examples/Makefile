@@ -2,7 +2,7 @@
 
 # parameters:
 CC = gcc
-CFLAGS = -ansi -pedantic -Wall -g -D_BSD_SOURCE -std=c99
+CFLAGS = -ansi -pedantic -Wall -g -D_BSD_SOURCE -std=c11 -lncurses
 
 # targets:
 all: picontrol
