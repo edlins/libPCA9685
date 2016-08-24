@@ -146,9 +146,9 @@ FUNCTIONS
         ----------------------------------------------------------------
         adpt:        integer adpt number ("1" in most cases)
         addr:        integer default I2C slave address (only matters if using
-                read() and write() instead of the library functions)
-        returns        an integer file descriptor for the I2C bus or negative
-                for an error
+                     read() and write() instead of the library functions)
+        returns:     an integer file descriptor for the I2C bus or negative
+                     for an error
 
         Opens the I2C bus device file, sets the default I2C slave address,
         and returns a file descriptor for use with the subsequent functions.
@@ -157,10 +157,10 @@ FUNCTIONS
         ----------------------------------------------------------------
         int PCA9685_initPWM(int fd, int addr, int freq);
         ----------------------------------------------------------------
-        fd:        integer file descriptor for an I2C bus
+        fd:          integer file descriptor for an I2C bus
         addr:        integer I2C slave address of the PCA9685 (default "0x40")
         freq:        integer PWM frequency for the PCA9685 (24 - 1526, in Hz)
-        returns an integer, zero for success, non-zero for failure
+        returns:     an integer, zero for success, non-zero for failure
 
         Performs an all-devices software reset on an I2C bus, turns off
         all PWM outputs on a PCA9685 device, sets the PWM frequency on the
@@ -170,10 +170,10 @@ FUNCTIONS
         ----------------------------------------------------------------
         int PCA9685_setPWMVals(int fd, int addr, int* vals);
         ----------------------------------------------------------------
-        fd:        integer file descriptor for an I2C bus
+        fd:          integer file descriptor for an I2C bus
         addr:        integer I2C slave address of the PCA9685
         vals:        array of integer values used to set the LEDnOFF registers
-        returns an integer, zero for success, non-zero for failure
+        returns:     an integer, zero for success, non-zero for failure
 
         Updates all PWM register values on a PCA9685 device based on an
         array of integers of length _PCA9685_CHANS (16).
