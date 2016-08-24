@@ -7,6 +7,8 @@ PCA9685 README
 	writing all PWM channel values as quickly as possible.
 
 	Features include:
+        * ISO 2011 C source code
+        * Userspace devlib library (no root required)
 	* Bulk update all PWM channels in one ioctl() transaction
 	* Bulk read any/all registers in one ioctl() combined transaction
 	* Minimal dependencies (does not require wiringPi)
@@ -19,12 +21,13 @@ PCA9685 README
 
 	On my B+, the example application computes new PWM values and
 	updates all 16 channels in a single refresh, and completes about
-	1520 refreshes per second while consuming 10% of the CPU.
-	The calculated throughput is:
-        1520 refreshes / second * 64 bytes / refresh = 97,280 Bps = 95 KBps
-        95 KBps * 10 bits/byte (inc start, stop, ack, etc) = 950 kbps
-	which is very close to the theoretical maximum:
-	Fm+ I2C (1MHz) = 1,000,000 bps = 976 kbps (almost 1mbps)
+	1440 refreshes per second while consuming 10% of the CPU.
+        This is also measured to be around 710 "effective" kbps which is
+        very close to the theoretical maximum:
+	Fm+ I2C (1MHz) = 1,000,000 bps = 976 kbps (not inc I2C overhead)
+        or around 781 "effective" kbps (scaled by 8/10's to inc overhead).
+        8/10's is an approximation of the ratio of effective (data) bits
+        to total (inc I2C control) bits.
 
 	Copyright (c) 2016 Scott Edlin
 	edlins ta yahoo tod com
@@ -72,7 +75,7 @@ DEPENDENCIES
 	bcm2708_i2c 20804000.i2c: BSC 1 Controller at 0x20804000
 	(irq 77) (baudrate 1000000)
 
-	And the file /sys/modele/i2c_bcm2708/parameters/combined should
+	And the file /sys/module/i2c_bcm2708/parameters/combined should
 	contain the one line:
 
 	Y
@@ -85,7 +88,7 @@ CONNECTION
 	On a Raspberry Pi B+ these pins are physical pins 3 and 5.
         Connect the PCA9685's Vdd pin to 3.3V (B+ phys pin 1 or 17).
         Connect the PCA9685's Vss pin to GND (6, 9, 14, 20, 25, 30, 34, 39).
-	If using multiple power supplies, make sure their GND's are
+	If using multiple power supplies, make sure their GNDs are
 	connected to each other, and connected to one of the Pi's GND pins.
 
 	After satisfying the dependencies and making the connections
@@ -107,6 +110,7 @@ CONNECTION
 
 	Which shows the PCA9685 responding at address 0x40 on I2C bus 1.
 
+
 INSTALL
 
 	You can include PCA9685.h and PCA9685.c directly in your project
@@ -127,7 +131,8 @@ INSTALL
 
 	-lPCA9685
 
-	Enjoy your superfast Pi PWMing!
+        An example application is included in the examples/ folder.
+
 
 FUNCTIONS
 
