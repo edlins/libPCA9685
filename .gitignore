@@ -1,4 +1,5 @@
 # ignore binaries
-picontrol
+PCA9685demo
 *.o
 *.so.*
+*.swp

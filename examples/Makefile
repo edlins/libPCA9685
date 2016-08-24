@@ -1,19 +1,27 @@
 # Makefile for libPCA9685 example
 
+# name and version
+NAME=PCA9685demo
+
+# constants
+SRC=$(NAME).c
+OBJ=$(NAME).o
+EXE=$(NAME)
+
 # parameters:
 CC = gcc
 CFLAGS = -ansi -pedantic -Wall -g -D_BSD_SOURCE -std=c11 -lncurses
 
 # targets:
-all: picontrol
+all: $(EXE)
 
-picontrol: picontrol.o
-	$(CC) $(CFLAGS) -o picontrol picontrol.o -lPCA9685
+$(EXE): $(OBJ)
+	$(CC) $(CFLAGS) -o $(EXE) $(OBJ) -lPCA9685
 
-picontrol.o: picontrol.c
-	$(CC) $(CFLAGS) -c picontrol.c
+$(OBJ): $(SRC)
+	$(CC) $(CFLAGS) -c $(SRC)
 
 
 .PHONEY: clean
 clean:
-	rm -f picontrol picontrol.o
+	rm -f $(OBJ) $(EXE)
