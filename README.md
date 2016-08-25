@@ -208,5 +208,6 @@ FUNCTIONS
 
 TODO
 
+        add support for LEDnON values in get and set functions
         dev locking?
         many other things..
