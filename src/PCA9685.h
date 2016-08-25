@@ -28,6 +28,9 @@
 #define _PCA9685_MAXFREQ	1526
 #define _PCA9685_MINFREQ	24
 
+// PWM value limits
+#define _PCA9685_MINVAL		0
+#define _PCA9685_MAXVAL		4095
 
 
 // open the I2C bus device and assign the default slave address
@@ -44,6 +47,12 @@ int PCA9685_setPWMVal(int fd, unsigned char addr, char reg, int on, int off);
 
 // set all PWM channels with one 16-bit ON val and one 16-bit OFF val
 int PCA9685_setAllPWM(int fd, unsigned char addr, int on, int off);
+
+// get all PWM channels in an array of OFF vals in one transaction
+int PCA9685_getPWMVals(int fd, unsigned char addr, int* vals);
+
+// get a single PWM channel 16-bit ON val and 16-bit OFF val
+int PCA9685_getPWMVal(int fd, unsigned char addr, char reg, int* on, int* off);
 
 // print out the values of all registers used in a pca
 int PCA9685_dumpAllRegs(int fd, unsigned char addr);

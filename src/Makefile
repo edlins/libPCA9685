@@ -3,7 +3,7 @@
 # name and version (all other values derived)
 NAME=PCA9685
 VERS_MAJ=0
-VERS_MIN=2
+VERS_MIN=3
 
 
 
@@ -18,7 +18,7 @@ DYNLIBFILEVERS=$(LIB).so.$(VERSION)
 
 # parameters:
 CC = gcc
-CFLAGS = -ansi -pedantic -Wall -g -std=c99
+CFLAGS = -ansi -pedantic -Wall -g -std=c11
 
 # targets:
 all: $(DYNLIBFILEVERS)
@@ -46,5 +46,5 @@ install:
 uninstall:
 	rm -f /usr/local/include/$(HDR)
 	rm -f /usr/local/lib/$(DYNLIBFILE)
-	rm -f /usr/local/lib/$(DYNLIBFILEVERS)
+	rm -f /usr/local/lib/$(DYNLIBFILE).*
 	ldconfig

@@ -199,6 +199,51 @@ int PCA9685_setAllPWM(int fd, unsigned char addr, int on, int off) {
 
 
 /////////////////////////////////////////////////////////////////////
+// get all PWM channels in an array of OFF vals in one transaction
+int PCA9685_getPWMVals(int fd, unsigned char addr, int* vals) {
+  int ret;
+  unsigned char readBuf[_PCA9685_CHANS*4];
+
+  ret = _PCA9685_readI2CReg(fd, addr, _PCA9685_BASEPWMREG,
+                            _PCA9685_CHANS*4, readBuf);
+  if (ret != 0) {
+    printf("PCA9685_getPWMVals(): _PCA9685_readI2CReg() returned ");
+    printf("%d on reg %02x\n", ret, _PCA9685_BASEPWMREG);
+    return ret;
+  } // if err
+
+  for (int i=0; i<_PCA9685_CHANS; i++) {
+    vals[i] = readBuf[i*4+3] << 8;
+    vals[i] += readBuf[i*4+2];
+  } // for channels
+
+  return 0;
+} // PCA9685_getPWMVals
+
+
+/////////////////////////////////////////////////////////////////////
+// get a single PWM channel 16-bit ON val and 16-bit OFF val
+int PCA9685_getPWMVal(int fd, unsigned char addr, char reg, int* on, int* off) {
+  int ret;
+  unsigned char readBuf[4];
+
+  ret = _PCA9685_readI2CReg(fd, addr, reg, 4, readBuf);
+  if (ret != 0) {
+    printf("PCA9685_getPWMVal(): _PCA9685_readI2CReg() returned ");
+    printf("%d on reg %02x\n", ret, reg);
+    return ret;
+  } // if err
+
+  *on = readBuf[1] << 8;
+  *on += readBuf[0];
+  *off = readBuf[3] << 8;
+  *off += readBuf[2];
+
+  return 0;
+} // PCA9685_getPWMVal
+
+
+/////////////////////////////////////////////////////////////////////
 // print out the values of all registers used in a PCA9685
 int PCA9685_dumpAllRegs(int fd, unsigned char addr) {
   unsigned char loBuf[_PCA9685_LOREGS];

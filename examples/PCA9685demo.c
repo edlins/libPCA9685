@@ -21,7 +21,7 @@ int addr = 0x40;
 
 void cleanup() {
   // attmempt to turn off all PWM
-  PCA9685_setAllPWM(fd, addr, 0x00, 0x00);
+  PCA9685_setAllPWM(fd, addr, _PCA9685_MINVAL, _PCA9685_MINVAL);
   #ifdef NCMODE
   // attmempt to end the ncurses window session
   endwin();
@@ -93,7 +93,7 @@ int dumpStats(int stats[]) {
 } // dumpStats
 
 
-int dumpVals(int vals[], int chan) {
+int dumpVals(int row, int vals[], int chan) {
   int i;
   for(i=0; i<_PCA9685_CHANS; i++) {
 
@@ -106,7 +106,7 @@ int dumpVals(int vals[], int chan) {
     else {
       attron(A_NORMAL | COLOR_PAIR(colorVal));
     } // else
-    mvprintw(3, 5*i, "%03x", vals[i]);
+    mvprintw(row, 5*i, "%03x", vals[i]);
     attroff(COLOR_PAIR(colorVal));
     attroff(A_BOLD);
 
@@ -160,7 +160,14 @@ int initScreen() {
     return -1;
   } // if
 
+  // initialize ncurses colors
   ret = start_color();
+  if (ret == ERR) {
+    fprintf(stderr, "initScreen(): start_color() returned ERR\n");
+    return -1;
+  } // if err
+
+  // define color pairs in opposite ROYGBIV order
   init_pair(1, COLOR_MAGENTA, COLOR_BLACK);
   init_pair(2, COLOR_BLUE, COLOR_BLACK);
   init_pair(3, COLOR_CYAN, COLOR_BLACK);
@@ -170,7 +177,7 @@ int initScreen() {
 
   // header row for stats
   mvprintw(0,  0, "frames");
-  mvprintw(0, 10, "kbits");
+  mvprintw(0, 10, "bits");
   mvprintw(0, 20, "ms");
   mvprintw(0, 30, "avg");
   mvprintw(0, 40, "Hz");
@@ -178,12 +185,13 @@ int initScreen() {
   mvprintw(0, 60, "kbps");
   mvprintw(0, 70, "avg");
 
-  dumpVals((int[]){0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, 0);
-
+  // dump off values to start
+  dumpVals(3, (int[]){0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, 0);
+  dumpVals(4, (int[]){0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, -1);
   refresh();
 
   #else
-  printf("frames    kbits     ms        avg       Hz        avg       kbps      avg\n");
+  printf("frames    bits      ms        avg       Hz        avg       kbps      avg\n");
 
   #endif
 
@@ -207,11 +215,11 @@ int main(void) {
   char manual;
 
   #ifdef NCMODE
-  automatic = 0;
-  manual = 1;
+  automatic = false;
+  manual = true;
   #else
-  automatic = 1;
-  manual = 0;
+  automatic = true;
+  manual = false;
   #endif
 
   // register the signal handler to catch interrupts
@@ -242,8 +250,10 @@ int main(void) {
     int maxStep = 100;
     int vals[_PCA9685_CHANS] =
       { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-    int size = 1024;
-    int kbits;
+    int readVals[_PCA9685_CHANS] =
+      { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    int size = 1028;
+    int bits;
     int mema = 0;
     int fema = 0;
     int kema = 0;
@@ -264,10 +274,10 @@ int main(void) {
       if (automatic) {
         int i;
         int c;
-        //size = 128;
         // read a char (non-blocking)
         nodelay(stdscr, true);
         c = getch();
+        // if m, switch to manual
         if (c != ERR) {
           if (c == (int)('m')) {
             automatic = false;
@@ -275,15 +285,14 @@ int main(void) {
           } // if
         } // if
 
-        // if m, manual = 0x01 and automatic = 0x00
         for (i=0; i<_PCA9685_CHANS; i++) {
           vals[i] += steps[i];
-          if (vals[i] > 4095) {
-            vals[i] = 4095;
+          if (vals[i] >= _PCA9685_MAXVAL) {
+            vals[i] = _PCA9685_MAXVAL;
             steps[i] *= -1;
           } // if 
-          if (vals[i] < 0) {
-            vals[i] = 0;
+          if (vals[i] <= _PCA9685_MINVAL) {
+            vals[i] = _PCA9685_MINVAL;
             steps[i] = rand() % maxStep + minStep;
           } // if 
         } // for 
@@ -292,7 +301,6 @@ int main(void) {
       else if (manual) {
         int c;
         int upStep = 128;
-        //size = 0;
 
         // read a char (blocking)
         nodelay(stdscr, false);
@@ -310,41 +318,43 @@ int main(void) {
 
         // else if up, boost vals[chan]
         else if (c == KEY_UP) {
-          vals[chan] = (vals[chan] + upStep > 4095)
-                       ? 4095 : vals[chan] + upStep;
+          vals[chan] = (vals[chan] + upStep > _PCA9685_MAXVAL)
+                       ? _PCA9685_MAXVAL : vals[chan] + upStep;
         } // if
 
         // else if down, drop vals[chan]
         else if (c == KEY_DOWN) {
-          vals[chan] = (vals[chan] - upStep < 0)
-                       ? 0 : vals[chan] - upStep;
+          vals[chan] = (vals[chan] - upStep < _PCA9685_MINVAL)
+                       ? _PCA9685_MINVAL : vals[chan] - upStep;
         } // if
 
-        // else if a, manual = 0x00 and automatic = 0x01
+        // else if a, switch to automatic
         else if (c == (int)('a')) {
-          manual = 0x00;
-          automatic = 0x01;
+          manual = false;
+          automatic = true;
           gettimeofday(&then, NULL);
         } // if
 
-        // else if 0, all vals = 0
+        // else if 0, set to minimum val
         else if (c == (int)('0')) {
           int i;
           for(i=0; i<_PCA9685_CHANS; i++) {
-            vals[i] = 0x00;
+            vals[i] = _PCA9685_MINVAL;
           } // for
         } // if
 
-        // else if 1, all vals = 0xFFF
+        // else if 1, set to maximum val
         else if (c == (int)('1')) {
           int i;
           for(i=0; i<_PCA9685_CHANS; i++) {
-            vals[i] = 4095;
+            vals[i] = _PCA9685_MAXVAL;
           } // for
         } // if
-        // else if s, toggle strobe
+        // TODO: else if s, toggle strobe
       } // if manual
 
+
+      // SET THE VALS, EVERY TIME THROUGH THE LOOP
       ret = PCA9685_setPWMVals(fd, addr, vals);
       if (ret != 0) {
         cleanup();
@@ -353,6 +363,27 @@ int main(void) {
         exit(ret);
       } // if 
 
+      // GET THE VALS, EVERY TIME THROUGH THE LOOP
+      ret = PCA9685_getPWMVals(fd, addr, readVals);
+      if (ret != 0) {
+        cleanup();
+        fprintf(stderr, "main(): PCA9685_getPWMVal() returned ");
+        fprintf(stderr, "%d on addr %02x at reg 0x06\n", ret, addr);
+        exit(ret);
+      } // if err
+
+      // compare the written vals to the read vals
+      for(int i=0; i<_PCA9685_CHANS; i++) {
+        if (readVals[i] != vals[i]) {
+          cleanup();
+          fprintf(stderr, "main(): readVals[%d] is %03x ", i, readVals[i]);
+          fprintf(stderr, "but vals[%d] is %03x", i, vals[i]);
+          exit(-1-i);
+        } // if data mismatch
+      } // for channels
+
+
+      // increment the loop counter
       j++;
 
       if (manual || j >= size) {
@@ -366,19 +397,22 @@ int main(void) {
         if (automatic) {
           gettimeofday(&now, NULL);
           timersub(&now, &then, &diff);
+          // FIXME: reset then here
+          then = now;
 
           micros = (long int)diff.tv_sec*1000000 + (long int)diff.tv_usec;
           millis = micros / 1000;
-          updfreq = (int)((float)1000*(float)size/(float)millis);
-          kbits = (size * _PCA9685_CHANS * 4 * 8) / 1024;
-          kbps = kbits * 1000 / millis;
+          millis = (millis == 0) ? 1 : millis;
+          updfreq = (int)((float)1000000 * (float)size) / (float)micros;
+          bits = size * _PCA9685_CHANS * 4 * 8;
+          kbps = (float)bits * (float)1000000 / (float)(micros * 1024);
 
           fema = (fema == 0) ? updfreq : (alpha*updfreq) + ((1-alpha)*fema);
           mema = (mema == 0) ? millis : (alpha*millis) + ((1-alpha)*mema);
           kema = (kema == 0) ? kbps : (alpha*kbps) + ((1-alpha)*kema);
 
           stats[0] = size;
-          stats[1] = kbits;
+          stats[1] = bits;
           stats[2] = millis;
           stats[3] = mema;
           stats[4] = updfreq;
@@ -387,13 +421,16 @@ int main(void) {
           stats[7] = kema;
 
           ret = dumpStats(stats);
-        } // if
+        } // if automatic
 
-        ret = dumpVals(vals, chan);
+        ret = dumpVals(3, vals, chan);
 
-        then = now;
-      } // if 
-    } // while 
+        ret = dumpVals(4, readVals, -1);
+        //FIXME: do another dump vals on all pwm vals
+        //mvprintw(4,0, "%03x", off);
+
+      } // if update screen
+    } // while forever
   } // perf context 
 
   exit(0);

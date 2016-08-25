@@ -1,4 +1,4 @@
-PCA9685 README
+libPCA9685 README
 
         This is a library for fast and efficient control of a PCA9685
         16-channel 12-bit PWM/servo driver via an I2C interface on a
@@ -19,15 +19,12 @@ PCA9685 README
         which allows for fast and efficient block reading and writing of
         all registers using I2C combined transactions.
 
-        On my B+, the example application computes new PWM values and
-        updates all 16 channels in a single refresh, and completes about
-        1440 refreshes per second while consuming 10% of the CPU.
-        This is also measured to be around 710 "effective" kbps which is
-        very close to the theoretical maximum:
-        Fm+ I2C (1MHz) = 1,000,000 bps = 976 kbps (not inc I2C overhead)
-        or around 781 "effective" kbps (scaled by 8/10's to inc overhead).
-        8/10's is an approximation of the ratio of effective (data) bits
-        to total (inc I2C control) bits.
+        The example application computes 16 new PWM values, writes the
+        16 PWM values, reads back the 16 PWM values, and compares the
+        written values to the read values.
+        All of this happens in a single 16-channel "refresh".
+        On my B+ (unloaded) the application completes about 725 refreshes
+        per second.
 
         Copyright (c) 2016 Scott Edlin
         edlins ta yahoo tod com
@@ -35,7 +32,7 @@ PCA9685 README
 
 DEPENDENCIES
 
-        PCA9685 requires two working and loaded I2C kernel modules
+        libPCA9685 requires two working and loaded I2C kernel modules
         (i2c_bcm-2708 and i2c_dev) in order to access the I2C bus via the
         /dev/i2c-N device files.
         On the intended Raspbian platforms, as of 20160819, this is
@@ -48,6 +45,10 @@ DEPENDENCIES
         The first line enables the I2C system and the second line raises
         the baudrate from the default 100kHz to 1MHz which is the speed
         of Fast-mode plus (Fm+) devices such as the PCA9685.
+        Note that with short wire runs and minimal RFI/EMI I have been
+        able to run the PCA9685 on the I2C bus at 2MHz without errors,
+        which effectively doubles the refresh rate but YMMV.
+
         Also, this library requires combined transactions which are not
         enabled by default.  This can be enabled by creating any file
         (e.g. "i2c_repeated_start.conf") in the /etc/modprobe.d folder
@@ -127,7 +128,7 @@ INSTALL
 
         #include <PCA9685.h>
 
-        And include the PCA9685 library in your linking:
+        And include libPCA9685 in your linking:
 
         -lPCA9685
 
@@ -136,9 +137,10 @@ INSTALL
 
 FUNCTIONS
 
-        Most projects will only require the following three functions used
+        Most projects will only require the first three functions below
         in order to open an I2C bus, initialize a PCA9685 device, and
-        begin setting PWM values.
+        begin setting PWM values.  The fourth function may be used to
+        read the PWM values after an update as a sanity check.
 
 
         ----------------------------------------------------------------
@@ -164,7 +166,7 @@ FUNCTIONS
 
         Performs an all-devices software reset on an I2C bus, turns off
         all PWM outputs on a PCA9685 device, sets the PWM frequency on the
-        PCA9685, and sets the MODE1 to 0x20 (auto-increment).
+        PCA9685, and sets the MODE1 register to 0x20 (auto-increment).
 
 
         ----------------------------------------------------------------
@@ -187,39 +189,24 @@ FUNCTIONS
         val <=0 is full off and val >= 4095 is full on.
 
 
-
-        The following internal function provides read functionality which
-        most users will probably not require.
-        There are additional functions providing lower-level access to I2C
-        combined transactions and PCA9685 registers.
-        Please refer to the PCA9685.c source to understand how those work.
-
         ----------------------------------------------------------------
-        int _PCA9685_readI2CReg(int fd, unsigned char addr,
-                                unsigned char startReg, int len, 
-                                unsigned char* readBuf);
+        int PCA9685_getPWMVals(int fd, int addr, int* vals);
         ----------------------------------------------------------------
-        Reads len number of register values on a PCA9685 device into
-        an array of unsigned chars.
-        The register values are raw unsigned chars, not 12-bit PWM ON and
-        OFF values because this function may be used to read any registers
-        including the MODE1 register.
-        To get raw PWM register values use startReg = 0x06 (the first LED ON
-        register), len = 64 (four 1-byte registers per channel * 16
-        channels), and a readBuf pointer to a unsigned char array of at
-        least a 64-bytes.
+        fd:          integer file descriptor for an I2C bus
+        addr:        integer I2C slave address of the PCA9685
+        vals:        array of integer values to populate with the LEDnOFF
+                     register values
+        returns:     an integer, zero for success, non-zero for failure
 
-        Each PWM channel has two 1-byte ON registers and two 1-byte OFF
-        registers.
-        The first register is the low 8-bits of the ON value, the second
-        register is the high 4-bits of the ON value, the third register is
-        the low 8-bits of the OFF value, and the fourth register is the high
-        4-bits of the OFF value.  To convert to an integer value, read the
-        high 4-bits, left shift that value by 8 bits, and add the low 8-bits
-        to get a value 0 - 4095.
+        Reads all PWM LEDnOFF registers and populates the vals array with
+        the 12-bit values in a single combined transaction (write/read with
+        a ReStart).  For a sanity checked update, call PCA9685_setPWMVals
+        with a writeVal array, then call PCA9685_getPWMVals with a readVal
+        array, and then compare the elements of the two arrays and they
+        should be identical.
 
 
 TODO
 
-        add PCA9685_getPWMVal() and PCA9685_getPWMVals()
+        dev locking?
         many other things..
