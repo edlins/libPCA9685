@@ -1,3 +1,7 @@
+#ifdef __cplusplus
+extern "C" {
+#endif
+
 #ifndef _PCA9685_H
 #define _PCA9685_H
 
@@ -80,4 +84,8 @@ int _PCA9685_writeI2CReg(int fd, unsigned char addr, unsigned char startReg,
 int _PCA9685_writeI2CRaw(int fd, unsigned char addr, int len,
                          unsigned char* writeBuf);
 
+#endif
+
+#ifdef __cplusplus
+}
 #endif

@@ -252,7 +252,7 @@ int main(void) {
       { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     int readVals[_PCA9685_CHANS] =
       { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-    int size = 1028;
+    int size = 1024;
     int bits;
     int mema = 0;
     int fema = 0;
