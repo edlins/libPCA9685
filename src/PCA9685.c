@@ -91,37 +91,38 @@ int PCA9685_initPWM(int fd, unsigned char addr, float freq) {
 
 
 /////////////////////////////////////////////////////////////////////
-// set all PWM vals in one transaction 
-// FIXME
-// remove len parameter and use _PCA9685_CHANS constant 
-int PCA9685_setPWMVals(int fd, unsigned char addr, int* vals) {
+// set all PWM OFF vals in one transaction 
+int PCA9685_setPWMVals(int fd, unsigned char addr,
+                          int* onVals, int* offVals) {
+
   unsigned char regVals[_PCA9685_CHANS*4];
   int ret;
 
-  #ifdef DEBUG
   { int i;
-    // report the write 
-    printf("PCA9685_setPWMVals(): vals[%d]: ", _PCA9685_CHANS);
     for (i=0; i<_PCA9685_CHANS; i++) {
-      printf(" %03x", vals[i]);
+      regVals[i*4+0] = onVals[i] & 0xFF;
+      regVals[i*4+1] = onVals[i] >> 8;
+      regVals[i*4+2] = offVals[i] & 0xFF;
+      regVals[i*4+3] = offVals[i] >> 8;
     } // for 
-    printf("\n");
-  }
-  #endif
+
+    #ifdef DEBUG
+    { int i;
+      // report the write 
+      printf("PCA9685_setPWMVals(): vals[%d]: ", _PCA9685_CHANS);
+      for (i=0; i<_PCA9685_CHANS; i++) {
+        printf(" %03x", regVals[i]);
+      } // for 
+      printf("\n");
+    }
+    #endif
   
-  { int i;
-    for (i=0; i<_PCA9685_CHANS; i++) {
-      regVals[i*4] = 0x00;
-      regVals[i*4+1] = 0x00;
-      regVals[i*4+2] = vals[i] & 0xFF;
-      regVals[i*4+3] = vals[i] >> 8;
-    } // for 
     ret = _PCA9685_writeI2CReg(fd, addr, _PCA9685_BASEPWMREG,
                                _PCA9685_CHANS*4, regVals);
     if (ret != 0) {
-      printf("PCA9685_setPWMVals(): _PCA9685_writeI2CReg() returned %d, ", ret);
-      printf("addr %02x, reg %02x, len %d\n",
-              addr, _PCA9685_BASEPWMREG, _PCA9685_CHANS*4);
+      printf("PCA9685_setPWMVals(): _PCA9685_writeI2CReg() returned ");
+      printf("%d, addr %02x, reg %02x, len %d\n",
+              ret, addr, _PCA9685_BASEPWMREG, _PCA9685_CHANS*4);
       return ret;
     } // if 
   } // int context 
@@ -200,7 +201,8 @@ int PCA9685_setAllPWM(int fd, unsigned char addr, int on, int off) {
 
 /////////////////////////////////////////////////////////////////////
 // get all PWM channels in an array of OFF vals in one transaction
-int PCA9685_getPWMVals(int fd, unsigned char addr, int* vals) {
+int PCA9685_getPWMVals(int fd, unsigned char addr,
+                       int* onVals, int* offVals) {
   int ret;
   unsigned char readBuf[_PCA9685_CHANS*4];
 
@@ -213,12 +215,15 @@ int PCA9685_getPWMVals(int fd, unsigned char addr, int* vals) {
   } // if err
 
   for (int i=0; i<_PCA9685_CHANS; i++) {
-    vals[i] = readBuf[i*4+3] << 8;
-    vals[i] += readBuf[i*4+2];
+    onVals[i] = readBuf[i*4+1] << 8;
+    onVals[i] += readBuf[i*4+0];
+    offVals[i] = readBuf[i*4+3] << 8;
+    offVals[i] += readBuf[i*4+2];
   } // for channels
 
   return 0;
 } // PCA9685_getPWMVals
+
 
 
 /////////////////////////////////////////////////////////////////////
@@ -439,6 +444,16 @@ int _PCA9685_readI2CReg(int fd, unsigned char addr, unsigned char startReg,
 int _PCA9685_writeI2CReg(int fd, unsigned char addr, unsigned char startReg,
              int len, unsigned char* writeBuf) {
   int ret;
+
+  #ifdef DEBUG
+  { int i;
+    printf("_PCA9685_writeI2CReg(): %02x:%02x:%02x", addr, startReg, len);
+    for (i=0; i<len; i++) {
+      printf(" %02x", writeBuf[i]);
+    } // for
+    printf("\n");
+  } // context
+  #endif
 
   // prepend the register address to the buffer 
   unsigned char* rawBuf;

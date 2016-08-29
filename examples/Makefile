@@ -10,7 +10,7 @@ EXE=$(NAME)
 
 # parameters:
 CC = gcc
-CFLAGS = -ansi -pedantic -Wall -g -D_BSD_SOURCE -std=c11 -lncurses
+CFLAGS = -pedantic -Wall -D_BSD_SOURCE -std=c11 -lncurses
 
 # targets:
 all: $(EXE)
@@ -19,7 +19,7 @@ $(EXE): $(OBJ)
 	$(CC) $(CFLAGS) -o $(EXE) $(OBJ) -lPCA9685
 
 $(OBJ): $(SRC)
-	$(CC) $(CFLAGS) -c $(SRC)
+	$(CC) $(CFLAGS) -o $(OBJ) -c $(SRC)
 
 
 .PHONEY: clean

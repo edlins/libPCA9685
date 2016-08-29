@@ -12,6 +12,7 @@
 #include <PCA9685.h>
 
 //#define DEBUG
+#define VALIDATE
 #define NCMODE
 
 
@@ -51,9 +52,9 @@ int initHardware(int adpt, int addr, int freq) {
 
   #ifdef DEBUG
   // display all used pca registers 
-  ret = dumpAllRegs(fd, addr);
+  ret = PCA9685_dumpAllRegs(fd, addr);
   if (ret != 0) {
-    fprintf(stderr, "initHardware(): dumpAllRegs() returned %d\n", ret);
+    fprintf(stderr, "initHardware(): PCA9685_dumpAllRegs() returned %d\n", ret);
     return -1;
   } // if 
   #endif
@@ -67,9 +68,9 @@ int initHardware(int adpt, int addr, int freq) {
 
   #ifdef DEBUG
   // display all used pca registers 
-  ret = dumpAllRegs(fd, addr);
+  ret = PCA9685_dumpAllRegs(fd, addr);
   if (ret != 0) {
-    fprintf(stderr, "initHardware(): dumpAllRegs() returned %d\n", ret);
+    fprintf(stderr, "initHardware(): PCA9685_dumpAllRegs() returned %d\n", ret);
     return -1;
   } // if 
   #endif
@@ -187,7 +188,11 @@ int initScreen() {
 
   // dump off values to start
   dumpVals(3, (int[]){0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, 0);
+
+  #ifdef VALIDATE
   dumpVals(4, (int[]){0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, -1);
+  #endif
+
   refresh();
 
   #else
@@ -248,10 +253,18 @@ int main(void) {
     int steps[_PCA9685_CHANS];
     int minStep = 1;
     int maxStep = 100;
-    int vals[_PCA9685_CHANS] =
+    int setOnVals[_PCA9685_CHANS] =
       { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-    int readVals[_PCA9685_CHANS] =
+    int setOffVals[_PCA9685_CHANS] =
       { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+
+    #ifdef VALIDATE
+    int getOnVals[_PCA9685_CHANS] =
+      { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    int getOffVals[_PCA9685_CHANS] =
+      { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
+    #endif
+
     int size = 1024;
     int bits;
     int mema = 0;
@@ -286,13 +299,13 @@ int main(void) {
         } // if
 
         for (i=0; i<_PCA9685_CHANS; i++) {
-          vals[i] += steps[i];
-          if (vals[i] >= _PCA9685_MAXVAL) {
-            vals[i] = _PCA9685_MAXVAL;
+          setOffVals[i] += steps[i];
+          if (setOffVals[i] >= _PCA9685_MAXVAL) {
+            setOffVals[i] = _PCA9685_MAXVAL;
             steps[i] *= -1;
           } // if 
-          if (vals[i] <= _PCA9685_MINVAL) {
-            vals[i] = _PCA9685_MINVAL;
+          if (setOffVals[i] <= _PCA9685_MINVAL) {
+            setOffVals[i] = _PCA9685_MINVAL;
             steps[i] = rand() % maxStep + minStep;
           } // if 
         } // for 
@@ -300,7 +313,7 @@ int main(void) {
 
       else if (manual) {
         int c;
-        int upStep = 128;
+        int upStep = 64;
 
         // read a char (blocking)
         nodelay(stdscr, false);
@@ -318,14 +331,26 @@ int main(void) {
 
         // else if up, boost vals[chan]
         else if (c == KEY_UP) {
-          vals[chan] = (vals[chan] + upStep > _PCA9685_MAXVAL)
-                       ? _PCA9685_MAXVAL : vals[chan] + upStep;
+          setOffVals[chan] = (setOffVals[chan] + upStep > _PCA9685_MAXVAL)
+                       ? _PCA9685_MAXVAL : setOffVals[chan] + upStep;
         } // if
 
         // else if down, drop vals[chan]
         else if (c == KEY_DOWN) {
-          vals[chan] = (vals[chan] - upStep < _PCA9685_MINVAL)
-                       ? _PCA9685_MINVAL : vals[chan] - upStep;
+          setOffVals[chan] = (setOffVals[chan] - upStep < _PCA9685_MINVAL)
+                       ? _PCA9685_MINVAL : setOffVals[chan] - upStep;
+        } // if
+
+        // else if period, inc vals[chan]
+        else if (c == (int)('.')) {
+          setOffVals[chan] = (setOffVals[chan] + 1 > _PCA9685_MAXVAL)
+                       ? _PCA9685_MAXVAL : setOffVals[chan] + 1;
+        } // if
+
+        // else if down, drop vals[chan]
+        else if (c == (int)(',')) {
+          setOffVals[chan] = (setOffVals[chan] - 1 < _PCA9685_MINVAL)
+                       ? _PCA9685_MINVAL : setOffVals[chan] - 1;
         } // if
 
         // else if a, switch to automatic
@@ -339,7 +364,7 @@ int main(void) {
         else if (c == (int)('0')) {
           int i;
           for(i=0; i<_PCA9685_CHANS; i++) {
-            vals[i] = _PCA9685_MINVAL;
+            setOffVals[i] = _PCA9685_MINVAL;
           } // for
         } // if
 
@@ -347,7 +372,7 @@ int main(void) {
         else if (c == (int)('1')) {
           int i;
           for(i=0; i<_PCA9685_CHANS; i++) {
-            vals[i] = _PCA9685_MAXVAL;
+            setOffVals[i] = _PCA9685_MAXVAL;
           } // for
         } // if
         // TODO: else if s, toggle strobe
@@ -355,33 +380,40 @@ int main(void) {
 
 
       // SET THE VALS, EVERY TIME THROUGH THE LOOP
-      ret = PCA9685_setPWMVals(fd, addr, vals);
+      ret = PCA9685_setPWMVals(fd, addr, setOnVals, setOffVals);
       if (ret != 0) {
         cleanup();
-        fprintf(stderr, "main(): setEachPwm() returned ");
+        fprintf(stderr, "main(): PCA9685_setPWMVals() returned ");
         fprintf(stderr, "%d on addr %02x\n", ret, addr);
         exit(ret);
       } // if 
 
+      #ifdef VALIDATE
       // GET THE VALS, EVERY TIME THROUGH THE LOOP
-      ret = PCA9685_getPWMVals(fd, addr, readVals);
+      ret = PCA9685_getPWMVals(fd, addr, getOnVals, getOffVals);
       if (ret != 0) {
         cleanup();
-        fprintf(stderr, "main(): PCA9685_getPWMVal() returned ");
+        fprintf(stderr, "main(): PCA9685_getPWMVals() returned ");
         fprintf(stderr, "%d on addr %02x at reg 0x06\n", ret, addr);
         exit(ret);
       } // if err
 
       // compare the written vals to the read vals
       for(int i=0; i<_PCA9685_CHANS; i++) {
-        if (readVals[i] != vals[i]) {
+        if (getOnVals[i] != setOnVals[i]) {
           cleanup();
-          fprintf(stderr, "main(): readVals[%d] is %03x ", i, readVals[i]);
-          fprintf(stderr, "but vals[%d] is %03x", i, vals[i]);
+          fprintf(stderr, "main(): getOnVals[%d] is %03x ", i, getOnVals[i]);
+          fprintf(stderr, "but setOnVals[%d] is %03x", i, setOnVals[i]);
+          exit(-1-i);
+        } // if data mismatch
+        if (getOffVals[i] != setOffVals[i]) {
+          cleanup();
+          fprintf(stderr, "main(): getOffVals[%d] is %03x ", i, getOffVals[i]);
+          fprintf(stderr, "but setOffVals[%d] is %03x", i, setOffVals[i]);
           exit(-1-i);
         } // if data mismatch
       } // for channels
-
+      #endif
 
       // increment the loop counter
       j++;
@@ -397,7 +429,6 @@ int main(void) {
         if (automatic) {
           gettimeofday(&now, NULL);
           timersub(&now, &then, &diff);
-          // FIXME: reset then here
           then = now;
 
           micros = (long int)diff.tv_sec*1000000 + (long int)diff.tv_usec;
@@ -423,11 +454,11 @@ int main(void) {
           ret = dumpStats(stats);
         } // if automatic
 
-        ret = dumpVals(3, vals, chan);
+        ret = dumpVals(3, setOffVals, chan);
 
-        ret = dumpVals(4, readVals, -1);
-        //FIXME: do another dump vals on all pwm vals
-        //mvprintw(4,0, "%03x", off);
+        #ifdef VALIDATE
+        ret = dumpVals(4, getOffVals, -1);
+        #endif
 
       } // if update screen
     } // while forever

@@ -3,7 +3,7 @@
 # name and version (all other values derived)
 NAME=PCA9685
 VERS_MAJ=0
-VERS_MIN=3
+VERS_MIN=4
 
 
 
@@ -18,7 +18,7 @@ DYNLIBFILEVERS=$(LIB).so.$(VERSION)
 
 # parameters:
 CC = gcc
-CFLAGS = -ansi -pedantic -Wall -g -std=c11
+CFLAGS = -pedantic -Wall -std=c11
 
 # targets:
 all: $(DYNLIBFILEVERS)

@@ -43,8 +43,8 @@ int PCA9685_openI2C(int adpt, unsigned char addr);
 // initialize a pca device to defaults, turn off PWM's, and set the freq
 int PCA9685_initPWM(int fd, unsigned char addr, float freq);
 
-// set all PWM channels from an array of OFF vals in one transaction
-int PCA9685_setPWMVals(int fd, unsigned char addr, int* vals);
+// set all PWM channels from two arrays of ON and OFF vals in one transaction
+int PCA9685_setPWMVals(int fd, unsigned char addr, int* onVals, int* offVals);
 
 // set a single PWM channel with a 16-bit ON val and a 16-bit OFF val
 int PCA9685_setPWMVal(int fd, unsigned char addr, char reg, int on, int off);
@@ -52,8 +52,8 @@ int PCA9685_setPWMVal(int fd, unsigned char addr, char reg, int on, int off);
 // set all PWM channels with one 16-bit ON val and one 16-bit OFF val
 int PCA9685_setAllPWM(int fd, unsigned char addr, int on, int off);
 
-// get all PWM channels in an array of OFF vals in one transaction
-int PCA9685_getPWMVals(int fd, unsigned char addr, int* vals);
+// get all PWM channels in two arrays of ON and OFF vals in one transaction
+int PCA9685_getPWMVals(int fd, unsigned char addr, int* onVals, int* offVals);
 
 // get a single PWM channel 16-bit ON val and 16-bit OFF val
 int PCA9685_getPWMVal(int fd, unsigned char addr, char reg, int* on, int* off);

@@ -20,11 +20,11 @@ libPCA9685 README
         all registers using I2C combined transactions.
 
         The example application computes 16 new PWM values, writes the
-        16 PWM values, reads back the 16 PWM values, and compares the
-        written values to the read values.
+        16 PWM values, optionally reads back the 16 PWM values, and
+        optionally compares the written values to the read values.
         All of this happens in a single 16-channel "refresh".
-        On my B+ (unloaded) the application completes about 725 refreshes
-        per second.
+        On my B+ (unloaded) the application completes about 1430 refreshes
+        per second without validation or 730 with validation.
 
         Copyright (c) 2016 Scott Edlin
         edlins ta yahoo tod com
@@ -170,11 +170,12 @@ FUNCTIONS
 
 
         ----------------------------------------------------------------
-        int PCA9685_setPWMVals(int fd, int addr, int* vals);
+        int PCA9685_setPWMVals(int fd, int addr, int* onVals, int*offVals);
         ----------------------------------------------------------------
         fd:          integer file descriptor for an I2C bus
         addr:        integer I2C slave address of the PCA9685
-        vals:        array of integer values used to set the LEDnOFF registers
+        onVals:      array of integer values used to set the LEDnON registers
+        offVals:     array of integer values used to set the LEDnOFF registers
         returns:     an integer, zero for success, non-zero for failure
 
         Updates all PWM register values on a PCA9685 device based on an
@@ -190,11 +191,13 @@ FUNCTIONS
 
 
         ----------------------------------------------------------------
-        int PCA9685_getPWMVals(int fd, int addr, int* vals);
+        int PCA9685_getPWMVals(int fd, int addr, int* onVals, int* offVals);
         ----------------------------------------------------------------
         fd:          integer file descriptor for an I2C bus
         addr:        integer I2C slave address of the PCA9685
-        vals:        array of integer values to populate with the LEDnOFF
+        onVals:      array of integer values to populate with the LEDnON
+                     register values
+        offVals:     array of integer values to populate with the LEDnOFF
                      register values
         returns:     an integer, zero for success, non-zero for failure
 
@@ -208,6 +211,5 @@ FUNCTIONS
 
 TODO
 
-        add support for LEDnON values in get and set functions
         dev locking?
         many other things..
