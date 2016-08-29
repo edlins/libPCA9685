@@ -182,11 +182,12 @@ FUNCTIONS
         array of integers of length _PCA9685_CHANS (16).
         Each PWM channel has a pair of ON registers and a pair of OFF
         registers.
-        This function sets the ON registers to 0x00 (turn on at the
-        beginning of the cycle) and sets the OFF registers to the low
-        12-bits of a corresponding integer in the vals array (turn off
-        at a delay offset of 0 - 4095).
-        Higher vals correspond to longer pulse widths.
+        This function sets the ON and OFF registers to the low
+        12-bits of the corresponding integers in the onVals and offVals
+        arrays (turn on at a delay offset of 0 - 4095, and turn off at
+        a later delay offset of 0 - 4095).
+        Larger differences between onVals and offVals correspond to longer
+        pulse widths which correspond to brighter intensities.
         val <=0 is full off and val >= 4095 is full on.
 
 
@@ -201,11 +202,12 @@ FUNCTIONS
                      register values
         returns:     an integer, zero for success, non-zero for failure
 
-        Reads all PWM LEDnOFF registers and populates the vals array with
-        the 12-bit values in a single combined transaction (write/read with
-        a ReStart).  For a sanity checked update, call PCA9685_setPWMVals
-        with a writeVal array, then call PCA9685_getPWMVals with a readVal
-        array, and then compare the elements of the two arrays and they
+        Reads all PWM registers and populates the onVals and offVals arrays
+        with the 12-bit values in a single combined transaction
+        (write/read with a ReStart).
+        For a validated update, call PCA9685_setPWMVals with two arrays to
+        write, then call PCA9685_getPWMVals with two arrays to read, and
+        then compare the elements of the two pairs of arrays and they
         should be identical.
 
 
