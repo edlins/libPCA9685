@@ -188,7 +188,7 @@ FUNCTIONS
         a later delay offset of 0 - 4095).
         Larger differences between onVals and offVals correspond to longer
         pulse widths which correspond to brighter intensities.
-        val <=0 is full off and val >= 4095 is full on.
+        off-on <= 0 is full off and off-on >= 4095 is full on.
 
 
         ----------------------------------------------------------------
