@@ -144,12 +144,12 @@ FUNCTIONS
 
 
         ----------------------------------------------------------------
-        int PCA9685_openI2C(int adpt, int addr);
+        int PCA9685_openI2C(unsigned char adpt, unsigned char addr);
         ----------------------------------------------------------------
-        adpt:        integer adpt number ("1" in most cases)
-        addr:        integer default I2C slave address (only matters if using
+        adpt:        adapter number ("1" in most cases)
+        addr:        default I2C slave address (only matters if using
                      read() and write() instead of the library functions)
-        returns:     an integer file descriptor for the I2C bus or negative
+        returns:     file descriptor for the I2C bus or negative
                      for an error
 
         Opens the I2C bus device file, sets the default I2C slave address,
@@ -157,12 +157,12 @@ FUNCTIONS
 
 
         ----------------------------------------------------------------
-        int PCA9685_initPWM(int fd, int addr, int freq);
+        int PCA9685_initPWM(int fd, unsigned char addr, unsigned int freq);
         ----------------------------------------------------------------
-        fd:          integer file descriptor for an I2C bus
-        addr:        integer I2C slave address of the PCA9685 (default "0x40")
-        freq:        integer PWM frequency for the PCA9685 (24 - 1526, in Hz)
-        returns:     an integer, zero for success, non-zero for failure
+        fd:          file descriptor for an I2C bus
+        addr:        I2C slave address of the PCA9685 (default "0x40")
+        freq:        PWM frequency for the PCA9685 (24 - 1526, in Hz)
+        returns:     zero for success, non-zero for failure
 
         Performs an all-devices software reset on an I2C bus, turns off
         all PWM outputs on a PCA9685 device, sets the PWM frequency on the
@@ -170,37 +170,37 @@ FUNCTIONS
 
 
         ----------------------------------------------------------------
-        int PCA9685_setPWMVals(int fd, int addr, int* onVals, int*offVals);
+        int PCA9685_setPWMVals(int fd, unsigned char addr,
+                               unsigned int* onVals, unsigned int* offVals);
         ----------------------------------------------------------------
-        fd:          integer file descriptor for an I2C bus
-        addr:        integer I2C slave address of the PCA9685
-        onVals:      array of integer values used to set the LEDnON registers
-        offVals:     array of integer values used to set the LEDnOFF registers
-        returns:     an integer, zero for success, non-zero for failure
+        fd:          file descriptor for an I2C bus
+        addr:        I2C slave address of the PCA9685
+        onVals:      array of values used to set the LEDnON registers
+        offVals:     array of values used to set the LEDnOFF registers
+        returns:     zero for success, non-zero for failure
 
         Updates all PWM register values on a PCA9685 device based on an
-        array of integers of length _PCA9685_CHANS (16).
+        array of length _PCA9685_CHANS (16).
         Each PWM channel has a pair of ON registers and a pair of OFF
         registers.
         This function sets the ON and OFF registers to the low
-        12-bits of the corresponding integers in the onVals and offVals
-        arrays (turn on at a delay offset of 0 - 4095, and turn off at
-        a later delay offset of 0 - 4095).
+        12-bits of the corresponding values in the onVals and offVals
+        arrays (turn on at a delay offset between 0 and 4095, and turn off
+        at a delay offset between 0 and 4095).
         Larger differences between onVals and offVals correspond to longer
         pulse widths which correspond to brighter intensities.
         off-on <= 0 is full off and off-on >= 4095 is full on.
 
 
         ----------------------------------------------------------------
-        int PCA9685_getPWMVals(int fd, int addr, int* onVals, int* offVals);
+        int PCA9685_getPWMVals(int fd, unsigned char addr,
+                               unsigned int* onVals, unsigned int* offVals);
         ----------------------------------------------------------------
-        fd:          integer file descriptor for an I2C bus
-        addr:        integer I2C slave address of the PCA9685
-        onVals:      array of integer values to populate with the LEDnON
-                     register values
-        offVals:     array of integer values to populate with the LEDnOFF
-                     register values
-        returns:     an integer, zero for success, non-zero for failure
+        fd:          file descriptor for an I2C bus
+        addr:        I2C slave address of the PCA9685
+        onVals:      array to populate with the LEDnON register values
+        offVals:     array to populate with the LEDnOFF register values
+        returns:     zero for success, non-zero for failure
 
         Reads all PWM registers and populates the onVals and offVals arrays
         with the 12-bit values in a single combined transaction
