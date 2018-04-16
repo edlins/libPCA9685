@@ -13,6 +13,7 @@ libPCA9685 README
         * Bulk read any/all registers in one ioctl() combined transaction
         * Minimal dependencies (does not require wiringPi)
         * Not using SMBus functions with their limitations
+        * MIT License
 
         This library bypasses the smbus library and the read() and write()
         functions and provides functions for direct I2C control via ioctl()
