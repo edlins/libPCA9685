@@ -54,7 +54,7 @@ int PCA9685_initPWM(int fd, unsigned char addr, unsigned int freq) {
 
   // send a software reset to get defaults 
   unsigned char resetval = _PCA9685_RESETVAL;
-  unsigned char mode1val = 0x00 | _PCA9685_AUTOINCBIT;
+  unsigned char mode1val = 0x00 | _PCA9685_AUTOINCBIT | _PCA9685_ALLCALLBIT | _PCA9685_SUB3BIT | _PCA9685_SUB2BIT | _PCA9685_SUB1BIT;
 
   ret = _PCA9685_writeI2CRaw(fd, _PCA9685_MODE1REG, 1, &resetval);
   if (ret != 0) {

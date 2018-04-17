@@ -21,8 +21,13 @@ extern "C" {
 #define _PCA9685_PRESCALEREG	0xFE
 
 // bit positions within MODE1 register
+#define _PCA9685_ALLCALLBIT	0x01
+#define _PCA9685_SUB3BIT	0x02
+#define _PCA9685_SUB2BIT	0x04
+#define _PCA9685_SUB1BIT	0x08
 #define _PCA9685_SLEEPBIT	0x10
 #define _PCA9685_AUTOINCBIT	0x20
+#define _PCA9685_EXTCLKBIT	0x40
 #define _PCA9685_RESTARTBIT	0x80
 
 // control register to initiate device reset
