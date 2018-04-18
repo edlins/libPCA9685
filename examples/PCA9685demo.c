@@ -359,35 +359,14 @@ int main(void) {
           } // if
         } // if
 
-        for (i=0; i<4; i++) {
+        for (i=0; i<_PCA9685_CHANS; i++) {
 
           HSV.h += 0.0001;
-          //HSV.h += 0.02;
           if (HSV.h >= 1.0) HSV.h = 0.0;
           RGB = hsv2rgb(HSV);
           setOffVals[i*3+0] = RGB.r;
           setOffVals[i*3+1] = RGB.g;
           setOffVals[i*3+2] = RGB.b;
-/*
-          // don't go larger than MAX
-          if ((steps[i] > 0) &&
-             (setOffVals[i] >= _PCA9685_MAXVAL - steps[i])) {
-            setOffVals[i] = _PCA9685_MAXVAL;
-            steps[i] *= -1;
-          } // if 
-
-          // don't go smaller than MIN
-          else if ((steps[i] < 0) &&
-                  (setOffVals[i] <= _PCA9685_MINVAL - steps[i])) {
-            setOffVals[i] = _PCA9685_MINVAL;
-            steps[i] = rand() % (maxStep - minStep) + minStep;
-          } // else if 
-
-          // take the step
-          else {
-            setOffVals[i] += steps[i];
-          } // else
-*/
         } // for 
       } // if auto
 
