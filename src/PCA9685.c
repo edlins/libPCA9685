@@ -11,6 +11,8 @@
 #include "PCA9685.h"
 
 //#define DEBUG
+//#define INVERT
+//#define OPENDRAIN
 
 
 
@@ -78,12 +80,27 @@ int PCA9685_initPWM(int fd, unsigned char addr, unsigned int freq) {
     return -1;
   } // if 
 
+  // set MODE1 register
   ret = _PCA9685_writeI2CReg(fd, addr, _PCA9685_MODE1REG, 1, &mode1val);
   if (ret != 0) {
     printf("PCA9685_initPWM(): _PCA9685_writeI2CReg() returned ");
     printf("%d on addr %02x\n", ret, addr);
     return -1;
   } // if 
+
+  #ifdef OPENDRAIN
+  // set MODE2 register
+  unsigned char mode2val = 0x00 & ~_PCA9685_OUTDRVBIT;
+  #ifdef INVERT
+  mode2val = mode2val | _PCA9685_INVRTBIT;
+  #endif
+  ret = _PCA9685_writeI2CReg(fd, addr, _PCA9685_MODE2REG, 1, &mode2val);
+  if (ret != 0) {
+    printf("PCA9685_initPWM(): _PCA9685_writeI2CReg() returned ");
+    printf("%d on addr %02x\n", ret, addr);
+    return -1;
+  } // if 
+  #endif
 
   return 0;
 } // PCA9685_initPWM
@@ -199,6 +216,27 @@ int PCA9685_setAllPWM(int fd, unsigned char addr,
   return 0;
 } // PCA9685_setAllPWM 
 
+
+
+/////////////////////////////////////////////////////////////////////
+// get both register values in one transaction
+int PCA9685_getRegVals(int fd, unsigned char addr,
+                       unsigned char* mode1val, unsigned char* mode2val) {
+  int ret;
+  unsigned char readBuf[2];
+
+  ret = _PCA9685_readI2CReg(fd, addr, _PCA9685_MODE1REG, 2, readBuf);
+  if (ret != 0) {
+    printf("PCA9685_getRegVals(): _PCA9685_readI2CReg() returned ");
+    printf("%d on reg %02x\n", ret, _PCA9685_MODE1REG);
+    return -1;
+  } // if err
+
+  *mode1val = readBuf[0];
+  *mode2val = readBuf[1];
+
+  return 0;
+} // PCA9685_getPWMVals
 
 
 /////////////////////////////////////////////////////////////////////

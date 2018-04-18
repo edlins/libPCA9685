@@ -16,6 +16,7 @@ extern "C" {
 
 // register addresses
 #define _PCA9685_MODE1REG	0x00
+#define _PCA9685_MODE2REG	0x01
 #define _PCA9685_BASEPWMREG	0x06
 #define _PCA9685_ALLLEDREG	0xFA
 #define _PCA9685_PRESCALEREG	0xFE
@@ -29,6 +30,10 @@ extern "C" {
 #define _PCA9685_AUTOINCBIT	0x20
 #define _PCA9685_EXTCLKBIT	0x40
 #define _PCA9685_RESTARTBIT	0x80
+
+// bit positions within MODE2 register
+#define _PCA9685_INVRTBIT	0x10
+#define _PCA9685_OUTDRVBIT	0x04
 
 // control register to initiate device reset
 #define _PCA9685_RESETVAL	0x06
@@ -59,6 +64,10 @@ int PCA9685_setPWMVal(int fd, unsigned char addr, unsigned char reg,
 // set all PWM channels with one 16-bit ON val and one 16-bit OFF val
 int PCA9685_setAllPWM(int fd, unsigned char addr,
                       unsigned int on, unsigned int off);
+
+// get both register values in one transaction
+int PCA9685_getRegVals(int fd, unsigned char addr,
+                       unsigned char* mode1val, unsigned char* mode2val);
 
 // get all PWM channels in two arrays of ON and OFF vals in one transaction
 int PCA9685_getPWMVals(int fd, unsigned char addr,
