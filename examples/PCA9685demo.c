@@ -12,7 +12,7 @@
 #include <PCA9685.h>
 
 //#define DEBUG
-//#define VALIDATE
+#define VALIDATE
 #define NCMODE
 
 
@@ -128,6 +128,11 @@ int dumpVals(unsigned int row, unsigned int* vals, unsigned char chan) {
 } // dumpVals
 
 
+void dumpRegs(unsigned char mode1val, unsigned char mode2val) {
+  mvprintw(6, 0, "%02x %02x", mode1val, mode2val);
+} // dumpRegs
+
+
 
 int initScreen() {
 
@@ -194,6 +199,56 @@ int initScreen() {
 } // initScreen
 
 
+struct rgb {
+  int r;
+  int g;
+  int b;
+}; // typedef
+
+
+struct hsv {
+  float h;
+  float s;
+  float v;
+}; // typedef
+
+
+#define MAXRGBVAL _PCA9685_MAXVAL
+
+
+struct rgb hsv2rgb(struct hsv _hsv) {
+  struct rgb _rgb;
+  float var_r, var_g, var_b;
+
+  if (_hsv.s <= 0.0) {
+    _rgb.r = (int)(_hsv.v * MAXRGBVAL);
+    _rgb.g = (int)(_hsv.v * MAXRGBVAL);
+    _rgb.b = (int)(_hsv.v * MAXRGBVAL);
+  } // if
+
+  else {
+    float var_h = _hsv.h * 6;
+    if (var_h >= 6.0) var_h = 0;
+    int var_i = (int)var_h;
+    float var_1 = _hsv.v * (1 - _hsv.s);
+    float var_2 = _hsv.v * (1 - _hsv.s * (var_h - var_i));
+    float var_3 = _hsv.v * (1 - _hsv.s * (1 - (var_h - var_i)));
+
+    if      (var_i == 0) { var_r = _hsv.v; var_g = var_3;  var_b = var_1;  }
+    else if (var_i == 1) { var_r = var_2;  var_g = _hsv.v; var_b = var_1;  }
+    else if (var_i == 2) { var_r = var_1;  var_g = _hsv.v; var_b = var_3;  }
+    else if (var_i == 3) { var_r = var_1;  var_g = var_2;  var_b = _hsv.v; }
+    else if (var_i == 4) { var_r = var_3;  var_g = var_1;  var_b = _hsv.v; }
+    else                 { var_r = _hsv.v; var_g = var_1;  var_b = var_2;  }
+
+    _rgb.r = (int)(var_r * MAXRGBVAL);
+    _rgb.g = (int)(var_g * MAXRGBVAL);
+    _rgb.b = (int)(var_b * MAXRGBVAL);
+
+  } // else
+
+  return _rgb;
+} // hsv2rgb
 
 
 
@@ -237,12 +292,23 @@ int main(void) {
     return -1;
   } // if
 
+  unsigned char mode1val;
+  unsigned char mode2val;
+  ret = PCA9685_getRegVals(fd, addr, &mode1val, &mode2val);
+  if (ret != 0) {
+    cleanup();
+    fprintf(stderr, "main(): PCA9685_GetRegVals() returned ");
+    fprintf(stderr, "%d for adpt %d at addr %02x\n", ret, adpt, addr);
+    return -1;
+  } // if
+  dumpRegs(mode1val, mode2val);
+
   { // perf context 
     int j = 0;
     int chan = 0;
     int steps[_PCA9685_CHANS];
-    int minStep = 1;
-    int maxStep = 100;
+    int minStep = 10;
+    int maxStep = 20;
     unsigned int setOnVals[_PCA9685_CHANS] =
       { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     unsigned int setOffVals[_PCA9685_CHANS] =
@@ -273,6 +339,12 @@ int main(void) {
     } // for 
 
     int c;
+    struct rgb RGB;
+    struct hsv HSV;
+    HSV.h = 0.0;
+    HSV.s = 1.0;
+    HSV.v = 1.0;
+
     // blink endlessly 
     while (1) {
 
@@ -287,8 +359,16 @@ int main(void) {
           } // if
         } // if
 
-        for (i=0; i<_PCA9685_CHANS; i++) {
+        for (i=0; i<4; i++) {
 
+          HSV.h += 0.0001;
+          //HSV.h += 0.02;
+          if (HSV.h >= 1.0) HSV.h = 0.0;
+          RGB = hsv2rgb(HSV);
+          setOffVals[i*3+0] = RGB.r;
+          setOffVals[i*3+1] = RGB.g;
+          setOffVals[i*3+2] = RGB.b;
+/*
           // don't go larger than MAX
           if ((steps[i] > 0) &&
              (setOffVals[i] >= _PCA9685_MAXVAL - steps[i])) {
@@ -307,6 +387,7 @@ int main(void) {
           else {
             setOffVals[i] += steps[i];
           } // else
+*/
         } // for 
       } // if auto
 
@@ -350,6 +431,16 @@ int main(void) {
         else if (c == (int)(',')) {
           setOffVals[chan] = (setOffVals[chan] < _PCA9685_MINVAL + 1)
                        ? _PCA9685_MINVAL : setOffVals[chan] - 1;
+        } // if
+
+        // else if left bracket, set chan to minimum val
+        else if (c == (int)('[')) {
+          setOffVals[chan] = _PCA9685_MINVAL;
+        } // if
+
+        // else if right bracket, set chan to maximum val
+        else if (c == (int)(']')) {
+          setOffVals[chan] = _PCA9685_MAXVAL;
         } // if
 
         // else if a, switch to automatic
@@ -467,6 +558,11 @@ int main(void) {
         #endif
 
       } // if update screen
+
+      struct timeval timeout;
+      timeout.tv_sec = 0;
+      timeout.tv_usec = 18000;
+      select((int)NULL, NULL, NULL, NULL, &timeout);
     } // while forever
   } // perf context 
 
