@@ -136,6 +136,14 @@ INSTALL
         An example application is included in the examples/ folder.
 
 
+CONTRIBUTING
+
+	Your contributions are very welcome!  Please develop contributions
+	against the "develop" branch and submit PRs against "develop".
+	PRs against "master" will not be accepted.  For all but trivial
+	contributions please open an Issue for discussion first.
+
+
 FUNCTIONS
 
         Most projects will only require the first three functions below
