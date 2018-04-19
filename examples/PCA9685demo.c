@@ -306,9 +306,6 @@ int main(void) {
   { // perf context 
     int j = 0;
     int chan = 0;
-    int steps[_PCA9685_CHANS];
-    int minStep = 10;
-    int maxStep = 20;
     unsigned int setOnVals[_PCA9685_CHANS] =
       { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     unsigned int setOffVals[_PCA9685_CHANS] =
@@ -332,12 +329,6 @@ int main(void) {
 
     gettimeofday(&then, NULL);
     
-    // initialize steps for automatic mode
-    int i;
-    for (i=0; i<_PCA9685_CHANS; i++) {
-      steps[i] = rand() % maxStep + minStep;
-    } // for 
-
     int c;
     struct rgb RGB;
     struct hsv HSV;
@@ -359,7 +350,7 @@ int main(void) {
           } // if
         } // if
 
-        for (i=0; i<_PCA9685_CHANS; i++) {
+        for (int i=0; i<_PCA9685_CHANS/3; i++) {
 
           HSV.h += 0.0001;
           if (HSV.h >= 1.0) HSV.h = 0.0;
