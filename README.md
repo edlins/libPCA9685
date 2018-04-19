@@ -20,12 +20,12 @@ libPCA9685 README
         which allows for fast and efficient block reading and writing of
         all registers using I2C combined transactions.
 
-        The example application computes 16 new PWM values, writes the
-        16 PWM values, optionally reads back the 16 PWM values, and
-        optionally compares the written values to the read values.
+        The quickstart example application computes 16 new random
+        PWM values and writes them to the PCA9685.
         All of this happens in a single 16-channel "refresh".
-        On my B+ (unloaded) the application completes about 1430 refreshes
-        per second without validation or 730 with validation.
+
+        The PCA9685demo example application allows the user to set each
+        channel manually or press 'a' to activate automatic mode.
 
         Copyright (c) 2016 Scott Edlin
         edlins ta yahoo tod com
