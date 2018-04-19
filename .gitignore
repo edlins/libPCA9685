@@ -1,5 +1,6 @@
 # ignore binaries
 PCA9685demo
+quickstart
 *.o
 *.so.*
 *.swp

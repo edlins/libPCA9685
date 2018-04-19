@@ -13,15 +13,20 @@ CC = gcc
 CFLAGS = -pedantic -Wall -D_BSD_SOURCE -std=c11 -lncurses
 
 # targets:
-all: $(EXE)
+all: PCA9685demo quickstart
 
-$(EXE): $(OBJ)
-	$(CC) $(CFLAGS) -o $(EXE) $(OBJ) -lPCA9685
+PCA9685demo: PCA9685demo.o
+	$(CC) $(CFLAGS) -o PCA9685demo PCA9685demo.o -lPCA9685
 
-$(OBJ): $(SRC)
-	$(CC) $(CFLAGS) -o $(OBJ) -c $(SRC)
+PCA9685demo.o: PCA9685demo.c
+	$(CC) $(CFLAGS) -o PCA9685demo.o -c PCA9685demo.c
 
+quickstart: quickstart.o
+	$(CC) $(CFLAGS) -o quickstart quickstart.o -lPCA9685
+
+quickstart.o: quickstart.c
+	$(CC) $(CFLAGS) -o quickstart.o -c quickstart.c
 
 .PHONEY: clean
 clean:
-	rm -f $(OBJ) $(EXE)
+	rm -f PCA9685demo.o PCA9685demo quickstart.o quickstart
