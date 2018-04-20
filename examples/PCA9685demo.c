@@ -8,27 +8,26 @@
 #include <signal.h>
 #include <unistd.h>
 #include <ncurses.h>
+#include <getopt.h>
 
 #include <PCA9685.h>
-
-//#define DEBUG
-#define VALIDATE
-#define NCMODE
 
 
 int fd;
 int addr = 0x40;
+int debug = 0;
+int validate = 0;
+int ncmode = 0;
 
 
 void cleanup() {
   // attmempt to turn off all PWM
   PCA9685_setAllPWM(fd, addr, _PCA9685_MINVAL, _PCA9685_MINVAL);
-  #ifdef NCMODE
-  // attmempt to end the ncurses window session
-  endwin();
-  #endif
+  if (ncmode) {
+    // attmempt to end the ncurses window session
+    endwin();
+  } // if ncmode
 } // cleanup
-
 
 
 void intHandler(int dummy) {
@@ -50,14 +49,14 @@ int initHardware(int adpt, int addr, int freq) {
     return -1;
   } // if 
 
-  #ifdef DEBUG
-  // display all used pca registers 
-  ret = PCA9685_dumpAllRegs(fd, addr);
-  if (ret != 0) {
-    fprintf(stderr, "initHardware(): PCA9685_dumpAllRegs() returned %d\n", ret);
-    return -1;
-  } // if 
-  #endif
+  if (debug) {
+    // display all used pca registers 
+    ret = PCA9685_dumpAllRegs(fd, addr);
+    if (ret != 0) {
+      fprintf(stderr, "initHardware(): PCA9685_dumpAllRegs() returned %d\n", ret);
+      return -1;
+    } // if ret
+  } // if debug
 
   // initialize the pca device 
   ret = PCA9685_initPWM(fd, addr, freq);
@@ -66,14 +65,14 @@ int initHardware(int adpt, int addr, int freq) {
     return -1;
   } // if 
 
-  #ifdef DEBUG
-  // display all used pca registers 
-  ret = PCA9685_dumpAllRegs(fd, addr);
-  if (ret != 0) {
-    fprintf(stderr, "initHardware(): PCA9685_dumpAllRegs() returned %d\n", ret);
-    return -1;
-  } // if 
-  #endif
+  if (debug) {
+    // display all used pca registers 
+    ret = PCA9685_dumpAllRegs(fd, addr);
+    if (ret != 0) {
+      fprintf(stderr, "initHardware(): PCA9685_dumpAllRegs() returned %d\n", ret);
+      return -1;
+    } // if ret
+  } // if debug
 
   return fd;
 } // initHardware
@@ -82,12 +81,12 @@ int initHardware(int adpt, int addr, int freq) {
 int dumpStats(int stats[]) {
   int i;
   for(i=0; i<8; i++) {
-    #ifdef NCMODE
-    mvprintw(1, i*10, "%-10d", stats[i]);
-    #else
-    printf("%-10d", stats[i]);
-    if (i==7) { printf("\n"); }
-    #endif
+    if (ncmode) {
+      mvprintw(1, i*10, "%-10d", stats[i]);
+    } else {
+      printf("%-10d", stats[i]);
+      if (i==7) { printf("\n"); }
+    }
   } // for
 
   return 0;
@@ -98,31 +97,31 @@ int dumpVals(unsigned int row, unsigned int* vals, unsigned char chan) {
   unsigned char i;
   for(i=0; i<_PCA9685_CHANS; i++) {
 
-    #ifdef NCMODE
-    unsigned int colorVal;
-    colorVal = (unsigned int)(vals[i] / 682.667f) + 1;
+    if (ncmode) {
+      unsigned int colorVal;
+      colorVal = (unsigned int)(vals[i] / 682.667f) + 1;
 
-    if (i == chan) {
-      attron(A_BOLD | COLOR_PAIR(colorVal));
-    } // if
-    else {
-      attron(A_NORMAL | COLOR_PAIR(colorVal));
-    } // else
+      if (i == chan) {
+        attron(A_BOLD | COLOR_PAIR(colorVal));
+      } // if
+      else {
+        attron(A_NORMAL | COLOR_PAIR(colorVal));
+      } // else
 
-    mvprintw(row, 5*i, "%03x", vals[i]);
-    attroff(COLOR_PAIR(colorVal));
-    attroff(A_BOLD);
+      mvprintw(row, 5*i, "%03x", vals[i]);
+      attroff(COLOR_PAIR(colorVal));
+      attroff(A_BOLD);
 
-    #else
-    printf("%03x  ", vals[i]);
-    if (i==_PCA9685_CHANS) { printf("\n"); };
+    } else {
+      printf("%03x  ", vals[i]);
+      if (i==_PCA9685_CHANS) { printf("\n"); };
 
-    #endif
+    } // if ncmode
   } // for
 
-  #ifdef NCMODE
-  refresh();
-  #endif
+  if (ncmode) {
+    refresh();
+  } // if ncmode
 
   return 0;
 } // dumpVals
@@ -136,64 +135,63 @@ void dumpRegs(unsigned char mode1val, unsigned char mode2val) {
 
 int initScreen() {
 
-  #ifdef NCMODE
-  int ret;
-  WINDOW* wndw;
+  if (ncmode) {
+    int ret;
+    WINDOW* wndw;
 
-  // start ncurses mode
-  wndw = initscr();
-  if (wndw != stdscr) {
-    fprintf(stderr, "initScreen(): initscr() did not return stdscr\n");
-    return -1;
-  } // if
+    // start ncurses mode
+    wndw = initscr();
+    if (wndw != stdscr) {
+      fprintf(stderr, "initScreen(): initscr() did not return stdscr\n");
+      return -1;
+    } // if
 
-  // no line buffering but allow control chars like CTRL-C
-  cbreak();
+    // no line buffering but allow control chars like CTRL-C
+    cbreak();
 
-  // enable extended keys
-  keypad(stdscr, TRUE);
+    // enable extended keys
+    keypad(stdscr, TRUE);
 
-  // no echo
-  noecho();
+    // no echo
+    noecho();
 
-  // initialize ncurses colors
-  ret = start_color();
-  if (ret == ERR) {
-    fprintf(stderr, "initScreen(): start_color() returned ERR\n");
-    return -1;
-  } // if err
+    // initialize ncurses colors
+    ret = start_color();
+    if (ret == ERR) {
+      fprintf(stderr, "initScreen(): start_color() returned ERR\n");
+      return -1;
+    } // if err
 
-  // define color pairs in opposite ROYGBIV order
-  init_pair(1, COLOR_MAGENTA, COLOR_BLACK);
-  init_pair(2, COLOR_BLUE, COLOR_BLACK);
-  init_pair(3, COLOR_CYAN, COLOR_BLACK);
-  init_pair(4, COLOR_GREEN, COLOR_BLACK);
-  init_pair(5, COLOR_YELLOW, COLOR_BLACK);
-  init_pair(6, COLOR_RED, COLOR_BLACK);
+    // define color pairs in opposite ROYGBIV order
+    init_pair(1, COLOR_MAGENTA, COLOR_BLACK);
+    init_pair(2, COLOR_BLUE, COLOR_BLACK);
+    init_pair(3, COLOR_CYAN, COLOR_BLACK);
+    init_pair(4, COLOR_GREEN, COLOR_BLACK);
+    init_pair(5, COLOR_YELLOW, COLOR_BLACK);
+    init_pair(6, COLOR_RED, COLOR_BLACK);
 
-  // header row for stats
-  mvprintw(0,  0, "frames");
-  mvprintw(0, 10, "bits");
-  mvprintw(0, 20, "ms");
-  mvprintw(0, 30, "avg");
-  mvprintw(0, 40, "Hz");
-  mvprintw(0, 50, "avg");
-  mvprintw(0, 60, "kbps");
-  mvprintw(0, 70, "avg");
+    // header row for stats
+    mvprintw(0,  0, "frames");
+    mvprintw(0, 10, "bits");
+    mvprintw(0, 20, "ms");
+    mvprintw(0, 30, "avg");
+    mvprintw(0, 40, "Hz");
+    mvprintw(0, 50, "avg");
+    mvprintw(0, 60, "kbps");
+    mvprintw(0, 70, "avg");
 
-  // dump off values to start
-  dumpVals(3, (unsigned int[]){0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, 0);
+    // dump off values to start
+    dumpVals(3, (unsigned int[]){0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, 0);
 
-  #ifdef VALIDATE
-  dumpVals(4, (unsigned int[]){0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, -1);
-  #endif
+    if (validate) {
+      dumpVals(4, (unsigned int[]){0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, -1);
+    } // if validate
 
-  refresh();
+    refresh();
 
-  #else
-  printf("frames    bits      ms        avg       Hz        avg       kbps      avg\n");
-
-  #endif
+  } else { // not ncmode
+    printf("frames    bits      ms        avg       Hz        avg       kbps      avg\n");
+  } // if ncmode
 
   return 0;
 } // initScreen
@@ -257,20 +255,38 @@ struct rgb hsv2rgb(struct hsv _hsv) {
 
 
 // main driver 
-int main(void) {
+int main(int argc, char **argv) {
+  // parse command line options
+  int c;
+  opterr = 0;
+  while ((c = getopt (argc, argv, "dnv")) != -1)
+    switch (c)
+      {
+      case 'd':  // debug mode
+        debug = 1;
+        break;
+      case 'n':  // ncurses mode
+        ncmode = 1;
+        break;
+      case 'v':  // validate mode
+        validate = 1;
+        break;
+      }
+  printf ("debug = %d\n", debug);
+
   int adpt = 1;
   int freq = 200;
   int ret;
   char automatic;
   char manual;
 
-  #ifdef NCMODE
-  automatic = false;
-  manual = true;
-  #else
-  automatic = true;
-  manual = false;
-  #endif
+  if (ncmode) {
+    automatic = false;
+    manual = true;
+  } else { // not ncmode
+    automatic = true;
+    manual = false;
+  } // if ncmode
 
   // register the signal handler to catch interrupts
   signal(SIGINT, intHandler);
@@ -311,12 +327,10 @@ int main(void) {
     unsigned int setOffVals[_PCA9685_CHANS] =
       { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
 
-    #ifdef VALIDATE
     unsigned int getOnVals[_PCA9685_CHANS] =
       { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
     unsigned int getOffVals[_PCA9685_CHANS] =
       { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
-    #endif
 
     int size = 512;
     int bits;
@@ -449,32 +463,32 @@ int main(void) {
         return -1;
       } // if 
 
-      #ifdef VALIDATE
-      // GET THE VALS, EVERY TIME THROUGH THE LOOP
-      ret = PCA9685_getPWMVals(fd, addr, getOnVals, getOffVals);
-      if (ret != 0) {
-        cleanup();
-        fprintf(stderr, "main(): PCA9685_getPWMVals() returned ");
-        fprintf(stderr, "%d on addr %02x at reg 0x06\n", ret, addr);
-        return -1;
-      } // if err
+      if (validate) {
+        // GET THE VALS, EVERY TIME THROUGH THE LOOP
+        ret = PCA9685_getPWMVals(fd, addr, getOnVals, getOffVals);
+        if (ret != 0) {
+          cleanup();
+          fprintf(stderr, "main(): PCA9685_getPWMVals() returned ");
+          fprintf(stderr, "%d on addr %02x at reg 0x06\n", ret, addr);
+          return -1;
+        } // if err
 
-      // compare the written vals to the read vals
-      for(int i=0; i<_PCA9685_CHANS; i++) {
-        if (getOnVals[i] != setOnVals[i]) {
-          cleanup();
-          fprintf(stderr, "main(): getOnVals[%d] is %03x ", i, getOnVals[i]);
-          fprintf(stderr, "but setOnVals[%d] is %03x\n", i, setOnVals[i]);
-          exit(-1-i);
-        } // if data mismatch
-        if (getOffVals[i] != setOffVals[i]) {
-          cleanup();
-          fprintf(stderr, "main(): getOffVals[%d] is %03x ", i, getOffVals[i]);
-          fprintf(stderr, "but setOffVals[%d] is %03x\n", i, setOffVals[i]);
-          exit(-1-i);
-        } // if data mismatch
-      } // for channels
-      #endif
+        // compare the written vals to the read vals
+        for(int i=0; i<_PCA9685_CHANS; i++) {
+          if (getOnVals[i] != setOnVals[i]) {
+            cleanup();
+            fprintf(stderr, "main(): getOnVals[%d] is %03x ", i, getOnVals[i]);
+            fprintf(stderr, "but setOnVals[%d] is %03x\n", i, setOnVals[i]);
+            exit(-1-i);
+          } // if data mismatch
+          if (getOffVals[i] != setOffVals[i]) {
+            cleanup();
+            fprintf(stderr, "main(): getOffVals[%d] is %03x ", i, getOffVals[i]);
+            fprintf(stderr, "but setOffVals[%d] is %03x\n", i, setOffVals[i]);
+            exit(-1-i);
+          } // if data mismatch
+        } // for channels
+      } // if validate
 
       // increment the loop counter
       j++;
@@ -497,9 +511,9 @@ int main(void) {
           millis = (millis == 0) ? 1 : millis;
           updfreq = (int)((float)1000000 * (float)size) / (float)micros;
           bits = size * _PCA9685_CHANS * 4 * 8;
-          #ifdef VALIDATE
-          bits *= 2;
-          #endif
+          if (validate) {
+            bits *= 2;
+          } // if validate
           kbps = (bits * 1000000.0f) / (micros * 1024.0f);
 
           fema = (fema == 0) ? updfreq
@@ -523,9 +537,9 @@ int main(void) {
 
         dumpVals(3, setOffVals, chan);
 
-        #ifdef VALIDATE
-        dumpVals(4, getOffVals, -1);
-        #endif
+        if (validate) {
+          dumpVals(4, getOffVals, -1);
+        } // if validate
 
       } // if update screen
 
