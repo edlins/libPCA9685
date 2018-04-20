@@ -3,7 +3,7 @@
 # name and version (all other values derived)
 NAME=PCA9685
 VERS_MAJ=0
-VERS_MIN=5
+VERS_MIN=6
 
 
 
