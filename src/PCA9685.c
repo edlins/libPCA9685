@@ -10,15 +10,17 @@
 
 #include "PCA9685.h"
 
-//#define DEBUG
 //#define INVERT
 //#define OPENDRAIN
 
-
+int _PCA9685_DEBUG = 0;
 
 /////////////////////////////////////////////////////////////////////
 // open the I2C bus device and assign the default slave address 
 int PCA9685_openI2C(unsigned char adapterNum, unsigned char addr) {
+  if (_PCA9685_DEBUG) {
+    printf("**************DEBUG**************\n");
+  }
   int fd;
   int ret;
 
@@ -33,9 +35,9 @@ int PCA9685_openI2C(unsigned char adapterNum, unsigned char addr) {
     return -1;
   } // if 
 
-  #ifdef DEBUG
-  printf("PCA9685_openI2C(): opened %s as fd %d\n", filename, fd);
-  #endif
+  if (_PCA9685_DEBUG) {
+    printf("PCA9685_openI2C(): opened %s as fd %d\n", filename, fd);
+  }
 
   // set the default slave address for read() and write() 
   ret = ioctl(fd, I2C_SLAVE, addr);
@@ -123,16 +125,16 @@ int PCA9685_setPWMVals(int fd, unsigned char addr,
       regVals[i*4+3] = offVals[i] >> 8;
     } // for 
 
-    #ifdef DEBUG
-    { int i;
-      // report the write 
-      printf("PCA9685_setPWMVals(): vals[%d]: ", _PCA9685_CHANS);
-      for (i=0; i<_PCA9685_CHANS; i++) {
-        printf(" %03x", regVals[i]);
-      } // for 
-      printf("\n");
+    if (_PCA9685_DEBUG) {
+      { int i;
+        // report the write 
+        printf("PCA9685_setPWMVals(): vals[%d]: ", _PCA9685_CHANS);
+        for (i=0; i<_PCA9685_CHANS; i++) {
+          printf(" %03x", regVals[i]);
+        } // for 
+        printf("\n");
+      }
     }
-    #endif
   
     ret = _PCA9685_writeI2CReg(fd, addr, _PCA9685_BASEPWMREG,
                                _PCA9685_CHANS*4, regVals);
@@ -155,9 +157,9 @@ int PCA9685_setPWMVal(int fd, unsigned char addr, unsigned char reg,
   unsigned char val;
   int ret;
 
-  #ifdef DEBUG
-  printf("PCA9685_setPWMVal(): reg %02x, on %02x, off %02x\n", reg, on, off);
-  #endif
+  if (_PCA9685_DEBUG) {
+    printf("PCA9685_setPWMVal(): reg %02x, on %02x, off %02x\n", reg, on, off);
+  }
 
   // ON_L 
   val = on & 0xFF; // mask all bits above 8 
@@ -462,17 +464,17 @@ int _PCA9685_readI2CReg(int fd, unsigned char addr, unsigned char startReg,
     return -1;
   } // if 
 
-  #ifdef DEBUG
-  { int i;
-    // report the read 
-    printf("_PCA9685_readI2CReg(): %02x:%02x:%02x", addr, startReg, len);
-    // report the result 
-    for (i=0; i<len; i++) {
-      printf(" %02x", readBuf[i]);
-    } // for 
-    printf("\n");
+  if (_PCA9685_DEBUG) {
+    { int i;
+      // report the read 
+      printf("_PCA9685_readI2CReg(): %02x:%02x:%02x", addr, startReg, len);
+      // report the result 
+      for (i=0; i<len; i++) {
+        printf(" %02x", readBuf[i]);
+      } // for 
+      printf("\n");
+    }
   }
-  #endif
   
   return 0;
 } // _PCA9685_readI2CReg 
@@ -485,15 +487,15 @@ int _PCA9685_writeI2CReg(int fd, unsigned char addr, unsigned char startReg,
              int len, unsigned char* writeBuf) {
   int ret;
 
-  #ifdef DEBUG
-  { int i;
-    printf("_PCA9685_writeI2CReg(): %02x:%02x:%02x", addr, startReg, len);
-    for (i=0; i<len; i++) {
-      printf(" %02x", writeBuf[i]);
-    } // for
-    printf("\n");
-  } // context
-  #endif
+  if (_PCA9685_DEBUG) {
+    { int i;
+      printf("_PCA9685_writeI2CReg(): %02x:%02x:%02x", addr, startReg, len);
+      for (i=0; i<len; i++) {
+        printf(" %02x", writeBuf[i]);
+      } // for
+      printf("\n");
+    } // context
+  }
 
   // prepend the register address to the buffer 
   unsigned char* rawBuf;
@@ -524,16 +526,16 @@ int _PCA9685_writeI2CRaw(int fd, unsigned char addr, int len,
   struct i2c_msg msgs[1];
   int ret;
 
-  #ifdef DEBUG
-  { int i;
-    // report the write 
-    printf("_PCA9685_writeI2CRaw: %02x:", addr);
-    for (i=0; i<len; i++) {
-      printf(" %02x", writeBuf[i]);
-    } // for 
-    printf("\n");
+  if (_PCA9685_DEBUG) {
+    { int i;
+      // report the write 
+      printf("_PCA9685_writeI2CRaw: %02x:", addr);
+      for (i=0; i<len; i++) {
+        printf(" %02x", writeBuf[i]);
+      } // for 
+      printf("\n");
+    }
   }
-  #endif
   
   // one msg in the transaction 
   msgs[0].addr = addr;
