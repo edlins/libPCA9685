@@ -264,6 +264,7 @@ int main(int argc, char **argv) {
       {
       case 'd':  // debug mode
         debug = 1;
+        _PCA9685_DEBUG = 1;
         break;
       case 'n':  // ncurses mode
         ncmode = 1;
@@ -272,7 +273,6 @@ int main(int argc, char **argv) {
         validate = 1;
         break;
       }
-  printf ("debug = %d\n", debug);
 
   int adpt = 1;
   int freq = 200;

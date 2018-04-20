@@ -2,6 +2,8 @@
 extern "C" {
 #endif
 
+extern int _PCA9685_DEBUG;
+
 #ifndef _PCA9685_H
 #define _PCA9685_H
 
