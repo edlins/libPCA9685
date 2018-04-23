@@ -1,2 +1,4 @@
 all:
-	echo "done"
+	echo "all"
+test:
+	echo "test"
