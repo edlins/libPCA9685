@@ -1,0 +1,26 @@
+# @configure_input@
+
+# Package-related substitution variables
+package        = @PACKAGE_NAME@
+version        = @PACKAGE_VERSION@
+
+# parameters:
+CC = @CC@
+CFLAGS = @CFLAGS@
+LD = @CC@
+LDFLAGS = @LDFLAGS@
+LIBS = @LIBS@
+
+# targets:
+PCA9685demo: PCA9685demo.o
+	$(LD) $(LDFLAGS) -o $@ $^ $(LIBS)
+
+Makefile: Makefile.in config.status
+	./config.status $@
+
+config.status: configure
+	./config.status --recheck
+
+.PHONEY: clean
+clean:
+	rm -f PCA9685demo *.o

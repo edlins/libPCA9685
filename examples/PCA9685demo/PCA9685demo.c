@@ -32,7 +32,7 @@ void cleanup() {
 
 void intHandler(int dummy) {
   cleanup();
-  fprintf(stdout, "Caught signal, exiting\n");
+  fprintf(stdout, "Caught signal, exiting (%d)\n", dummy);
   exit(0);
 } // intHandler 
 
@@ -364,9 +364,9 @@ int main(int argc, char **argv) {
           } // if
         } // if
 
-        for (int i=0; i<_PCA9685_CHANS/3; i++) {
-
-          HSV.h += 0.0001;
+        int i;
+        for (i = 0; i < _PCA9685_CHANS/3; i++) {
+          HSV.h += 0.00001;
           if (HSV.h >= 1.0) HSV.h = 0.0;
           RGB = hsv2rgb(HSV);
           setOffVals[i*3+0] = RGB.r;
@@ -395,13 +395,13 @@ int main(int argc, char **argv) {
 
         // else if up, boost vals[chan]
         else if (c == KEY_UP) {
-          setOffVals[chan] = (setOffVals[chan]  > _PCA9685_MAXVAL - upStep)
+          setOffVals[chan] = (setOffVals[chan]  > (unsigned int)_PCA9685_MAXVAL - upStep)
                        ? _PCA9685_MAXVAL : setOffVals[chan] + upStep;
         } // if
 
         // else if down, drop vals[chan]
         else if (c == KEY_DOWN) {
-          setOffVals[chan] = (setOffVals[chan] < _PCA9685_MINVAL + upStep)
+          setOffVals[chan] = (setOffVals[chan] < (unsigned int) _PCA9685_MINVAL + upStep)
                        ? _PCA9685_MINVAL : setOffVals[chan] - upStep;
         } // if
 
@@ -474,7 +474,8 @@ int main(int argc, char **argv) {
         } // if err
 
         // compare the written vals to the read vals
-        for(int i=0; i<_PCA9685_CHANS; i++) {
+        int i;
+        for(i = 0; i < _PCA9685_CHANS; i++) {
           if (getOnVals[i] != setOnVals[i]) {
             cleanup();
             fprintf(stderr, "main(): getOnVals[%d] is %03x ", i, getOnVals[i]);
@@ -535,18 +536,15 @@ int main(int argc, char **argv) {
           dumpStats(stats);
         } // if automatic
 
-        dumpVals(3, setOffVals, chan);
+        if (ncmode) {
+          dumpVals(3, setOffVals, chan);
+        } // if ncmode
 
         if (validate) {
           dumpVals(4, getOffVals, -1);
         } // if validate
 
       } // if update screen
-
-      struct timeval timeout;
-      timeout.tv_sec = 0;
-      timeout.tv_usec = 18000;
-      select((int)NULL, NULL, NULL, NULL, &timeout);
     } // while forever
   } // perf context 
 

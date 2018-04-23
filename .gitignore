@@ -1,6 +1,13 @@
 # ignore binaries
-PCA9685demo
-quickstart
+**/PCA9685demo/PCA9685demo
+**/quickstart/quickstart
 *.o
 *.so.*
 *.swp
+
+# ignore autoconf artifacts
+**/autom4te.cache/
+autoscan.log
+config.log
+configure.scan
+**/PCA9685demo/Makefile
