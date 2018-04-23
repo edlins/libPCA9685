@@ -20,4 +20,4 @@ quickstart.o: quickstart.c
 
 .PHONEY: clean
 clean:
-	rm -f quickstart.o quickstart
+rm -f quickstart.o quickstart
