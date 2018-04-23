@@ -22,7 +22,7 @@ $(VERFILE): $(LIBFILE)
 	$(LD) -shared -Wl,-soname,$(DYNFILE) -o $(VERFILE) $(LIBFILE)
 
 $(LIBFILE): $(SRCFILE)
-	$(CC) $(CFLAGS) -c $(SRCFILE) -o $(LIBFILE)
+	$(CC) $(CFLAGS) -fPIC -c $(SRCFILE) -o $(LIBFILE)
 
 Makefile: Makefile.in config.status
 	./config.status $@

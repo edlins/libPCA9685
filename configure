@@ -1,10 +1,12 @@
 #!/bin/sh
 
 cd src/
-./configure --enable-shared=yes
+autoconf
+./configure
 make
 sudo make install
 cd ..
 cd examples/PCA9685demo
+autoconf
 ./configure
 make
