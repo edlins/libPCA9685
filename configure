@@ -1,7 +1,7 @@
 #!/bin/sh
 
 cd src/
-./configure
+./configure --enable-shared
 make
 sudo make install
 cd ..
