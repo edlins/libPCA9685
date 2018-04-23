@@ -10,4 +10,4 @@
 autoscan.log
 config.log
 configure.scan
-**/PCA9685demo/Makefile
+Makefile

@@ -1,4 +1,10 @@
 #!/bin/sh
 
+cd src/
+./configure
+make
+sudo make install
+cd ..
 cd examples/PCA9685demo
 ./configure
+make

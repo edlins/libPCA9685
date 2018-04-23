@@ -256,7 +256,8 @@ int PCA9685_getPWMVals(int fd, unsigned char addr,
     return -1;
   } // if err
 
-  for (int i=0; i<_PCA9685_CHANS; i++) {
+  int i;
+  for (i=0; i<_PCA9685_CHANS; i++) {
     onVals[i] = readBuf[i*4+1] << 8;
     onVals[i] += readBuf[i*4+0];
     offVals[i] = readBuf[i*4+3] << 8;

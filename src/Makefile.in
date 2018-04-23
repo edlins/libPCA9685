@@ -1,0 +1,44 @@
+# @configure_input@
+
+# Package-related substitution variables
+package        = @PACKAGE_NAME@
+version        = @PACKAGE_VERSION@
+
+# parameters:
+CC = @CC@
+CFLAGS = @CFLAGS@
+LD = @CC@
+LDFLAGS = @LDFLAGS@
+LIBS = @LIBS@
+
+SRCFILE = $(package).c
+HDRFILE = $(package).h
+LIBFILE = lib$(package).o
+DYNFILE = lib$(package).so
+VERFILE = lib$(package).so.$(version)
+
+# targets:
+$(VERFILE): $(LIBFILE)
+	$(LD) -shared -Wl,-soname,$(DYNFILE) -o $(VERFILE) $(LIBFILE)
+
+$(LIBFILE): $(SRCFILE)
+	$(CC) $(CFLAGS) -c $(SRCFILE) -o $(LIBFILE)
+
+Makefile: Makefile.in config.status
+	./config.status $@
+
+config.status: configure
+	./config.status --recheck
+
+install:
+	install -m 0755 -d /usr/local/include
+	install -m 0644 $(HDRFILE) /usr/local/include
+	install -m 0755 -d /usr/local/lib
+	install -m 0755 $(VERFILE) /usr/local/lib/$(VERFILE)
+	ln -sf /usr/local/lib/$(VERFILE) /usr/local/lib/$(DYNFILE)
+	ldconfig
+
+
+.PHONEY: clean
+clean:
+	rm -f $(VERFILE) *.o
