@@ -9,6 +9,7 @@
 #include <sys/select.h>
 
 #include "PCA9685.h"
+#include "libPCA9685Config.h"
 
 //#define INVERT
 //#define OPENDRAIN
@@ -20,6 +21,7 @@ int _PCA9685_DEBUG = 0;
 int PCA9685_openI2C(unsigned char adapterNum, unsigned char addr) {
   if (_PCA9685_DEBUG) {
     printf("**************DEBUG**************\n");
+    printf("libPCA9685 %d.%d\n", libPCA9685_VERSION_MAJOR, libPCA9685_VERSION_MINOR);
   }
   int fd;
   int ret;

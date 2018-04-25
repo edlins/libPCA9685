@@ -11,6 +11,7 @@
 #include <getopt.h>
 
 #include <PCA9685.h>
+#include "PCA9685demoConfig.h"
 
 
 int fd;
@@ -256,6 +257,7 @@ struct rgb hsv2rgb(struct hsv _hsv) {
 
 // main driver 
 int main(int argc, char **argv) {
+  fprintf(stdout, "PCA9685demo %d.%d\n", PCA9685demo_VERSION_MAJOR, PCA9685demo_VERSION_MINOR);
   // parse command line options
   int c;
   opterr = 0;
