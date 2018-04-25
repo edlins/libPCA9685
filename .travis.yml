@@ -1,2 +1,9 @@
 language: c
 sudo: required
+
+before_script:
+  - mkdir build
+  - cd build
+  - cmake ..
+
+script: make && sudo make install

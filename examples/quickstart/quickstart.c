@@ -3,7 +3,10 @@
 
 #include <stdlib.h>
 #include <signal.h>
+#include <stdio.h>
+
 #include <PCA9685.h>
+#include "quickstartConfig.h"
 
 int fd;
 int addr = 0x40;
@@ -18,12 +21,13 @@ void intHandler(int dummy) {
 
 int initHardware(int adpt, int addr, int freq) {
   int afd = PCA9685_openI2C(adpt, addr);
-  PCA9685_initPWM(fd, addr, freq);
+  PCA9685_initPWM(afd, addr, freq);
   return afd;
 }
 
 
-int main(void) {
+int main(int argc, char **argv) {
+  fprintf(stdout, "quickstart %d.%d\n", quickstart_VERSION_MAJOR, quickstart_VERSION_MINOR);
   int adpt = 1;
   int freq = 200;
   signal(SIGINT, intHandler);
@@ -36,7 +40,8 @@ int main(void) {
   // blink endlessly 
   while (1) {
     // setup random values array (seizure mode)
-    for (int i=0; i<_PCA9685_CHANS; i++) {
+    int i;
+    for (i=0; i<_PCA9685_CHANS; i++) {
       int random = rand();
       int value = (float) random / (float) RAND_MAX * _PCA9685_MAXVAL;
       setOffVals[i] = value;

@@ -1,0 +1,2 @@
+#define quickstart_VERSION_MAJOR @quickstart_VERSION_MAJOR@
+#define quickstart_VERSION_MINOR @quickstart_VERSION_MINOR@
