@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.6)
+cmake_minimum_required(VERSION 3.0)
 project (libPCA9685)
 
 set (libPCA9685_VERSION_MAJOR 0)
