@@ -129,7 +129,7 @@ int dumpVals(unsigned int row, unsigned int* vals, unsigned char chan) {
 
 
 void dumpRegs(unsigned char mode1val, unsigned char mode2val) {
-  mvprintw(6, 0, "%02x %02x", mode1val, mode2val);
+  mvprintw(6, 0, "MODE1 = 0x%02x   MODE2 = 0x%02x", mode1val, mode2val);
 } // dumpRegs
 
 
@@ -188,9 +188,18 @@ int initScreen() {
       dumpVals(4, (unsigned int[]){0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0}, -1);
     } // if validate
 
+    mvprintw(8, 0, "<- / ->    decrease / increase selected channel");
+    mvprintw(9, 0, "v  /  ^    decrease / increase selected channel value by 0x10");
+    mvprintw(10, 0, ",  /  .    decrease / increase selected channel value by 0x01");
+    mvprintw(11, 0, "[  /  ]    set selected channel value to minimum / maximum");
+    mvprintw(12, 0, "0  /  1    set all channels values to minimum / maximum");
+    mvprintw(13, 0, "m  /  a    set demo mode to manual / automatic");
+    mvprintw(15, 0, "Ctrl-c to quit");
+
     refresh();
 
   } else { // not ncmode
+    printf("Ctrl-C to quit\n");
     printf("frames    bits      ms        avg       Hz        avg       kbps      avg\n");
   } // if ncmode
 
@@ -387,12 +396,12 @@ int main(int argc, char **argv) {
 
         // if left, chan--
         if (c == KEY_LEFT) {
-          chan = (chan > 0) ? chan-1 : _PCA9685_CHANS;
+          chan = (chan > 0) ? chan-1 : _PCA9685_CHANS - 1;
         } // if
 
         // else if right, chan++
         else if (c == KEY_RIGHT) {
-          chan = (chan < _PCA9685_CHANS) ? chan+1 : 0;
+          chan = (chan < _PCA9685_CHANS - 1) ? chan+1 : 0;
         } // if
 
         // else if up, boost vals[chan]
@@ -540,11 +549,12 @@ int main(int argc, char **argv) {
 
         if (ncmode) {
           dumpVals(3, setOffVals, chan);
-        } // if ncmode
 
-        if (validate) {
-          dumpVals(4, getOffVals, -1);
-        } // if validate
+          if (validate) {
+            dumpVals(4, getOffVals, -1);
+          } // if validate
+
+        } // if ncmode
 
       } // if update screen
     } // while forever

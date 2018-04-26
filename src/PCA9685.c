@@ -132,7 +132,9 @@ int PCA9685_setPWMVals(int fd, unsigned char addr,
         // report the write 
         printf("PCA9685_setPWMVals(): vals[%d]: ", _PCA9685_CHANS);
         for (i=0; i<_PCA9685_CHANS; i++) {
-          printf(" %03x", regVals[i]);
+          unsigned int offValue = regVals[i*4+3] << 8;
+          offValue += regVals[i*4+2];
+          printf(" %03x", offValue);
         } // for 
         printf("\n");
       }
@@ -265,6 +267,16 @@ int PCA9685_getPWMVals(int fd, unsigned char addr,
     offVals[i] = readBuf[i*4+3] << 8;
     offVals[i] += readBuf[i*4+2];
   } // for channels
+
+  if (_PCA9685_DEBUG) {
+    int i;
+    // report the read
+    printf("PCA9685_getPWMVals(): vals[%d]: ", _PCA9685_CHANS);
+    for (i=0; i<_PCA9685_CHANS; i++) {
+      printf(" %03x", offVals[i]);
+    } // for
+    printf("\n");
+  } // if debug
 
   return 0;
 } // PCA9685_getPWMVals
@@ -529,17 +541,6 @@ int _PCA9685_writeI2CRaw(int fd, unsigned char addr, int len,
   struct i2c_msg msgs[1];
   int ret;
 
-  if (_PCA9685_DEBUG) {
-    { int i;
-      // report the write 
-      printf("_PCA9685_writeI2CRaw: %02x:", addr);
-      for (i=0; i<len; i++) {
-        printf(" %02x", writeBuf[i]);
-      } // for 
-      printf("\n");
-    }
-  }
-  
   // one msg in the transaction 
   msgs[0].addr = addr;
   msgs[0].flags = 0x00;

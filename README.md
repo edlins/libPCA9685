@@ -8,6 +8,7 @@ libPCA9685 README
 
         Features include:
         * ISO 2011 C source code
+        * CMake build system
         * Userspace devlib library (no root required)
         * Bulk update all PWM channels in one ioctl() transaction
         * Bulk read any/all registers in one ioctl() combined transaction
@@ -20,34 +21,39 @@ libPCA9685 README
         which allows for fast and efficient block reading and writing of
         all registers using I2C combined transactions.
 
-        The quickstart example application computes 16 new random
-        PWM values and writes them to the PCA9685.
-        All of this happens in a single 16-channel "refresh".
+        The quickstart example application computes 16 new random PWM
+        values and writes them to the PCA9685.
 
         The PCA9685demo example application allows the user to set each
         channel manually or press 'a' to activate automatic mode.
 
-        Copyright (c) 2016 Scott Edlin
+        Copyright (c) 2016 - 2018 Scott Edlin
         edlins ta yahoo tod com
 
 
 DEPENDENCIES
 
+        CMake version 3.0 or later is required to build the library.
+        A working C compiler is also required.  gcc 4.9.2 works well.
+
+        The following hardware-specific dependencies apply to the
+        Raspbian platform.  This may be adapted to other Debian variants
+        but the scope of the differences is not currently known.
+
         libPCA9685 requires two working and loaded I2C kernel modules
         (i2c_bcm-2708 and i2c_dev) in order to access the I2C bus via the
-        /dev/i2c-N device files.
-        On the intended Raspbian platforms, as of 20160819, this is
-        accomplished by adding the following lines to the /boot/config.txt
-        file:
+        /dev/i2c-N device files.  On the intended Raspbian platforms, as
+        of this writing, this is accomplished by adding the following lines
+        to the /boot/config.txt file:
 
         dtparam=i2c_arm=on
         dtparam=i2c_arm_baudrate=1000000
 
         The first line enables the I2C system and the second line raises
-        the baudrate from the default 100kHz to 1MHz which is the speed
+        the baudrate from the default 100 kHz to 1 MHz which is the speed
         of Fast-mode plus (Fm+) devices such as the PCA9685.
         Note that with short wire runs and minimal RFI/EMI I have been
-        able to run the PCA9685 on the I2C bus at 2MHz without errors,
+        able to run the PCA9685 on the I2C bus at 2 MHz without errors,
         which effectively doubles the refresh rate but YMMV.
 
         Also, this library requires combined transactions which are not
@@ -65,17 +71,13 @@ DEPENDENCIES
 
         This device file should exist:
 
-        /dev/i2c-1
+        crw-rw---- 1 root i2c 89, 1 Oct 16  2017 /dev/i2c-1
 
-        The messages log /var/log/messages should contain lines like the
-        following (search for "i2c"):
+        `dmesg | grep i2c` should report something like:
 
-        Aug 17 19:33:53 raspberrypi kernel: [    5.718973]
-        i2c /dev entries driver
-        [...]
-        Aug 17 19:33:53 raspberrypi kernel: [    9.086281]
-        bcm2708_i2c 20804000.i2c: BSC 1 Controller at 0x20804000
-        (irq 77) (baudrate 1000000)
+        [   10.386982] i2c /dev entries driver
+        [   14.964511] bcm2708_i2c 20804000.i2c: BSC1 Controller at
+                       0x20804000 (irq 77) (baudrate 1000000)
 
         And the file /sys/module/i2c_bcm2708/parameters/combined should
         contain the one line:
@@ -111,6 +113,8 @@ CONNECTION
         70: -- -- -- -- -- -- -- --                         
 
         Which shows the PCA9685 responding at address 0x40 on I2C bus 1.
+        If the PCA9685 is wired to respond at a different address, that
+        address should be shown in i2cdetect.
 
 
 INSTALL
@@ -118,8 +122,13 @@ INSTALL
         You can include PCA9685.h and PCA9685.c directly in your project
         or compile the object file and use it as a dynamically linked
         library instead.
-        To compile the library, navigate into the src folder and run:
 
+        To compile and install the library and examples, navigate to the
+        top level folder and execute:
+
+        $ mkdir build
+        $ cd build
+        $ cmake ..
         $ make
         $ sudo make install
 
@@ -133,7 +142,7 @@ INSTALL
 
         -lPCA9685
 
-        An example application is included in the examples/ folder.
+        Example applications are included in the examples/ folder.
 
 
 CONTRIBUTING
@@ -142,6 +151,23 @@ CONTRIBUTING
 	against the "develop" branch and submit PRs against "develop".
 	PRs against "master" will not be accepted.  For all but trivial
 	contributions please open an Issue for discussion first.
+
+
+VARIABLES
+
+        There are extern library variables that may be changed to effect
+        changes in the operation of the library.  After #include <PCA9685.h>
+        is invoked, these variables may be assigned values from applications
+        without any additional declaration.
+
+
+        ----------------------------------------------------------------
+        extern int _PCA9685_DEBUG;
+        ----------------------------------------------------------------
+        0 (default):     debugging output is not enabled
+        non-zero:        debugging output is enabled on stdout
+
+        example: `_PCA9685_DEBUG = 1; // enable debugging output`
 
 
 FUNCTIONS
@@ -222,5 +248,6 @@ FUNCTIONS
 
 TODO
 
+        test suite
+        MODE1 and MODE2 options
         dev locking?
-        many other things..
