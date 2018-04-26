@@ -14,7 +14,7 @@
 - **PCA9685demo.c**: fix boundary condition bug in changing selected channel
 - **PCA9685demo.c**: only dumpVals() the validation array in ncurses
 - **quickstart.c**: fix initHardware() to use local file descriptor returned from PCA9685_openI2C()
-- **PCA9685.c**: change #define DEBUG to extern int _PCA9685_DEBUG
+- **PCA9685.c**: change #define DEBUG to extern int \_PCA9685_DEBUG
 - **PCA9685.c**: remove SUBnBITs from mode1val
 - **PCA9685.c**: fix debug logs
 - **PCA9685.h**: add extern int _PCA9685_DEBUG
