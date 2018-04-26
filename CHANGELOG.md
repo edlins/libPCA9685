@@ -17,7 +17,7 @@
 - **PCA9685.c**: change #define DEBUG to extern int \_PCA9685_DEBUG
 - **PCA9685.c**: remove SUBnBITs from mode1val
 - **PCA9685.c**: fix debug logs
-- **PCA9685.h**: add extern int _PCA9685_DEBUG
+- **PCA9685.h**: add extern int \_PCA9685_DEBUG
 
 ### Removed
 - **Makefile**: all Makefiles removed
