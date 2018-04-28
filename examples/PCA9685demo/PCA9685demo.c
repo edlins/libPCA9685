@@ -66,6 +66,13 @@ int initHardware(int adpt, int addr, int freq) {
     return -1;
   } // if 
 
+  // test settting mode1 register
+  ret = PCA9685_MODE1_opts(fd, addr, 0x00 | _PCA9685_AUTOINCBIT);
+  if (ret != 0) {
+    fprintf(stderr, "initHardware(): PCA9685_MODE1_opts() returned %d\n", ret);
+    return -1;
+  } // if
+
   if (debug) {
     // display all used pca registers 
     ret = PCA9685_dumpAllRegs(fd, addr);
