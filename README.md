@@ -147,10 +147,10 @@ INSTALL
 
 CONTRIBUTING
 
-	Your contributions are very welcome!  Please develop contributions
-	against the "develop" branch and submit PRs against "develop".
-	PRs against "master" will not be accepted.  For all but trivial
-	contributions please open an Issue for discussion first.
+        Your contributions are very welcome!  Please develop contributions
+        against the "develop" branch and submit PRs against "develop".
+        PRs against "master" will not be accepted.  For all but trivial
+        contributions please open an Issue for discussion first.
 
 
 VARIABLES
