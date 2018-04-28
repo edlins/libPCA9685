@@ -55,6 +55,9 @@ int PCA9685_openI2C(unsigned char adpt, unsigned char addr);
 // initialize a pca device to defaults, turn off PWM's, and set the freq
 int PCA9685_initPWM(int fd, unsigned char addr, unsigned int freq);
 
+// set the mode1 register to override default settings
+int PCA9685_MODE1_opts(int fd, unsigned char addr, unsigned char val);
+
 // set all PWM channels from two arrays of ON and OFF vals in one transaction
 int PCA9685_setPWMVals(int fd, unsigned char addr,
                        unsigned int* onVals, unsigned int* offVals);

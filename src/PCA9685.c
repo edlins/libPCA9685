@@ -110,6 +110,22 @@ int PCA9685_initPWM(int fd, unsigned char addr, unsigned int freq) {
 } // PCA9685_initPWM
 
 
+/////////////////////////////////////////////////////////////////////
+// set the mode1 register. Only required to set non-default bits
+int PCA9685_MODE1_opts(int fd, unsigned char addr, unsigned char val) {
+  int ret;
+
+  // write the value to the MODE1 register
+  ret = _PCA9685_writeI2CReg(fd, addr, _PCA9685_MODE1REG, 1, &val);
+  if (ret != 0) {
+    printf("PCA9685_MODE1_opts(): _PCA9685_writeI2CReg() returned ");
+    printf("%d on addr %02x\n", ret, _PCA9685_MODE1REG);
+    return -1;
+  } // if
+
+  return 0;
+} // PCA9685_MODE1_opts
+
 
 /////////////////////////////////////////////////////////////////////
 // set all PWM OFF vals in one transaction 
