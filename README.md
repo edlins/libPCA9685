@@ -187,7 +187,7 @@ VARIABLES
         non-default:     set or clear bits defined in PCA9685.h
 
         example: `_PCA9685_MODE2 = _PCA9685_MODE2 & ~_PCA9685_OUTDRVBIT;
-                  // switch from totem pole to open drain mode
+                  // switch from totem pole to open drain mode`
 
 
 FUNCTIONS
