@@ -266,13 +266,15 @@ struct rgb hsv2rgb(struct hsv _hsv) {
 
 // main driver 
 int main(int argc, char **argv) {
-  fprintf(stdout, "PCA9685demo %d.%d\n", PCA9685demo_VERSION_MAJOR, PCA9685demo_VERSION_MINOR);
   // parse command line options
   int c;
   opterr = 0;
-  while ((c = getopt (argc, argv, "dnv")) != -1)
+  while ((c = getopt (argc, argv, "hVdnva123ozOkN")) != -1)
     switch (c)
       {
+      case 'V':  // version
+        fprintf(stdout, "PCA9685demo %d.%d\n", PCA9685demo_VERSION_MAJOR, PCA9685demo_VERSION_MINOR);
+        exit(0);
       case 'd':  // debug mode
         debug = 1;
         _PCA9685_DEBUG = 1;
@@ -283,6 +285,57 @@ int main(int argc, char **argv) {
       case 'v':  // validate mode
         validate = 1;
         break;
+      case 'a':  // ALLCALL mode
+        _PCA9685_MODE1 = _PCA9685_MODE1 | _PCA9685_ALLCALLBIT;
+        break;
+      case '1':  // SUBADDR1 mode
+        _PCA9685_MODE1 = _PCA9685_MODE1 | _PCA9685_SUB1BIT;
+        break;
+      case '2':  // SUBADDR2 mode
+        _PCA9685_MODE1 = _PCA9685_MODE1 | _PCA9685_SUB2BIT;
+        break;
+      case '3':  // SUBADDR3 mode
+        _PCA9685_MODE1 = _PCA9685_MODE1 | _PCA9685_SUB3BIT;
+        break;
+      case 'o':  // output disabled, LEDn depends on output driver mode
+        _PCA9685_MODE2 = (_PCA9685_MODE2 & ~_PCA9685_OUTNE1BIT) | _PCA9685_OUTNE0BIT;
+        break;
+      case 'z':  // output disabled, LEDn = high impedence
+        _PCA9685_MODE2 = _PCA9685_MODE2 | _PCA9685_OUTNE1BIT;
+        break;
+      case 'O':  // open drain
+        _PCA9685_MODE2 = _PCA9685_MODE2 & ~_PCA9685_OUTDRVBIT;
+        break;
+      case 'k':  // change on ack
+        _PCA9685_MODE2 = _PCA9685_MODE2 | _PCA9685_OCHBIT;
+        break;
+      case 'N':  // inverted output
+        _PCA9685_MODE2 = _PCA9685_MODE2 | _PCA9685_INVRTBIT;
+        break;
+      case 'h':  // help mode
+        printf("Usage:\n");
+        printf("  %s [options]\n", argv[0]);
+        printf("Options:\n");
+        printf("  -h\thelp, show this screen and quit\n");
+        printf("  -V\tVersion, print the program name and version and quit\n");
+        printf("  -d\tdebug, shows internal function calls and parameter values\n");
+        printf("  -n\tncurses, for interactive operation\n");
+        printf("  -v\tvalidate, read back register values and compare to written values\n");
+        printf("  -a\tallcall, device will respond to i2c all call address\n");
+        printf("  -1\tsub1, device will respond to i2c subaddress 1\n");
+        printf("  -2\tsub2, device will respond to i2c subaddress 2\n");
+        printf("  -3\tsub3, device will respond to i2c subaddress 3\n");
+        printf("  -o\toutput disabled,\n");
+        printf("    \t  LEDn = 1 in default totem pole mode,\n");
+        printf("    \t  LEDn = high impedence in open-drain mode\n");
+        printf("    \t  instead of default LEDn = 0\n");
+        printf("  -z\toutput disabled, LEDn = high impedence\n");
+        printf("    \t  instead of default LEDn = 0\n");
+        printf("  -O\topen drain, instead of default totem pole\n");
+        printf("  -k\tack change, instead of default stop change\n");
+        printf("  -N\tinvert output\n");
+        printf("Use only one of -o or -z to override the default output disabled mode.\n");
+        exit(0);
       }
 
   int adpt = 1;

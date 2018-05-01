@@ -15,7 +15,7 @@ int addr = 0x40;
 void intHandler(int dummy) {
   // turn off all channels
   PCA9685_setAllPWM(fd, addr, _PCA9685_MINVAL, _PCA9685_MINVAL);
-  exit(0);
+  exit(dummy);
 }
 
 
@@ -26,7 +26,7 @@ int initHardware(int adpt, int addr, int freq) {
 }
 
 
-int main(int argc, char **argv) {
+int main(void) {
   fprintf(stdout, "quickstart %d.%d\n", quickstart_VERSION_MAJOR, quickstart_VERSION_MINOR);
   int adpt = 1;
   int freq = 200;

@@ -2,6 +2,10 @@ cmake_minimum_required(VERSION 3.0)
 project(PCA9685)
 
 
+# add flags
+set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -D_BSD_SOURCE -std=c11 -Wall -pedantic -Wextra")
+
+
 # build the library
 add_subdirectory (src)
 include_directories ("${PROJECT_SOURCE_DIR}/src")

@@ -170,6 +170,26 @@ VARIABLES
         example: `_PCA9685_DEBUG = 1; // enable debugging output`
 
 
+        ----------------------------------------------------------------
+        extern unsigned char _PCA9685_MODE1;
+        ----------------------------------------------------------------
+        0x11 (default):  AUTOINC and SLEEP set (hardware default)
+        non-default:     set or clear bits defined in PCA9685.h
+
+        example: `_PCA9685_MODE1 = _PCA9685_MODE1 | _PCA9685_SUB1BIT;
+                  // enable respond to i2c subaddress 1`
+
+
+        ----------------------------------------------------------------
+        extern unsigned char _PCA9685_MODE2;
+        ----------------------------------------------------------------
+        0x04 (default):  OUTDRV set to use totem pole (hardware default)
+        non-default:     set or clear bits defined in PCA9685.h
+
+        example: `_PCA9685_MODE2 = _PCA9685_MODE2 & ~_PCA9685_OUTDRVBIT;
+                  // switch from totem pole to open drain mode`
+
+
 FUNCTIONS
 
         Most projects will only require the first three functions below
@@ -249,5 +269,6 @@ FUNCTIONS
 TODO
 
         test suite
-        MODE1 and MODE2 options
+        cleanup fd and addr handling
+        all errors to stdout
         dev locking?

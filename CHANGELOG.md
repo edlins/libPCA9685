@@ -6,7 +6,9 @@
 - **CMakeLists.txt**: setup cmake at top level and in src/, use versioning in lib and apps
 - **.travis.yml**: setup Travis CI
 - **Config.h.in**: templates for Config.h headers that get cmake version values
-- **PCA9685demo.c**: print key menu
+- **PCA9685demo.c**: print key menu in ncurses mode
+- **PCA9685demo.c**: add many command line options, add -h usage msg
+- **PCA9685.h**: added externs for MODE1 and MODE2 options and define all bits
 
 ### Changed
 - **PCA9685demo.c**: change #define constants to getopt vars
@@ -17,6 +19,7 @@
 - **PCA9685.c**: change #define DEBUG to extern int \_PCA9685_DEBUG
 - **PCA9685.c**: remove SUBnBITs from mode1val
 - **PCA9685.c**: fix debug logs
+- **PCA9685.c**: use externs for MODE1 and MODE2
 - **PCA9685.h**: add extern int \_PCA9685_DEBUG
 
 ### Removed
