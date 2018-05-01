@@ -11,12 +11,10 @@
 #include "PCA9685.h"
 #include "libPCA9685Config.h"
 
-// debug flag
+//#define INVERT
+//#define OPENDRAIN
+
 int _PCA9685_DEBUG = 0;
-// mode1 value hardware defaults (all call and sleep)
-unsigned char _PCA9685_MODE1 = 0x00 | _PCA9685_ALLCALLBIT | _PCA9685_SLEEPBIT;
-// mode2 value hardware defaults (totem pole mode)
-unsigned char _PCA9685_MODE2 = 0x00 | _PCA9685_OUTDRVBIT;
 
 /////////////////////////////////////////////////////////////////////
 // open the I2C bus device and assign the default slave address 
@@ -63,6 +61,7 @@ int PCA9685_initPWM(int fd, unsigned char addr, unsigned int freq) {
   // send a software reset to get defaults 
   unsigned char resetval = _PCA9685_RESETVAL;
   unsigned char mode1val = 0x00 | _PCA9685_AUTOINCBIT | _PCA9685_ALLCALLBIT;
+  unsigned char mode1val = 0x00 | _PCA9685_AUTOINCBIT | _PCA9685_ALLCALLBIT; 
 
   ret = _PCA9685_writeI2CRaw(fd, _PCA9685_MODE1REG, 1, &resetval);
   if (ret != 0) {
@@ -86,10 +85,7 @@ int PCA9685_initPWM(int fd, unsigned char addr, unsigned int freq) {
     return -1;
   } // if 
 
-  // set MODE1 register using default value with AUTOINC
-  // and without any of SLEEP, EXTCLK, and RESTART
-  unsigned char mode1val = _PCA9685_MODE1 | _PCA9685_AUTOINCBIT;
-  mode1val = mode1val & ~_PCA9685_SLEEPBIT & ~_PCA9685_EXTCLKBIT & ~_PCA9685_RESTARTBIT;
+  // set MODE1 register
   ret = _PCA9685_writeI2CReg(fd, addr, _PCA9685_MODE1REG, 1, &mode1val);
   if (ret != 0) {
     fprintf(stderr, "PCA9685_initPWM(): _PCA9685_writeI2CReg() returned ");
@@ -97,14 +93,19 @@ int PCA9685_initPWM(int fd, unsigned char addr, unsigned int freq) {
     return -1;
   } // if 
 
+  #ifdef OPENDRAIN
   // set MODE2 register
-  unsigned char mode2val = _PCA9685_MODE2;
+  unsigned char mode2val = 0x00 & ~_PCA9685_OUTDRVBIT;
+  #ifdef INVERT
+  mode2val = mode2val | _PCA9685_INVRTBIT;
+  #endif
   ret = _PCA9685_writeI2CReg(fd, addr, _PCA9685_MODE2REG, 1, &mode2val);
   if (ret != 0) {
     fprintf(stderr, "PCA9685_initPWM(): _PCA9685_writeI2CReg() returned ");
     fprintf(stderr, "%d on addr %02x\n", ret, addr);
     return -1;
   } // if 
+  #endif
 
   return 0;
 } // PCA9685_initPWM

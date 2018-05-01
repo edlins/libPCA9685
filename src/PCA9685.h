@@ -3,8 +3,6 @@ extern "C" {
 #endif
 
 extern int _PCA9685_DEBUG;
-extern unsigned char _PCA9685_MODE1;
-extern unsigned char _PCA9685_MODE2;
 
 #ifndef _PCA9685_H
 #define _PCA9685_H
@@ -36,11 +34,8 @@ extern unsigned char _PCA9685_MODE2;
 #define _PCA9685_RESTARTBIT	0x80
 
 // bit positions within MODE2 register
-#define _PCA9685_OUTNE0BIT	0x01
-#define _PCA9685_OUTNE1BIT	0x02
-#define _PCA9685_OUTDRVBIT	0x04
-#define _PCA9685_OCHBIT 	0x08
 #define _PCA9685_INVRTBIT	0x10
+#define _PCA9685_OUTDRVBIT	0x04
 
 // control register to initiate device reset
 #define _PCA9685_RESETVAL	0x06
