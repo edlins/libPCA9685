@@ -6,7 +6,7 @@
 #include <limits.h>
 
 #include <PCA9685.h>
-#include "testConfig.h"
+#include "PCA9685testConfig.h"
 
 int adpt;
 int addr;
@@ -134,7 +134,7 @@ int testTurnOffAllChannels() {
 
 
 int main(int argc, char **argv) {
-  fprintf(stdout, "test %d.%d\n", test_VERSION_MAJOR, test_VERSION_MINOR);
+  fprintf(stdout, "test %d.%d\n", PCA9685test_VERSION_MAJOR, PCA9685test_VERSION_MINOR);
 
   if (argc != 3) {
     fprintf(stderr, "Usage: %s adapter address\n", argv[0]);
