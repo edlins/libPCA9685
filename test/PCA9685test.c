@@ -87,7 +87,6 @@ int testFailWriteAllChannels() {
       _PCA9685_MAXVAL, _PCA9685_MAXVAL, _PCA9685_MAXVAL, _PCA9685_MAXVAL,
       _PCA9685_MAXVAL, _PCA9685_MAXVAL, _PCA9685_MAXVAL, _PCA9685_MAXVAL,
       _PCA9685_MAXVAL, _PCA9685_MAXVAL, _PCA9685_MAXVAL, _PCA9685_MAXVAL };
-  int i;
   int rc = PCA9685_setPWMVals(ffd, addr, setOnVals, setOffVals);
   if (rc == 0) {
     fprintf(stderr, "ERROR: testFailWriteAllChannels: PCA9685_setPWMVals(%d, 0x%02x, NULL, setOffVals) returned %d\n", fd, addr, rc);
@@ -144,13 +143,13 @@ int main(int argc, char **argv) {
   long ladpt = strtol(argv[1], NULL, 16);
   long laddr = strtol(argv[2], NULL, 16);
   if (ladpt > INT_MAX || ladpt < 0) {
-    fprintf(stderr, "ERROR: adapter number %s is not valid\n", ladpt);
+    fprintf(stderr, "ERROR: adapter number %ld is not valid\n", ladpt);
     exit(-1);
   } // if ladpt
   adpt = ladpt;
 
   if (laddr > INT_MAX || laddr < 0) {
-    fprintf(stderr, "ERROR: address %s is not valid\n", laddr);
+    fprintf(stderr, "ERROR: address 0x%02lx is not valid\n", laddr);
     exit(-1);
   } // if laddr
   addr = laddr;

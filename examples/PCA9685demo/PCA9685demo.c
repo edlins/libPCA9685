@@ -298,7 +298,7 @@ int main(int argc, char **argv) {
         _PCA9685_MODE1 = _PCA9685_MODE1 | _PCA9685_SUB3BIT;
         break;
       case 'o':  // output disabled, LEDn depends on output driver mode
-        _PCA9685_MODE2 = _PCA9685_MODE2 & ~_PCA9685_OUTNE1BIT | _PCA9685_OUTNE0BIT;
+        _PCA9685_MODE2 = (_PCA9685_MODE2 & ~_PCA9685_OUTNE1BIT) | _PCA9685_OUTNE0BIT;
         break;
       case 'z':  // output disabled, LEDn = high impedence
         _PCA9685_MODE2 = _PCA9685_MODE2 | _PCA9685_OUTNE1BIT;
