@@ -30,3 +30,15 @@ include_directories("${PROJECT_BINARY_DIR}/examples/PCA9685demo")
 add_executable (PCA9685demo examples/PCA9685demo/PCA9685demo.c)
 target_link_libraries (PCA9685demo PCA9685)
 target_link_libraries (PCA9685demo ncurses)
+
+
+# build the PCA9685test app
+set (PCA9685test_VERSION_MAJOR 0)
+set (PCA9685test_VERSION_MINOR 1)
+configure_file (
+  "${PROJECT_SOURCE_DIR}/test/PCA9685testConfig.h.in"
+  "${PROJECT_BINARY_DIR}/test/PCA9685testConfig.h"
+)
+include_directories("${PROJECT_BINARY_DIR}/test")
+add_executable (PCA9685test test/PCA9685test.c)
+target_link_libraries (PCA9685test PCA9685)
