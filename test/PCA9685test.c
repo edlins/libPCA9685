@@ -144,13 +144,13 @@ int main(int argc, char **argv) {
   long ladpt = strtol(argv[1], NULL, 16);
   long laddr = strtol(argv[2], NULL, 16);
   if (ladpt > INT_MAX || ladpt < 0) {
-    fprintf(stderr, "ERROR: adapter number %s is not valid\n");
+    fprintf(stderr, "ERROR: adapter number %s is not valid\n", ladpt);
     exit(-1);
   } // if ladpt
   adpt = ladpt;
 
   if (laddr > INT_MAX || laddr < 0) {
-    fprintf(stderr, "ERROR: address %s is not valid\n");
+    fprintf(stderr, "ERROR: address %s is not valid\n", laddr);
     exit(-1);
   } // if laddr
   addr = laddr;
