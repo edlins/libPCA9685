@@ -40,7 +40,7 @@ int PCA9685_openI2C(unsigned char adapterNum, unsigned char addr) {
   // open the I2C bus device 
   fd = _PCA9685_open(filename, O_RDWR);
   if (fd < 0) {
-    fprintf(stderr, "PCA9685_openI2C(): open() returned %d for %s\n", fd, filename);
+    fprintf(stderr, "PCA9685_openI2C(): _PCA9685_open() returned %d for %s\n", fd, filename);
     return -1;
   } // if 
 
