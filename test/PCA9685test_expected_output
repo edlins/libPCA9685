@@ -8,77 +8,128 @@ Checking test dependency graph end
 test 1
     Start 1: test1
 
-1: Test command: /home/pi/src/libPCA9685/build/PCA9685test "-t" "1" "40"
+1: Test command: /home/pi/src/libPCA9685/build/PCA9685test "-td" "1" "40"
 1: Test timeout computed to be: 9.99988e+06
 1: testFailOpenI2C
+1: **************DEBUG**************
+1: libPCA9685 0.6
 1: _PCA9685_open: pathname = /dev/i2c-0 flags = 0x02
+1: PCA9685_openI2C(): opened /dev/i2c-0 as fd 0
 1: _PCA9685_ioctl: fd = 0 request = SLAVE argp = 0x40
+1: **************DEBUG**************
+1: libPCA9685 0.6
 1: _PCA9685_open: pathname = /dev/i2c-1 flags = 0x02
+1: PCA9685_openI2C(): opened /dev/i2c-1 as fd 0
 1: _PCA9685_ioctl: fd = 0 request = SLAVE argp = 0xf0
 1: passed
 1: 
 1: testOpenI2C
+1: **************DEBUG**************
+1: libPCA9685 0.6
 1: _PCA9685_open: pathname = /dev/i2c-1 flags = 0x02
+1: PCA9685_openI2C(): opened /dev/i2c-1 as fd 0
 1: _PCA9685_ioctl: fd = 0 request = SLAVE argp = 0x40
 1: passed
 1: 
 1: testFailInitPWM
 1: _PCA9685_ioctl: fd = -1 request = RDWR data.nmesgs = 1 msg.addr = 0x00 msg.flags = 0x00 msg.len = 1 *msg.buf = 0x06 
+1: PCA9685_setPWMVal(): reg fa, on 00, off 00
+1: _PCA9685_writeI2CReg(): 40:fa:01 00
 1: _PCA9685_ioctl: fd = -1 request = RDWR data.nmesgs = 1 msg.addr = 0x40 msg.flags = 0x00 msg.len = 2 *msg.buf = 0xfa 0x00 
+1: _PCA9685_writeI2CReg(): 40:fb:01 00
 1: _PCA9685_ioctl: fd = -1 request = RDWR data.nmesgs = 1 msg.addr = 0x40 msg.flags = 0x00 msg.len = 2 *msg.buf = 0xfb 0x00 
+1: _PCA9685_writeI2CReg(): 40:fc:01 00
 1: _PCA9685_ioctl: fd = -1 request = RDWR data.nmesgs = 1 msg.addr = 0x40 msg.flags = 0x00 msg.len = 2 *msg.buf = 0xfc 0x00 
+1: _PCA9685_writeI2CReg(): 40:fd:01 00
 1: _PCA9685_ioctl: fd = -1 request = RDWR data.nmesgs = 1 msg.addr = 0x40 msg.flags = 0x00 msg.len = 2 *msg.buf = 0xfd 0x00 
 1: _PCA9685_ioctl: fd = -1 request = RDWR data.nmesgs = 2 msg.addr = 0x40 msg.flags = 0x00 msg.len = 1 *msg.buf = 0x00 
+1: _PCA9685_readI2CReg(): 40:00:01 ff
+1: _PCA9685_writeI2CReg(): 40:00:01 7f
 1: _PCA9685_ioctl: fd = -1 request = RDWR data.nmesgs = 1 msg.addr = 0x40 msg.flags = 0x00 msg.len = 2 *msg.buf = 0x00 0x7f 
+1: _PCA9685_writeI2CReg(): 40:fe:01 1e
 1: _PCA9685_ioctl: fd = -1 request = RDWR data.nmesgs = 1 msg.addr = 0x40 msg.flags = 0x00 msg.len = 2 *msg.buf = 0xfe 0x1e 
+1: _PCA9685_writeI2CReg(): 40:00:01 6f
 1: _PCA9685_ioctl: fd = -1 request = RDWR data.nmesgs = 1 msg.addr = 0x40 msg.flags = 0x00 msg.len = 2 *msg.buf = 0x00 0x6f 
+1: _PCA9685_writeI2CReg(): 40:00:01 ef
 1: _PCA9685_ioctl: fd = -1 request = RDWR data.nmesgs = 1 msg.addr = 0x40 msg.flags = 0x00 msg.len = 2 *msg.buf = 0x00 0xef 
+1: _PCA9685_writeI2CReg(): 40:00:01 21
 1: _PCA9685_ioctl: fd = -1 request = RDWR data.nmesgs = 1 msg.addr = 0x40 msg.flags = 0x00 msg.len = 2 *msg.buf = 0x00 0x21 
+1: _PCA9685_writeI2CReg(): 40:01:01 04
 1: _PCA9685_ioctl: fd = -1 request = RDWR data.nmesgs = 1 msg.addr = 0x40 msg.flags = 0x00 msg.len = 2 *msg.buf = 0x01 0x04 
 1: _PCA9685_ioctl: fd = 0 request = RDWR data.nmesgs = 1 msg.addr = 0x00 msg.flags = 0x00 msg.len = 1 *msg.buf = 0x06 
+1: PCA9685_setPWMVal(): reg fa, on 00, off 00
+1: _PCA9685_writeI2CReg(): 10:fa:01 00
 1: _PCA9685_ioctl: fd = 0 request = RDWR data.nmesgs = 1 msg.addr = 0x10 msg.flags = 0x00 msg.len = 2 *msg.buf = 0xfa 0x00 
+1: _PCA9685_writeI2CReg(): 10:fb:01 00
 1: _PCA9685_ioctl: fd = 0 request = RDWR data.nmesgs = 1 msg.addr = 0x10 msg.flags = 0x00 msg.len = 2 *msg.buf = 0xfb 0x00 
+1: _PCA9685_writeI2CReg(): 10:fc:01 00
 1: _PCA9685_ioctl: fd = 0 request = RDWR data.nmesgs = 1 msg.addr = 0x10 msg.flags = 0x00 msg.len = 2 *msg.buf = 0xfc 0x00 
+1: _PCA9685_writeI2CReg(): 10:fd:01 00
 1: _PCA9685_ioctl: fd = 0 request = RDWR data.nmesgs = 1 msg.addr = 0x10 msg.flags = 0x00 msg.len = 2 *msg.buf = 0xfd 0x00 
 1: _PCA9685_ioctl: fd = 0 request = RDWR data.nmesgs = 2 msg.addr = 0x10 msg.flags = 0x00 msg.len = 1 *msg.buf = 0x00 
+1: _PCA9685_readI2CReg(): 10:00:01 00
+1: _PCA9685_writeI2CReg(): 10:00:01 10
 1: _PCA9685_ioctl: fd = 0 request = RDWR data.nmesgs = 1 msg.addr = 0x10 msg.flags = 0x00 msg.len = 2 *msg.buf = 0x00 0x10 
+1: _PCA9685_writeI2CReg(): 10:fe:01 1e
 1: _PCA9685_ioctl: fd = 0 request = RDWR data.nmesgs = 1 msg.addr = 0x10 msg.flags = 0x00 msg.len = 2 *msg.buf = 0xfe 0x1e 
+1: _PCA9685_writeI2CReg(): 10:00:01 00
 1: _PCA9685_ioctl: fd = 0 request = RDWR data.nmesgs = 1 msg.addr = 0x10 msg.flags = 0x00 msg.len = 2 *msg.buf = 0x00 0x00 
+1: _PCA9685_writeI2CReg(): 10:00:01 80
 1: _PCA9685_ioctl: fd = 0 request = RDWR data.nmesgs = 1 msg.addr = 0x10 msg.flags = 0x00 msg.len = 2 *msg.buf = 0x00 0x80 
+1: _PCA9685_writeI2CReg(): 10:00:01 21
 1: _PCA9685_ioctl: fd = 0 request = RDWR data.nmesgs = 1 msg.addr = 0x10 msg.flags = 0x00 msg.len = 2 *msg.buf = 0x00 0x21 
+1: _PCA9685_writeI2CReg(): 10:01:01 04
 1: _PCA9685_ioctl: fd = 0 request = RDWR data.nmesgs = 1 msg.addr = 0x10 msg.flags = 0x00 msg.len = 2 *msg.buf = 0x01 0x04 
 1: passed
 1: 
 1: testInitPWM
 1: _PCA9685_ioctl: fd = 0 request = RDWR data.nmesgs = 1 msg.addr = 0x00 msg.flags = 0x00 msg.len = 1 *msg.buf = 0x06 
+1: PCA9685_setPWMVal(): reg fa, on 00, off 00
+1: _PCA9685_writeI2CReg(): 40:fa:01 00
 1: _PCA9685_ioctl: fd = 0 request = RDWR data.nmesgs = 1 msg.addr = 0x40 msg.flags = 0x00 msg.len = 2 *msg.buf = 0xfa 0x00 
+1: _PCA9685_writeI2CReg(): 40:fb:01 00
 1: _PCA9685_ioctl: fd = 0 request = RDWR data.nmesgs = 1 msg.addr = 0x40 msg.flags = 0x00 msg.len = 2 *msg.buf = 0xfb 0x00 
+1: _PCA9685_writeI2CReg(): 40:fc:01 00
 1: _PCA9685_ioctl: fd = 0 request = RDWR data.nmesgs = 1 msg.addr = 0x40 msg.flags = 0x00 msg.len = 2 *msg.buf = 0xfc 0x00 
+1: _PCA9685_writeI2CReg(): 40:fd:01 00
 1: _PCA9685_ioctl: fd = 0 request = RDWR data.nmesgs = 1 msg.addr = 0x40 msg.flags = 0x00 msg.len = 2 *msg.buf = 0xfd 0x00 
 1: _PCA9685_ioctl: fd = 0 request = RDWR data.nmesgs = 2 msg.addr = 0x40 msg.flags = 0x00 msg.len = 1 *msg.buf = 0x00 
+1: _PCA9685_readI2CReg(): 40:00:01 00
+1: _PCA9685_writeI2CReg(): 40:00:01 10
 1: _PCA9685_ioctl: fd = 0 request = RDWR data.nmesgs = 1 msg.addr = 0x40 msg.flags = 0x00 msg.len = 2 *msg.buf = 0x00 0x10 
+1: _PCA9685_writeI2CReg(): 40:fe:01 1e
 1: _PCA9685_ioctl: fd = 0 request = RDWR data.nmesgs = 1 msg.addr = 0x40 msg.flags = 0x00 msg.len = 2 *msg.buf = 0xfe 0x1e 
+1: _PCA9685_writeI2CReg(): 40:00:01 00
 1: _PCA9685_ioctl: fd = 0 request = RDWR data.nmesgs = 1 msg.addr = 0x40 msg.flags = 0x00 msg.len = 2 *msg.buf = 0x00 0x00 
+1: _PCA9685_writeI2CReg(): 40:00:01 80
 1: _PCA9685_ioctl: fd = 0 request = RDWR data.nmesgs = 1 msg.addr = 0x40 msg.flags = 0x00 msg.len = 2 *msg.buf = 0x00 0x80 
+1: _PCA9685_writeI2CReg(): 40:00:01 21
 1: _PCA9685_ioctl: fd = 0 request = RDWR data.nmesgs = 1 msg.addr = 0x40 msg.flags = 0x00 msg.len = 2 *msg.buf = 0x00 0x21 
+1: _PCA9685_writeI2CReg(): 40:01:01 04
 1: _PCA9685_ioctl: fd = 0 request = RDWR data.nmesgs = 1 msg.addr = 0x40 msg.flags = 0x00 msg.len = 2 *msg.buf = 0x01 0x04 
 1: passed
 1: 
 1: testFailWriteAllChannels
+1: PCA9685_setPWMVals(): vals[16]:  fff fff fff fff fff fff fff fff fff fff fff fff fff fff fff fff
+1: _PCA9685_writeI2CReg(): 40:06:40 00 00 ff 0f 00 00 ff 0f 00 00 ff 0f 00 00 ff 0f 00 00 ff 0f 00 00 ff 0f 00 00 ff 0f 00 00 ff 0f 00 00 ff 0f 00 00 ff 0f 00 00 ff 0f 00 00 ff 0f 00 00 ff 0f 00 00 ff 0f 00 00 ff 0f 00 00 ff 0f
 1: _PCA9685_ioctl: fd = -1 request = RDWR data.nmesgs = 1 msg.addr = 0x40 msg.flags = 0x00 msg.len = 65 *msg.buf = 0x06 0x00 0x00 0xff 0x0f 0x00 0x00 0xff 0x0f 0x00 0x00 0xff 0x0f 0x00 0x00 0xff 0x0f 0x00 0x00 0xff 0x0f 0x00 0x00 0xff 0x0f 0x00 0x00 0xff 0x0f 0x00 0x00 0xff 0x0f 0x00 0x00 0xff 0x0f 0x00 0x00 0xff 0x0f 0x00 0x00 0xff 0x0f 0x00 0x00 0xff 0x0f 0x00 0x00 0xff 0x0f 0x00 0x00 0xff 0x0f 0x00 0x00 0xff 0x0f 0x00 0x00 0xff 0x0f 
 1: passed
 1: 
 1: testWriteAllChannels
+1: PCA9685_setPWMVals(): vals[16]:  fff fff fff fff fff fff fff fff fff fff fff fff fff fff fff fff
+1: _PCA9685_writeI2CReg(): 40:06:40 00 00 ff 0f 00 00 ff 0f 00 00 ff 0f 00 00 ff 0f 00 00 ff 0f 00 00 ff 0f 00 00 ff 0f 00 00 ff 0f 00 00 ff 0f 00 00 ff 0f 00 00 ff 0f 00 00 ff 0f 00 00 ff 0f 00 00 ff 0f 00 00 ff 0f 00 00 ff 0f
 1: _PCA9685_ioctl: fd = 0 request = RDWR data.nmesgs = 1 msg.addr = 0x40 msg.flags = 0x00 msg.len = 65 *msg.buf = 0x06 0x00 0x00 0xff 0x0f 0x00 0x00 0xff 0x0f 0x00 0x00 0xff 0x0f 0x00 0x00 0xff 0x0f 0x00 0x00 0xff 0x0f 0x00 0x00 0xff 0x0f 0x00 0x00 0xff 0x0f 0x00 0x00 0xff 0x0f 0x00 0x00 0xff 0x0f 0x00 0x00 0xff 0x0f 0x00 0x00 0xff 0x0f 0x00 0x00 0xff 0x0f 0x00 0x00 0xff 0x0f 0x00 0x00 0xff 0x0f 0x00 0x00 0xff 0x0f 0x00 0x00 0xff 0x0f 
 1: passed
 1: 
 1: testTurnOffAllChannels
+1: PCA9685_setPWMVals(): vals[16]:  000 000 000 000 000 000 000 000 000 000 000 000 000 000 000 000
+1: _PCA9685_writeI2CReg(): 40:06:40 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 1: _PCA9685_ioctl: fd = 0 request = RDWR data.nmesgs = 1 msg.addr = 0x40 msg.flags = 0x00 msg.len = 65 *msg.buf = 0x06 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 0x00 
 1: passed
 1: 
 1: All tests passed.
-1/1 Test #1: test1 ............................   Passed    0.03 sec
+1/1 Test #1: test1 ............................   Passed    0.04 sec
 
 100% tests passed, 0 tests failed out of 1
 
-Total Test time (real) =   0.05 sec
+Total Test time (real) =   0.06 sec
