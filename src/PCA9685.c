@@ -7,16 +7,21 @@
 #include <linux/i2c.h>
 #include <sys/ioctl.h>
 #include <sys/select.h>
+#include <stdint.h>
 
 #include "PCA9685.h"
 #include "libPCA9685Config.h"
 
 // debug flag
 int _PCA9685_DEBUG = 0;
+// test flag
+int _PCA9685_TEST = 0;
 // mode1 value hardware defaults (all call and sleep)
 unsigned char _PCA9685_MODE1 = 0x00 | _PCA9685_ALLCALLBIT | _PCA9685_SLEEPBIT;
 // mode2 value hardware defaults (totem pole mode)
 unsigned char _PCA9685_MODE2 = 0x00 | _PCA9685_OUTDRVBIT;
+
+#define INT2VOIDP(i) (void*)(uintptr_t)(i)
 
 /////////////////////////////////////////////////////////////////////
 // open the I2C bus device and assign the default slave address 
@@ -33,7 +38,7 @@ int PCA9685_openI2C(unsigned char adapterNum, unsigned char addr) {
   sprintf(filename, "/dev/i2c-%d", adapterNum);
 
   // open the I2C bus device 
-  fd = open(filename, O_RDWR);
+  fd = _PCA9685_open(filename, O_RDWR);
   if (fd < 0) {
     fprintf(stderr, "PCA9685_openI2C(): open() returned %d for %s\n", fd, filename);
     return -1;
@@ -44,9 +49,10 @@ int PCA9685_openI2C(unsigned char adapterNum, unsigned char addr) {
   }
 
   // set the default slave address for read() and write() 
-  ret = ioctl(fd, I2C_SLAVE, addr);
+  void *p = INT2VOIDP(addr);
+  ret = _PCA9685_ioctl(fd, I2C_SLAVE, (char *) p);
   if (ret < 0) {
-    fprintf(stderr, "PCA9685_openI2C(): ioctl() returned %d for addr %d\n", ret, addr);
+    fprintf(stderr, "PCA9685_openI2C(): _PCA9685_ioctl() returned %d for addr %d\n", ret, addr);
     return -1;
   } // if 
 
@@ -470,9 +476,9 @@ int _PCA9685_readI2CReg(int fd, unsigned char addr, unsigned char startReg,
   data.nmsgs = 2;
 
   // send the combined transaction 
-  ret = ioctl(fd, I2C_RDWR, &data);
+  ret = _PCA9685_ioctl(fd, I2C_RDWR, (char *) &data);
   if (ret < 0) {
-    fprintf(stderr, "_PCA9685_readI2CReg(): ioctl() returned ");
+    fprintf(stderr, "_PCA9685_readI2CReg(): _PCA9685_ioctl() returned ");
     fprintf(stderr, "%d on addr %02x start %02x\n", ret, addr, startReg);
     return -1;
   } // if 
@@ -549,10 +555,10 @@ int _PCA9685_writeI2CRaw(int fd, unsigned char addr, int len,
   data.nmsgs = 1;
 
   // send a combined transaction 
-  ret = ioctl(fd, I2C_RDWR, &data);
+  ret = _PCA9685_ioctl(fd, I2C_RDWR, (char *) &data);
   if (ret < 0) {
     int i;
-    fprintf(stderr, "_PCA9685_writeI2CRaw(): ioctl() returned ");
+    fprintf(stderr, "_PCA9685_writeI2CRaw(): _PCA9685_ioctl() returned ");
     fprintf(stderr, "%d on addr %02x\n", ret, addr);
     fprintf(stderr, "_PCA9685_writeI2CRaw(): len = %d, buf = ", len);
     for (i=0; i<len; i++) {
@@ -564,3 +570,60 @@ int _PCA9685_writeI2CRaw(int fd, unsigned char addr, int len,
 
   return 0;
 } // _PCA9685_writeI2CRaw 
+
+
+
+/////////////////////////////////////////////////////////////////////
+// wrapper for ioctl()
+int _PCA9685_ioctl(int fd, unsigned long int request, char *argp) {
+  if (_PCA9685_DEBUG || _PCA9685_TEST) {
+    if (request == I2C_RDWR) {
+      struct i2c_rdwr_ioctl_data *datap = (struct i2c_rdwr_ioctl_data *) argp;
+      struct i2c_rdwr_ioctl_data data = *datap;
+      struct i2c_msg *msgp = (struct i2c_msg *) data.msgs;
+      struct i2c_msg msg = *msgp;
+      printf("_PCA9685_ioctl: fd = %d request = RDWR data.nmesgs = %d msg.addr = 0x%02x msg.flags = 0x%02x msg.len = %d *msg.buf = ",
+              fd, data.nmsgs, msg.addr, msg.flags, msg.len);
+      int i;
+      for (i = 0; i < msg.len; i++) {
+        unsigned char c = *(msg.buf + i);
+        printf("0x%02x ", c);
+      } // for
+      printf("\n");
+    } // if RDWR
+    else if (request == I2C_SLAVE) {
+      printf("_PCA9685_ioctl: fd = %d request = SLAVE argp = %p\n", fd, argp);
+    } // if SLAVE
+  } // if debug or test
+
+  if (_PCA9685_TEST) {
+    return 0;
+  } // if test
+
+  int ret;
+  ret = ioctl(fd, request, argp);
+  if (ret < 0) {
+    fprintf(stderr, "_PCA9685_ioctl(): ioctl() returned %d\n", ret);
+  } // if ret
+  return ret;
+} // _PCA9685_ioctl
+
+
+
+/////////////////////////////////////////////////////////////////////
+// wrapper for open()
+int _PCA9685_open(const char *pathname, int flags) {
+  if (_PCA9685_DEBUG || _PCA9685_TEST) {
+    printf("_PCA9685_open: pathname = %s flags = 0x%02x\n", pathname, flags);
+  } // if debug or test
+
+  if (_PCA9685_TEST) {
+    return 0;
+  } // if test
+
+  int ret = open(pathname, flags);
+  if (ret < 0) {
+    fprintf(stderr, "_PCA9685_open: open() returned %d\n", ret);
+  } // if ret
+  return ret;
+} // _PCA9685_open

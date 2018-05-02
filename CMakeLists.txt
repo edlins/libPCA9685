@@ -5,6 +5,9 @@ project(PCA9685)
 # add flags
 set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -D_BSD_SOURCE -std=c11 -Wall -pedantic -Wextra")
 
+enable_testing()
+add_test(test1 PCA9685test -t 1 40)
+
 
 # build the library
 add_subdirectory (src)
