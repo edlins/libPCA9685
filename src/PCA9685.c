@@ -251,7 +251,8 @@ int PCA9685_setAllPWM(int fd, unsigned char addr,
 int PCA9685_getRegVals(int fd, unsigned char addr,
                        unsigned char* mode1val, unsigned char* mode2val) {
   int ret;
-  unsigned char readBuf[2] = "ff";
+  //unsigned char readBuf[2] = { 0xff, 0xff };
+  unsigned char readBuf[2];
 
   ret = _PCA9685_readI2CReg(fd, addr, _PCA9685_MODE1REG, 2, readBuf);
   if (ret != 0) {
@@ -275,7 +276,7 @@ int PCA9685_getPWMVals(int fd, unsigned char addr,
   unsigned char readBuf[_PCA9685_CHANS*4];
   int i;
   for (i = 0; i < _PCA9685_CHANS * 4; i++) {
-    readBuf[i] = 'f';  readBuf[i + 1] = 'f';  readBuf[i + 2] = 'f';  readBuf[i + 3] = 'f';
+    readBuf[i] = 0xff;  readBuf[i + 1] = 0xff;  readBuf[i + 2] = 0xff;  readBuf[i + 3] = 0xff;
   } // for
 
   ret = _PCA9685_readI2CReg(fd, addr, _PCA9685_BASEPWMREG,
@@ -313,7 +314,7 @@ int PCA9685_getPWMVals(int fd, unsigned char addr,
 int PCA9685_getPWMVal(int fd, unsigned char addr, unsigned char reg,
                       unsigned int* on, unsigned int* off) {
   int ret;
-  unsigned char readBuf[4] = "ffff";
+  unsigned char readBuf[4] = { 0xff, 0xff, 0xff, 0xff };
 
   ret = _PCA9685_readI2CReg(fd, addr, reg, 4, readBuf);
   if (ret != 0) {
