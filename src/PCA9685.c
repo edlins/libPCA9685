@@ -314,7 +314,8 @@ int PCA9685_getPWMVals(int fd, unsigned char addr,
 int PCA9685_getPWMVal(int fd, unsigned char addr, unsigned char reg,
                       unsigned int* on, unsigned int* off) {
   int ret;
-  unsigned char readBuf[4] = { 0xff, 0xff, 0xff, 0xff };
+  //unsigned char readBuf[4] = { 0xff, 0xff, 0xff, 0xff };
+  unsigned char readBuf[4];
 
   ret = _PCA9685_readI2CReg(fd, addr, reg, 4, readBuf);
   if (ret != 0) {
