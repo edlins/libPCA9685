@@ -251,7 +251,6 @@ int PCA9685_setAllPWM(int fd, unsigned char addr,
 int PCA9685_getRegVals(int fd, unsigned char addr,
                        unsigned char* mode1val, unsigned char* mode2val) {
   int ret;
-  //unsigned char readBuf[2] = { 0xff, 0xff };
   unsigned char readBuf[2];
 
   ret = _PCA9685_readI2CReg(fd, addr, _PCA9685_MODE1REG, 2, readBuf);
@@ -275,9 +274,6 @@ int PCA9685_getPWMVals(int fd, unsigned char addr,
   int ret;
   unsigned char readBuf[_PCA9685_CHANS*4];
   int i;
-  for (i = 0; i < _PCA9685_CHANS * 4; i++) {
-    //readBuf[i] = 0xff;  readBuf[i + 1] = 0xff;  readBuf[i + 2] = 0xff;  readBuf[i + 3] = 0xff;
-  } // for
 
   ret = _PCA9685_readI2CReg(fd, addr, _PCA9685_BASEPWMREG,
                             _PCA9685_CHANS*4, readBuf);
@@ -314,7 +310,6 @@ int PCA9685_getPWMVals(int fd, unsigned char addr,
 int PCA9685_getPWMVal(int fd, unsigned char addr, unsigned char reg,
                       unsigned int* on, unsigned int* off) {
   int ret;
-  //unsigned char readBuf[4] = { 0xff, 0xff, 0xff, 0xff };
   unsigned char readBuf[4];
 
   ret = _PCA9685_readI2CReg(fd, addr, reg, 4, readBuf);
@@ -377,8 +372,7 @@ int PCA9685_dumpAllRegs(int fd, unsigned char addr) {
 // set the PWM frequency 
 int _PCA9685_setPWMFreq(int fd, unsigned char addr, unsigned int freq) {
   int ret;
-  //unsigned char mode1Val = 0xff;
-  unsigned char mode1Val;
+  unsigned char mode1Val = 0xff;
   unsigned char prescale;
   if (_PCA9685_DEBUG) {
     printf("_PCA9685_setPWMFreq(): mode1Val = 0x%02x\n", mode1Val);
