@@ -45,6 +45,8 @@ extern unsigned char _PCA9685_MODE2;
 
 // control register to initiate device reset
 #define _PCA9685_RESETVAL	0x06
+// control register to initiate device reset
+#define _PCA9685_GENCALLADDR	0x00
 
 // PWM frequency limits
 #define _PCA9685_MAXFREQ	1526

@@ -10,6 +10,9 @@
 #include <stdint.h>
 
 #include "PCA9685.h"
+
+// set the lib version from the Config header
+// sets libPCA9685_VERSION_MAJOR and libPCA9685_VERSION_MINOR
 #include "libPCA9685Config.h"
 
 // debug flag
@@ -26,10 +29,6 @@ unsigned char _PCA9685_MODE2 = 0x00 | _PCA9685_OUTDRVBIT;
 /////////////////////////////////////////////////////////////////////
 // open the I2C bus device and assign the default slave address 
 int PCA9685_openI2C(unsigned char adapterNum, unsigned char addr) {
-  if (_PCA9685_DEBUG) {
-    printf("**************DEBUG**************\n");
-    printf("libPCA9685 %d.%d\n", libPCA9685_VERSION_MAJOR, libPCA9685_VERSION_MINOR);
-  }
   int fd;
   int ret;
 
@@ -65,14 +64,21 @@ int PCA9685_openI2C(unsigned char adapterNum, unsigned char addr) {
 // initialize a PCA9685 device to defaults, turn off PWM's, and set the freq 
 int PCA9685_initPWM(int fd, unsigned char addr, unsigned int freq) {
   int ret;
+  if (_PCA9685_DEBUG) {
+    printf("PCA9685_initPWM(): starting on fd %d, addr 0x%02x, freq %d\n", fd, addr, freq);
+  } // if debug
 
-  // send a software reset to get defaults 
+  // send a software reset to get defaults, resets all devices on bus
   unsigned char resetval = _PCA9685_RESETVAL;
-  ret = _PCA9685_writeI2CRaw(fd, _PCA9685_MODE1REG, 1, &resetval);
+  ret = _PCA9685_writeI2CRaw(fd, _PCA9685_GENCALLADDR, 1, &resetval);
   if (ret != 0) {
     fprintf(stderr, "PCA9685_initPWM(): _PCA9685_writeI2CRaw() returned %d\n", ret);
     return -1;
   } // if 
+  if (_PCA9685_DEBUG) {
+    printf("PCA9685_initPWM(): reset complete on fd %d\n", fd);
+  } // if debug
+
 
   // after the reset, all of the control registers default vals are ok 
 
@@ -81,7 +87,10 @@ int PCA9685_initPWM(int fd, unsigned char addr, unsigned int freq) {
   if (ret != 0) {
     fprintf(stderr, "PCA9685_initPWM(): PCA9685_setAllPWM() returned %d\n", ret);
     return -1;
-  } // if 
+  } // if  
+  if (_PCA9685_DEBUG) {
+    printf("PCA9685_initPWM(): all PWM off on fd %d, addr 0x%02x\n", fd, addr);
+  } // if debug
 
   // set the oscillator frequency 
   ret = _PCA9685_setPWMFreq(fd, addr, freq);
@@ -89,6 +98,9 @@ int PCA9685_initPWM(int fd, unsigned char addr, unsigned int freq) {
     fprintf(stderr, "PCA9685_initPWM(): _PCA9685_setPWMFreq() returned %d\n", ret);
     return -1;
   } // if 
+  if (_PCA9685_DEBUG) {
+    printf("PCA9685_initPWM(): frequency set to %d on fd %d, addr 0x%02x\n", freq, fd, addr);
+  } // if debug
 
   // set MODE1 register using default value with AUTOINC
   // and without any of SLEEP, EXTCLK, and RESTART
@@ -100,6 +112,9 @@ int PCA9685_initPWM(int fd, unsigned char addr, unsigned int freq) {
     fprintf(stderr, "%d on addr %02x\n", ret, addr);
     return -1;
   } // if 
+  if (_PCA9685_DEBUG) {
+    printf("PCA9685_initPWM(): mode1 set to 0x%02x on fd %d, addr 0x%02x\n", mode1val, fd, addr);
+  } // if debug
 
   // set MODE2 register
   unsigned char mode2val = _PCA9685_MODE2;
@@ -109,6 +124,9 @@ int PCA9685_initPWM(int fd, unsigned char addr, unsigned int freq) {
     fprintf(stderr, "%d on addr %02x\n", ret, addr);
     return -1;
   } // if 
+  if (_PCA9685_DEBUG) {
+    printf("PCA9685_initPWM(): mode2 set to 0x%02x on fd %d, addr 0x%02x\n", mode2val, fd, addr);
+  } // if debug
 
   return 0;
 } // PCA9685_initPWM
@@ -357,8 +375,11 @@ int PCA9685_dumpAllRegs(int fd, unsigned char addr) {
 // set the PWM frequency 
 int _PCA9685_setPWMFreq(int fd, unsigned char addr, unsigned int freq) {
   int ret;
-  unsigned char mode1Val;
+  unsigned char mode1Val = 0xff;
   unsigned char prescale;
+  if (_PCA9685_DEBUG) {
+    printf("_PCA9685_setPWMFreq(): mode1Val = 0x%02x\n", mode1Val);
+  } // if debug
 
   // get initial mode1Val 
   ret = _PCA9685_readI2CReg(fd, addr, _PCA9685_MODE1REG, 1, &mode1Val);
@@ -478,6 +499,10 @@ int _PCA9685_readI2CReg(int fd, unsigned char addr, unsigned char startReg,
   data.msgs = msgs;
   data.nmsgs = 2;
 
+  if (_PCA9685_DEBUG) {
+    printf("_PCA9685_readI2CReg(): *readBuf = 0x%02x\n", *readBuf);
+  } // if debug
+
   // send the combined transaction 
   ret = _PCA9685_ioctl(fd, I2C_RDWR, (char *) &data);
   if (ret < 0) {
@@ -585,17 +610,23 @@ int _PCA9685_ioctl(int fd, unsigned long int request, char *argp) {
       struct i2c_rdwr_ioctl_data data = *datap;
       struct i2c_msg *msgp = (struct i2c_msg *) data.msgs;
       struct i2c_msg msg = *msgp;
-      printf("_PCA9685_ioctl: fd = %d request = RDWR data.nmesgs = %d msg.addr = 0x%02x msg.flags = 0x%02x msg.len = %d *msg.buf = ",
-              fd, data.nmsgs, msg.addr, msg.flags, msg.len);
+      printf("_PCA9685_ioctl(): fd = %d request = RDWR data.nmesgs = %d\n", fd, data.nmsgs);
       int i;
-      for (i = 0; i < msg.len; i++) {
-        unsigned char c = *(msg.buf + i);
-        printf("0x%02x ", c);
-      } // for
-      printf("\n");
+      for (i = 0; (unsigned int) i < data.nmsgs; i++) {
+        printf("_PCA9685_ioctl(): msg %d: ", i);
+        msg = *(msgp + i);
+        printf("  msg.addr = 0x%02x msg.flags = 0x%02x msg.len = %d *msg.buf = ",
+               msg.addr, msg.flags, msg.len);
+        int j;
+        for (j = 0; j < msg.len; j++) {
+          unsigned char c = *(msg.buf + j);
+          printf("0x%02x ", c);
+        } // for
+        printf("\n");
+      } // for nmesgs
     } // if RDWR
     else if (request == I2C_SLAVE) {
-      printf("_PCA9685_ioctl: fd = %d request = SLAVE argp = %p\n", fd, argp);
+      printf("_PCA9685_ioctl(): fd = %d request = SLAVE argp = %p\n", fd, argp);
     } // if SLAVE
   } // if debug or test
 
@@ -617,7 +648,7 @@ int _PCA9685_ioctl(int fd, unsigned long int request, char *argp) {
 // wrapper for open()
 int _PCA9685_open(const char *pathname, int flags) {
   if (_PCA9685_DEBUG || _PCA9685_TEST) {
-    printf("_PCA9685_open: pathname = %s flags = 0x%02x\n", pathname, flags);
+    printf("_PCA9685_open(): pathname = %s flags = 0x%02x\n", pathname, flags);
   } // if debug or test
 
   if (_PCA9685_TEST) {
