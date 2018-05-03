@@ -6,4 +6,4 @@ before_script:
   - cd build
   - cmake ..
 
-script: make && sudo make install
+script: make && ctest && diff ../test/PCA9685_expected_output ../test/PCA9685_actual_output && sudo make install

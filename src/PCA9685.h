@@ -3,6 +3,7 @@ extern "C" {
 #endif
 
 extern int _PCA9685_DEBUG;
+extern int _PCA9685_TEST;
 extern unsigned char _PCA9685_MODE1;
 extern unsigned char _PCA9685_MODE2;
 
@@ -44,6 +45,8 @@ extern unsigned char _PCA9685_MODE2;
 
 // control register to initiate device reset
 #define _PCA9685_RESETVAL	0x06
+// control register to initiate device reset
+#define _PCA9685_GENCALLADDR	0x00
 
 // PWM frequency limits
 #define _PCA9685_MAXFREQ	1526
@@ -109,6 +112,12 @@ int _PCA9685_writeI2CReg(int fd, unsigned char addr, unsigned char startReg,
 // write I2C bytes to an address  
 int _PCA9685_writeI2CRaw(int fd, unsigned char addr, int len,
                          unsigned char* writeBuf);
+
+// wrapper for ioctl()
+int _PCA9685_ioctl(int fd, unsigned long int request, char *argp);
+
+// wrapper for open()
+int _PCA9685_open(const char *pathname, int flags);
 
 #endif
 

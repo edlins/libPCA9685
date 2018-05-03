@@ -4,6 +4,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <limits.h>
+#include <getopt.h>
 
 #include <PCA9685.h>
 #include "PCA9685testConfig.h"
@@ -17,13 +18,13 @@ int testFailOpenI2C() {
   printf("testFailOpenI2C\n");
   int fadpt = 0;
   fd = PCA9685_openI2C(fadpt, addr);
-  if (fd >= 0) {
+  if (fd >= 0 && !_PCA9685_TEST) {
     fprintf(stderr, "ERROR: testFailOpenI2C: PCA9685_openI2C(%d, 0x%02x) returned %d\n", fadpt, addr, fd);
     return -1;
   } // if fd
   int faddr = 240;
   fd = PCA9685_openI2C(adpt, faddr);
-  if (fd >= 0) {
+  if (fd >= 0 && !_PCA9685_TEST) {
     fprintf(stderr, "ERROR: testFailOpenI2C: PCA9685_openI2C(%d, 0x%02x) returned %d\n", adpt, faddr, fd);
     return -1;
   } // if fd
@@ -35,7 +36,7 @@ int testFailOpenI2C() {
 int testOpenI2C() {
   printf("testOpenI2C\n");
   fd = PCA9685_openI2C(adpt, addr);
-  if (fd < 0) {
+  if (fd < 0 && !_PCA9685_TEST) {
     fprintf(stderr, "ERROR: testOpenI2C: PCA9685_openI2C(%d, 0x%02x) returned %d\n", adpt, addr, fd);
     return -1;
   } // if fd
@@ -49,13 +50,13 @@ int testFailInitPWM() {
   int freq = 200;
   int ffd = -1;
   int rc = PCA9685_initPWM(ffd, addr, freq);
-  if (rc == 0) {
+  if (rc == 0 && !_PCA9685_TEST) {
     fprintf(stderr, "ERROR: testFailInitPWM: PCA9685_initPWM(%d, 0x%02x, %d) returned %d\n", ffd, addr, freq, rc);
     return -1;
   } // if rc
   int faddr = -240;
   rc = PCA9685_initPWM(fd, faddr, freq);
-  if (rc == 0) {
+  if (rc == 0 && !_PCA9685_TEST) {
     fprintf(stderr, "ERROR: testFailInitPWM: PCA9685_initPWM(%d, 0x%02x, %d) returned %d\n", fd, faddr, freq, rc);
     return -1;
   } // if rc
@@ -68,7 +69,7 @@ int testInitPWM() {
   printf("testInitPWM\n");
   int freq = 200;
   int rc = PCA9685_initPWM(fd, addr, freq);
-  if (rc != 0) {
+  if (rc != 0 && !_PCA9685_TEST) {
     fprintf(stderr, "ERROR: testInitPWM: PCA9685_initPWM(%d, 0x%02x, %d) returned %d\n", fd, adpt, freq, rc);
     return -1;
   } // if rc
@@ -88,7 +89,7 @@ int testFailWriteAllChannels() {
       _PCA9685_MAXVAL, _PCA9685_MAXVAL, _PCA9685_MAXVAL, _PCA9685_MAXVAL,
       _PCA9685_MAXVAL, _PCA9685_MAXVAL, _PCA9685_MAXVAL, _PCA9685_MAXVAL };
   int rc = PCA9685_setPWMVals(ffd, addr, setOnVals, setOffVals);
-  if (rc == 0) {
+  if (rc == 0 && !_PCA9685_TEST) {
     fprintf(stderr, "ERROR: testFailWriteAllChannels: PCA9685_setPWMVals(%d, 0x%02x, NULL, setOffVals) returned %d\n", fd, addr, rc);
     return -1;
   } // if rc
@@ -107,7 +108,7 @@ int testWriteAllChannels() {
       _PCA9685_MAXVAL, _PCA9685_MAXVAL, _PCA9685_MAXVAL, _PCA9685_MAXVAL,
       _PCA9685_MAXVAL, _PCA9685_MAXVAL, _PCA9685_MAXVAL, _PCA9685_MAXVAL };
   int rc = PCA9685_setPWMVals(fd, addr, setOnVals, setOffVals);
-  if (rc != 0) {
+  if (rc != 0 && !_PCA9685_TEST) {
     fprintf(stderr, "ERROR: testWriteAllChannels: PCA9685_setPWMVals(%d, 0x%02x, setOnVals, setOffVals) returned %d\n", fd, addr, rc);
     return -1;
   } // if rc
@@ -123,7 +124,7 @@ int testTurnOffAllChannels() {
   unsigned int setOffVals[_PCA9685_CHANS] =
     { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 };
   int rc = PCA9685_setPWMVals(fd, addr, setOnVals, setOffVals);
-  if (rc != 0) {
+  if (rc != 0 && !_PCA9685_TEST) {
     fprintf(stderr, "ERROR: testTurnOffAllChannels: PCA9685_setPWMVals(%d, 0x%02x, setOnVals, setOffVals) returned %d\n", fd, addr, rc);
     return -1;
   } // if rc
@@ -133,15 +134,32 @@ int testTurnOffAllChannels() {
 
 
 int main(int argc, char **argv) {
-  fprintf(stdout, "test %d.%d\n", PCA9685test_VERSION_MAJOR, PCA9685test_VERSION_MINOR);
+  int c;
+  while ((c = getopt(argc, argv, "tdv")) != -1) {
+    switch(c) {
+    case 't': // test
+      _PCA9685_TEST = 1;
+      break;
+    case 'd': // debug
+      _PCA9685_DEBUG = 1;
+      break;
+    case 'v': // version
+      fprintf(stdout, "test %d.%d\n", PCA9685test_VERSION_MAJOR, PCA9685test_VERSION_MINOR);
+      break;
+    }
+  }
 
-  if (argc != 3) {
-    fprintf(stderr, "Usage: %s adapter address\n", argv[0]);
+  if ((argc - optind) != 2) {
+    fprintf(stderr, "Usage: %s [-t] [-d] [-v] adapter address\n", argv[0]);
+    fprintf(stderr, "Options:\n");
+    fprintf(stderr, "  -t test, log instead of execute hardware calls\n");
+    fprintf(stderr, "  -d debug, log additional debug info\n");
+    fprintf(stderr, "  -v version, print version info at startup\n");
     exit(-1);
   } // if argc
 
-  long ladpt = strtol(argv[1], NULL, 16);
-  long laddr = strtol(argv[2], NULL, 16);
+  long ladpt = strtol(argv[optind], NULL, 16);
+  long laddr = strtol(argv[optind + 1], NULL, 16);
   if (ladpt > INT_MAX || ladpt < 0) {
     fprintf(stderr, "ERROR: adapter number %ld is not valid\n", ladpt);
     exit(-1);
