@@ -377,7 +377,8 @@ int PCA9685_dumpAllRegs(int fd, unsigned char addr) {
 // set the PWM frequency 
 int _PCA9685_setPWMFreq(int fd, unsigned char addr, unsigned int freq) {
   int ret;
-  unsigned char mode1Val = 0xff;
+  //unsigned char mode1Val = 0xff;
+  unsigned char mode1Val;
   unsigned char prescale;
   if (_PCA9685_DEBUG) {
     printf("_PCA9685_setPWMFreq(): mode1Val = 0x%02x\n", mode1Val);
