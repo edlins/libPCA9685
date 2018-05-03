@@ -130,6 +130,8 @@ INSTALL
         $ cd build
         $ cmake ..
         $ make
+        $ ctest
+        $ diff ../test/PCA9685_expected_output ../test/PCA9685_actual_output
         $ sudo make install
 
         This will install libPCA9685.so in your /usr/local/lib directory,
@@ -159,6 +161,15 @@ VARIABLES
         changes in the operation of the library.  After #include <PCA9685.h>
         is invoked, these variables may be assigned values from applications
         without any additional declaration.
+
+
+        ----------------------------------------------------------------
+        extern int _PCA9685_TEST;
+        ----------------------------------------------------------------
+        0 (default):     test mode is not enabled
+        non-zero:        test mode is enabled, hardware calls are faked
+
+        example: `_PCA9685_TEST = 1; // enable test mode`
 
 
         ----------------------------------------------------------------
@@ -268,7 +279,5 @@ FUNCTIONS
 
 TODO
 
-        test suite
         cleanup fd and addr handling
-        all errors to stdout
         dev locking?

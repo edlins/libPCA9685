@@ -4,11 +4,15 @@
 ## [0.6] - unreleased
 ### Added
 - **CMakeLists.txt**: setup cmake at top level and in src/, use versioning in lib and apps
+- **CMakeLists.txt**: add_test for PCA9685test
 - **.travis.yml**: setup Travis CI
+- **.travis.yml**: ctest && diff
 - **Config.h.in**: templates for Config.h headers that get cmake version values
 - **PCA9685demo.c**: print key menu in ncurses mode
 - **PCA9685demo.c**: add many command line options, add -h usage msg
 - **PCA9685.h**: added externs for MODE1 and MODE2 options and define all bits
+- **PCA9685test.c**: test driver application
+- **PCA9685_expected_output**: test driver expected stdout capture
 
 ### Changed
 - **PCA9685demo.c**: change #define constants to getopt vars
@@ -21,6 +25,7 @@
 - **PCA9685.c**: fix debug logs
 - **PCA9685.c**: use externs for MODE1 and MODE2
 - **PCA9685.h**: add extern int \_PCA9685_DEBUG
+- **PCA9685.h**: add extern int \_PCA9685_TEST
 
 ### Removed
 - **Makefile**: all Makefiles removed
