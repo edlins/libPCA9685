@@ -1,7 +1,15 @@
 # Changelog
 
 
-## [0.6] - unreleased
+## [0.7] - unreleased
+### Added
+
+### Changed
+
+### Removed
+
+
+## [0.6] - 2018-05-07
 ### Added
 - **CMakeLists.txt**: setup cmake at top level and in src/, use lib versioning in lib and apps
 - **CMakeLists.txt**: add_test for PCA9685test
