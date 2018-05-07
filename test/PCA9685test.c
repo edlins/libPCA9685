@@ -5,6 +5,7 @@
 #include <stdio.h>
 #include <limits.h>
 #include <getopt.h>
+#include <stdbool.h>
 
 #include <PCA9685.h>
 #include "PCA9685testConfig.h"

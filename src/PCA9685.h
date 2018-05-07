@@ -2,8 +2,8 @@
 extern "C" {
 #endif
 
-extern int _PCA9685_DEBUG;
-extern int _PCA9685_TEST;
+extern bool _PCA9685_DEBUG;
+extern bool _PCA9685_TEST;
 extern unsigned char _PCA9685_MODE1;
 extern unsigned char _PCA9685_MODE2;
 
@@ -43,9 +43,9 @@ extern unsigned char _PCA9685_MODE2;
 #define _PCA9685_OCHBIT 	0x08
 #define _PCA9685_INVRTBIT	0x10
 
-// control register to initiate device reset
+// control register value to initiate device reset
 #define _PCA9685_RESETVAL	0x06
-// control register to initiate device reset
+// control register address for i2c all call
 #define _PCA9685_GENCALLADDR	0x00
 
 // PWM frequency limits
