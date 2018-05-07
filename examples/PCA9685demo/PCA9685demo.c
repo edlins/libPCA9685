@@ -273,7 +273,7 @@ int main(int argc, char **argv) {
     switch (c)
       {
       case 'V':  // version
-        fprintf(stdout, "PCA9685demo %d.%d\n", PCA9685demo_VERSION_MAJOR, PCA9685demo_VERSION_MINOR);
+        fprintf(stdout, "PCA9685demo %d.%d\n", libPCA9685_VERSION_MAJOR, libPCA9685_VERSION_MINOR);
         exit(0);
       case 'd':  // debug mode
         debug = 1;

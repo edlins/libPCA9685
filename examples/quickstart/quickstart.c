@@ -27,7 +27,7 @@ int initHardware(int adpt, int addr, int freq) {
 
 
 int main(void) {
-  fprintf(stdout, "quickstart %d.%d\n", quickstart_VERSION_MAJOR, quickstart_VERSION_MINOR);
+  fprintf(stdout, "quickstart %d.%d\n", libPCA9685_VERSION_MAJOR, libPCA9685_VERSION_MINOR);
   int adpt = 1;
   int freq = 200;
   signal(SIGINT, intHandler);
