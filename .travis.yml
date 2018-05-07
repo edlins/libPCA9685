@@ -1,5 +1,9 @@
 language: c
 sudo: required
+branches:
+  only:
+    - "master"
+    - "develop"
 
 before_script:
   - mkdir build
