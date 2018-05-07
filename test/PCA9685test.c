@@ -144,7 +144,8 @@ int main(int argc, char **argv) {
       _PCA9685_DEBUG = 1;
       break;
     case 'v': // version
-      fprintf(stdout, "test %d.%d\n", PCA9685test_VERSION_MAJOR, PCA9685test_VERSION_MINOR);
+      fprintf(stdout, "PCA9685test %d.%d\n", libPCA9685_VERSION_MAJOR, libPCA9685_VERSION_MINOR);
+      exit(0);
       break;
     }
   }

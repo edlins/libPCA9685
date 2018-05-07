@@ -1,2 +1,2 @@
-#define quickstart_VERSION_MAJOR @quickstart_VERSION_MAJOR@
-#define quickstart_VERSION_MINOR @quickstart_VERSION_MINOR@
+#define libPCA9685_VERSION_MAJOR @libPCA9685_VERSION_MAJOR@
+#define libPCA9685_VERSION_MINOR @libPCA9685_VERSION_MINOR@
