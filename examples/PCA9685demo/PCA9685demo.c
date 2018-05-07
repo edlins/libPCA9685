@@ -14,8 +14,8 @@
 #include "PCA9685demoConfig.h"
 
 
-int fd;
-int addr = 0x40;
+int __fd;
+int __addr;
 int debug = 0;
 int validate = 0;
 int ncmode = 0;
@@ -23,7 +23,7 @@ int ncmode = 0;
 
 void cleanup() {
   // attmempt to turn off all PWM
-  PCA9685_setAllPWM(fd, addr, _PCA9685_MINVAL, _PCA9685_MINVAL);
+  PCA9685_setAllPWM(__fd, __addr, _PCA9685_MINVAL, _PCA9685_MINVAL);
   if (ncmode) {
     // attmempt to end the ncurses window session
     endwin();
@@ -340,6 +340,9 @@ int main(int argc, char **argv) {
 
   int adpt = 1;
   int freq = 200;
+  unsigned char addr = 0x40;
+  __addr = addr;
+  int fd;
   int ret;
   char automatic;
   char manual;
@@ -357,6 +360,7 @@ int main(int argc, char **argv) {
 
   // initialize the I2C bus adpt and a PCA9685 at addr with freq
   fd = initHardware(adpt, addr, freq);
+  __fd = fd;
   if (fd < 0) {
     cleanup();
     fprintf(stderr, "main(): initHardware() returned ");
