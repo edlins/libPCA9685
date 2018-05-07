@@ -8,6 +8,7 @@
 #include <sys/ioctl.h>
 #include <sys/select.h>
 #include <stdint.h>
+#include <stdbool.h>
 
 #include "PCA9685.h"
 
@@ -16,9 +17,9 @@
 #include "libPCA9685Config.h"
 
 // debug flag
-int _PCA9685_DEBUG = 0;
+bool _PCA9685_DEBUG = 0;
 // test flag
-int _PCA9685_TEST = 0;
+bool _PCA9685_TEST = 0;
 // mode1 value hardware defaults (all call and sleep)
 unsigned char _PCA9685_MODE1 = 0x00 | _PCA9685_ALLCALLBIT | _PCA9685_SLEEPBIT;
 // mode2 value hardware defaults (totem pole mode)
@@ -150,9 +151,9 @@ int PCA9685_setPWMVals(int fd, unsigned char addr,
     } // for 
 
     if (_PCA9685_DEBUG) {
-      { int i;
-        // report the write 
+      { // report the write 
         printf("PCA9685_setPWMVals(): vals[%d]: ", _PCA9685_CHANS);
+        int i;
         for (i=0; i<_PCA9685_CHANS; i++) {
           unsigned int offValue = regVals[i*4+3] << 8;
           offValue += regVals[i*4+2];
@@ -291,9 +292,9 @@ int PCA9685_getPWMVals(int fd, unsigned char addr,
   } // for channels
 
   if (_PCA9685_DEBUG) {
-    int i;
     // report the read
     printf("PCA9685_getPWMVals(): vals[%d]: ", _PCA9685_CHANS);
+    int i;
     for (i=0; i<_PCA9685_CHANS; i++) {
       printf(" %03x", offVals[i]);
     } // for
