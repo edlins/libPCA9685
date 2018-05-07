@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include <ncurses.h>
 #include <getopt.h>
+#include <limits.h>
 
 #include <PCA9685.h>
 #include "PCA9685demoConfig.h"
@@ -260,6 +261,32 @@ struct rgb hsv2rgb(struct hsv _hsv) {
 } // hsv2rgb
 
 
+void print_usage(char *name) {
+  printf("Usage:\n");
+  printf("  %s [options] adapter address\n", name);
+  printf("Options:\n");
+  printf("  -h\thelp, show this screen and quit\n");
+  printf("  -V\tVersion, print the program name and version and quit\n");
+  printf("  -d\tdebug, shows internal function calls and parameter values\n");
+  printf("  -n\tncurses, for interactive operation\n");
+  printf("  -v\tvalidate, read back register values and compare to written values\n");
+  printf("  -a\tallcall, device will respond to i2c all call address\n");
+  printf("  -1\tsub1, device will respond to i2c subaddress 1\n");
+  printf("  -2\tsub2, device will respond to i2c subaddress 2\n");
+  printf("  -3\tsub3, device will respond to i2c subaddress 3\n");
+  printf("  -o\toutput disabled,\n");
+  printf("    \t  LEDn = 1 in default totem pole mode,\n");
+  printf("    \t  LEDn = high impedence in open-drain mode\n");
+  printf("    \t  instead of default LEDn = 0\n");
+  printf("  -z\toutput disabled, LEDn = high impedence\n");
+  printf("    \t  instead of default LEDn = 0\n");
+  printf("  -O\topen drain, instead of default totem pole\n");
+  printf("  -k\tack change, instead of default stop change\n");
+  printf("  -N\tinvert output\n");
+  printf("Use only one of -o or -z to override the default output disabled mode.\n");
+} // print_usage
+
+
 
 
 
@@ -314,35 +341,31 @@ int main(int argc, char **argv) {
         _PCA9685_MODE2 = _PCA9685_MODE2 | _PCA9685_INVRTBIT;
         break;
       case 'h':  // help mode
-        printf("Usage:\n");
-        printf("  %s [options]\n", argv[0]);
-        printf("Options:\n");
-        printf("  -h\thelp, show this screen and quit\n");
-        printf("  -V\tVersion, print the program name and version and quit\n");
-        printf("  -d\tdebug, shows internal function calls and parameter values\n");
-        printf("  -n\tncurses, for interactive operation\n");
-        printf("  -v\tvalidate, read back register values and compare to written values\n");
-        printf("  -a\tallcall, device will respond to i2c all call address\n");
-        printf("  -1\tsub1, device will respond to i2c subaddress 1\n");
-        printf("  -2\tsub2, device will respond to i2c subaddress 2\n");
-        printf("  -3\tsub3, device will respond to i2c subaddress 3\n");
-        printf("  -o\toutput disabled,\n");
-        printf("    \t  LEDn = 1 in default totem pole mode,\n");
-        printf("    \t  LEDn = high impedence in open-drain mode\n");
-        printf("    \t  instead of default LEDn = 0\n");
-        printf("  -z\toutput disabled, LEDn = high impedence\n");
-        printf("    \t  instead of default LEDn = 0\n");
-        printf("  -O\topen drain, instead of default totem pole\n");
-        printf("  -k\tack change, instead of default stop change\n");
-        printf("  -N\tinvert output\n");
-        printf("Use only one of -o or -z to override the default output disabled mode.\n");
+        print_usage(argv[0]);
         exit(0);
       }
 
-  int adpt = 1;
-  int freq = 200;
-  unsigned char addr = 0x40;
+  if ((argc - optind) != 2) {
+    print_usage(argv[0]);
+    exit(-1);
+  } // if argc
+
+  long ladpt = strtol(argv[optind], NULL, 16);
+  long laddr = strtol(argv[optind + 1], NULL, 16);
+  if (ladpt > INT_MAX || ladpt < 0) {
+    fprintf(stderr, "ERROR: adapter number %ld is not valid\n", ladpt);
+    exit(-1);
+  } // if ladpt
+  int adpt = ladpt;
+
+  if (laddr > INT_MAX || laddr < 0) {
+    fprintf(stderr, "ERROR: address 0x%02lx is not valid\n", laddr);
+    exit(-1);
+  } // if laddr
+  unsigned char addr = laddr;
   __addr = addr;  // needed for cleanup()
+
+  int freq = 200;
   int fd;
   int ret;
   char automatic;
