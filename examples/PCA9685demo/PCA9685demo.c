@@ -14,8 +14,9 @@
 #include "PCA9685demoConfig.h"
 
 
-int __fd;
-int __addr;
+// globals
+int __fd;    // needed for cleanup()
+int __addr;  // needed for cleanup()
 int debug = 0;
 int validate = 0;
 int ncmode = 0;
@@ -341,7 +342,7 @@ int main(int argc, char **argv) {
   int adpt = 1;
   int freq = 200;
   unsigned char addr = 0x40;
-  __addr = addr;
+  __addr = addr;  // needed for cleanup()
   int fd;
   int ret;
   char automatic;
@@ -360,7 +361,7 @@ int main(int argc, char **argv) {
 
   // initialize the I2C bus adpt and a PCA9685 at addr with freq
   fd = initHardware(adpt, addr, freq);
-  __fd = fd;
+  __fd = fd;    // needed for cleanup()
   if (fd < 0) {
     cleanup();
     fprintf(stderr, "main(): initHardware() returned ");
