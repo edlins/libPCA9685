@@ -164,7 +164,7 @@ VARIABLES
 
 
         ----------------------------------------------------------------
-        extern int _PCA9685_TEST;
+        extern bool _PCA9685_TEST;
         ----------------------------------------------------------------
         0 (default):     test mode is not enabled
         non-zero:        test mode is enabled, hardware calls are faked
@@ -173,7 +173,7 @@ VARIABLES
 
 
         ----------------------------------------------------------------
-        extern int _PCA9685_DEBUG;
+        extern bool _PCA9685_DEBUG;
         ----------------------------------------------------------------
         0 (default):     debugging output is not enabled
         non-zero:        debugging output is enabled on stdout

@@ -3,10 +3,10 @@
 
 ## [0.6] - unreleased
 ### Added
-- **CMakeLists.txt**: setup cmake at top level and in src/, use versioning in lib and apps
+- **CMakeLists.txt**: setup cmake at top level and in src/, use lib versioning in lib and apps
 - **CMakeLists.txt**: add_test for PCA9685test
-- **.travis.yml**: setup Travis CI
-- **.travis.yml**: ctest && diff
+- **.travis.yml**: setup Travis CI, whitelist "master" and "develop" (don't build others)
+- **.travis.yml**: build is now make && ctest -V.  two tests: run_test and diff_output
 - **Config.h.in**: templates for Config.h headers that get cmake version values
 - **PCA9685demo.c**: print key menu in ncurses mode
 - **PCA9685demo.c**: add many command line options, add -h usage msg
@@ -24,8 +24,8 @@
 - **PCA9685.c**: remove SUBnBITs from mode1val
 - **PCA9685.c**: fix debug logs
 - **PCA9685.c**: use externs for MODE1 and MODE2
-- **PCA9685.h**: add extern int \_PCA9685_DEBUG
-- **PCA9685.h**: add extern int \_PCA9685_TEST
+- **PCA9685.h**: add extern bool \_PCA9685_DEBUG
+- **PCA9685.h**: add extern bool \_PCA9685_TEST
 
 ### Removed
 - **Makefile**: all Makefiles removed
