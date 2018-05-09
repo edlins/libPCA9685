@@ -9,7 +9,7 @@
 ### Removed
 
 
-## [0.6] - 2018-05-07
+## [0.6] - 2018-05-09
 ### Added
 - **CMakeLists.txt**: setup cmake at top level and in src/, use lib versioning in lib and apps
 - **CMakeLists.txt**: add_test for PCA9685test

@@ -117,21 +117,32 @@ CONNECTION
         address should be shown in i2cdetect.
 
 
+DOWNLOAD
+
+        For now, the recommended download procedure is the same as for
+        other GitHub projects without release packages.  To create a new
+        folder in the current working directory containing the latest
+        "master" release of the project:
+
+        $ git clone https://github.com/edlins/libPCA9685
+
+        Or, to you clone the latest unreleased "develop" branch:
+
+        $ git clone -b develop https://github.com/edlins/libPCA9685
+
 INSTALL
 
         You can include PCA9685.h and PCA9685.c directly in your project
         or compile the object file and use it as a dynamically linked
         library instead.
 
-        To compile and install the library and examples, navigate to the
-        top level folder and execute:
+        To compile and install the library and examples from the location
+        where the "fetch" was run, execute:
 
-        $ mkdir build
-        $ cd build
+        $ cd libPCA9685 && mkdir build && cd build
         $ cmake ..
         $ make
         $ ctest
-        $ diff ../test/PCA9685_expected_output ../test/PCA9685_actual_output
         $ sudo make install
 
         This will install libPCA9685.so in your /usr/local/lib directory,
@@ -169,7 +180,7 @@ VARIABLES
         0 (default):     test mode is not enabled
         non-zero:        test mode is enabled, hardware calls are faked
 
-        example: `_PCA9685_TEST = 1; // enable test mode`
+        example: _PCA9685_TEST = 1; // enable test mode
 
 
         ----------------------------------------------------------------
@@ -178,7 +189,7 @@ VARIABLES
         0 (default):     debugging output is not enabled
         non-zero:        debugging output is enabled on stdout
 
-        example: `_PCA9685_DEBUG = 1; // enable debugging output`
+        example: _PCA9685_DEBUG = 1; // enable debugging output
 
 
         ----------------------------------------------------------------
@@ -187,8 +198,8 @@ VARIABLES
         0x11 (default):  AUTOINC and SLEEP set (hardware default)
         non-default:     set or clear bits defined in PCA9685.h
 
-        example: `_PCA9685_MODE1 = _PCA9685_MODE1 | _PCA9685_SUB1BIT;
-                  // enable respond to i2c subaddress 1`
+        example: _PCA9685_MODE1 = _PCA9685_MODE1 | _PCA9685_SUB1BIT;
+                 // enable respond to i2c subaddress 1
 
 
         ----------------------------------------------------------------
@@ -197,8 +208,8 @@ VARIABLES
         0x04 (default):  OUTDRV set to use totem pole (hardware default)
         non-default:     set or clear bits defined in PCA9685.h
 
-        example: `_PCA9685_MODE2 = _PCA9685_MODE2 & ~_PCA9685_OUTDRVBIT;
-                  // switch from totem pole to open drain mode`
+        example: _PCA9685_MODE2 = _PCA9685_MODE2 & ~_PCA9685_OUTDRVBIT;
+                 // switch from totem pole to open drain mode
 
 
 FUNCTIONS
@@ -279,5 +290,6 @@ FUNCTIONS
 
 TODO
 
-        cleanup fd and addr handling
-        dev locking?
+        CPack release packages
+        multiple buses and devices
+        ola client example
