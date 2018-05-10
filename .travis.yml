@@ -10,9 +10,9 @@ before_install:
 #  - sudo apt-key update
 #  - sudo apt-get -qq update
 #  - sudo apt-get install -y --force-yes ola
-  - sudo apt-get install git
-  - apt-cache search cppunit
-  - sudo apt-get install libcppunit-dev
+#  - sudo apt-get install git
+  - sudo apt-get install -y libcppunit-dev
+  - sudo apt-get install -y libprotobuf-dev
   - git clone https://github.com/OpenLightingProject/ola.git ola
   - cd ola
   - autoreconf -i
