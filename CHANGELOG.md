@@ -3,8 +3,10 @@
 
 ## [0.7] - unreleased
 ### Added
+- **olaclient.cpp**: example application for driving a PCA9685 via DMX
 
 ### Changed
+- **CMakeLists.txt**: build olaclient
 
 ### Removed
 
