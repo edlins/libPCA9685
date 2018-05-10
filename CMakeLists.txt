@@ -48,3 +48,15 @@ configure_file (
 include_directories("${PROJECT_BINARY_DIR}/test")
 add_executable (PCA9685test test/PCA9685test.c)
 target_link_libraries (PCA9685test PCA9685)
+
+
+# build the olaclient app
+configure_file (
+  "${PROJECT_SOURCE_DIR}/examples/olaclient/olaclientConfig.h.in"
+  "${PROJECT_BINARY_DIR}/examples/olaclient/olaclientConfig.h"
+)
+include_directories("${PROJECT_BINARY_DIR}/examples/olaclient")
+add_executable (olaclient examples/olaclient/olaclient.cpp)
+target_link_libraries(olaclient PCA9685)
+target_link_libraries(olaclient ola)
+target_link_libraries(olaclient olacommon)
