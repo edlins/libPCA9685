@@ -5,6 +5,10 @@ branches:
     - "master"
     - "develop"
 
+before_install:
+  - sudo apt-get -qq update
+  - sudo apt-get install -y ola
+
 before_script:
   - mkdir build
   - cd build
