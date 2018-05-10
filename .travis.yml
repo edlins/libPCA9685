@@ -6,6 +6,7 @@ branches:
     - "develop"
 
 before_install:
+  - echo "deb   http://apt.openlighting.org/ubuntu  trusty main" | sudo tee -a /etc/apt/sources.list
   - sudo apt-get -qq update
   - sudo apt-get install -y ola
 
