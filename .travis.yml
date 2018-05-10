@@ -11,7 +11,10 @@ before_install:
   - sudo apt-get -qq update
 #  - sudo apt-get install -y ola
   - sudo apt-get install -y --allow-unauthenticated ola
-  - sudo find / -name DmxBuffer.h 2> /dev/null
+#  - sudo find / -name DmxBuffer.h 2> /dev/null
+  - ls -l /usr/local/include
+  - ls -l /usr/local/include/ola
+  - ls -l /usr/local/include/olad
 
   #- sudo apt-get install -y libcppunit-dev
   #- sudo apt-get install -y libprotobuf-dev
