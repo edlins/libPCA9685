@@ -7,14 +7,15 @@ branches:
 
 before_install:
 #  - echo "deb   http://apt.openlighting.org/ubuntu  trusty main" | sudo tee -a /etc/apt/sources.list
-#  - sudo apt-key update
-#  - sudo apt-get -qq update
+  - sudo apt-key update
+  - sudo apt-get -qq update
 #  - sudo apt-get install -y --force-yes ola
 #  - sudo apt-get install git
   - sudo apt-get install -y libcppunit-dev
   - sudo apt-get install -y libprotobuf-dev
   - sudo apt-get install -y libprotoc-dev
-  - sudo apt-get install -y libprotobuf9
+  - apt-cache search libprotobuf
+  - sudo apt-get install -y libprotobuf10
   - git clone https://github.com/OpenLightingProject/ola.git ola
   - cd ola
   - autoreconf -i
