@@ -6,10 +6,19 @@ branches:
     - "develop"
 
 before_install:
-  - echo "deb   http://apt.openlighting.org/ubuntu  trusty main" | sudo tee -a /etc/apt/sources.list
-  - sudo apt-key update
-  - sudo apt-get -qq update
-  - sudo apt-get install -y --force-yes ola
+#  - echo "deb   http://apt.openlighting.org/ubuntu  trusty main" | sudo tee -a /etc/apt/sources.list
+#  - sudo apt-key update
+#  - sudo apt-get -qq update
+#  - sudo apt-get install -y --force-yes ola
+  - sudo apt-get install git
+  - git clone https://github.com/OpenLightingProject/ola.git ola
+  - cd ola
+  - autoreconf -i
+  - ./configure
+  - make
+  - make check
+  - sudo make install
+  - sudo ldconfig
 
 before_script:
   - mkdir build
