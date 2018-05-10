@@ -10,7 +10,7 @@ before_install:
   - sudo apt-key update
   - sudo apt-get -qq update
 #  - sudo apt-get install -y ola
-  - sudo apt-get install -y --allow-unauthenticated ola
+  - sudo apt-get -o Debug::pkgProblemResolver=true -o Debug::pkgDPkgPM=true -o Debug::RunScripts install -y --allow-unauthenticated ola
 #  - sudo find / -name DmxBuffer.h 2> /dev/null
   - ls -l /usr/local/include
   - ls -l /usr/local/include/ola
