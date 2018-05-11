@@ -8,7 +8,7 @@ branches:
     - "ola-fix-travis"
 
 before_install:
-  - sudo add-apt-repository ppa:voltvisionfrenchy/ola
+  - sudo add-apt-repository -y ppa:voltvisionfrenchy/ola
   - sudo apt-get update
   - sudo apt-get install -y libola-dev
 
