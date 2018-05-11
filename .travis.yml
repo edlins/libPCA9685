@@ -6,28 +6,7 @@ branches:
     - "develop"
 
 before_install:
-  - echo "deb   http://apt.openlighting.org/ubuntu  trusty main" | sudo tee -a /etc/apt/sources.list
-  - sudo apt-key update
-  - sudo apt-get -qq update
-#  - sudo apt-get install -y ola
-  - sudo apt-get install -y --allow-unauthenticated ola
-  - sudo apt-get install -y --allow-unauthenticated ola-dev
-#  - sudo find / -name DmxBuffer.h 2> /dev/null
-  - ls -l /usr/local/include
-
-  #- sudo apt-get install -y libcppunit-dev
-  #- sudo apt-get install -y libprotobuf-dev
-  #- sudo apt-get install -y libprotoc-dev
-  #- sudo apt-get install -y protobuf-compiler
-  #- git clone https://github.com/OpenLightingProject/ola.git ola
-  #- cd ola
-  #- autoreconf -i
-  #- ./configure
-  #- make
-  #- make check
-  #- sudo make install
-  #- sudo ldconfig
-  #- cd ..
+  - sudo apt-get install -y libola-dev
 
 before_script:
   - mkdir build
