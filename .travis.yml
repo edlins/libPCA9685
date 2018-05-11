@@ -8,6 +8,7 @@ branches:
 before_install:
   - sudo apt-get install -y libola-dev
 
+
 before_script:
   - mkdir build
   - cd build
