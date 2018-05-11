@@ -4,6 +4,8 @@ branches:
   only:
     - "master"
     - "develop"
+    - "ola"
+    - "ola-fix-travis"
 
 before_install:
   - sudo apt-get install -y libola-dev
