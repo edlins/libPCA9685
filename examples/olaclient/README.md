@@ -25,13 +25,26 @@ DEPENDENCIES
         libPCA9685 0.6 or later is required.  olaclient is bundled in
         versions 0.7 and later.
 
+        RASPBIAN
+
         OLA (Open Lighting Architecture) is required.  ola 0.10.2 works
         well.  ola 0.9.1 is in the raspbian repository:
         http://mirrordirector.raspbian.org/raspbian/ jessie/main armhf Packages
         however that version has not been tested.  To try it, execute:
 
-        $ sudo apt-cache update
-        $ sudo apt-get install ola
+        $ sudo apt-get update
+        $ sudo apt-get install libola-dev
+
+        UBUNTU 14.04 "TRUSTY"
+
+        The ola wiki regarding Ubuntu does not cover Trusty and the Ubuntu
+        Trusty repositories do not contain ola packages.  To install ola on
+        Trusty from the ola PPA execute:
+
+        $ sudo add-apt-repository ppa:voltvisionfrenchy/ola
+        $ sudo apt-get update
+        $ sudo apt-get install libola-dev
+
 
         Once installed and running `ps waux|grep olad` should return
         something like:
