@@ -148,7 +148,7 @@ INSTALL
         library instead.
 
         To compile and install the library and examples from the location
-        where the "fetch" was run, execute:
+        where the "clone" was run, execute:
 
         $ cd libPCA9685 && mkdir build && cd build
         $ cmake ..
