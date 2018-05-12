@@ -104,17 +104,21 @@ DOWNLOAD
 
 INSTALL
 
-        To compile and install the library and examples from the location
-        where the "clone" was run, execute:
+        olaclient is by default excluded from `make`.  In order to build
+        and install the library and build olaclient, execute:
 
         $ cd libPCA9685 && mkdir build && cd build
         $ cmake ..
         $ make
+        $ make olaclient
         $ ctest
         $ sudo make install
 
         This will install libPCA9685.so in your /usr/local/lib directory,
         and PCA9685.h in your /usr/local/include directory.
+
+        If the library is already built and installed you can just execute
+        `make olaclient` from the build/ directory.
 
         To run olaclient after the build is complete execute:
 
