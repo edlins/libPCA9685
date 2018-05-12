@@ -137,7 +137,7 @@ DOWNLOAD
 
         $ git clone https://github.com/edlins/libPCA9685
 
-        Or, to you clone the latest unreleased "develop" branch:
+        Or, to clone the latest unreleased "develop" branch:
 
         $ git clone -b develop https://github.com/edlins/libPCA9685
 
