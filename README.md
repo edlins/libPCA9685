@@ -27,6 +27,10 @@ libPCA9685 README
         The PCA9685demo example application allows the user to set each
         channel manually or press 'a' to activate automatic mode.
 
+        The olaclient example application uses the Open Lighting
+        Architecture to turn the host into a DMX512 receiver taking
+        input via E1.31 over TCP/IP.
+
         Copyright (c) 2016 - 2018 Scott Edlin
         edlins ta yahoo tod com
 
