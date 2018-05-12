@@ -79,10 +79,10 @@ CONNECTION
         Configure the DMX controller to transmit to universe 1 via
         E1.31 to the IP address of the olaclient host.  Configure OLA
         to receive input on universe 1 via E1.31.  Using the DMX Monitor
-        verify that OLA can recieve the output from the DMX controller.
+        verify that OLA can receive the output from the DMX controller.
 
         Run the olaclient binary which should output it's version number
-        and the PWM channel and value of the recieved DMX data as it is
+        and the PWM channel and value of the received DMX data as it is
         received.  At this point, if the PCA9685 is connected and properly
         configured, it's LED outputs should be responding to values sent
         in DMX universe 1 channels 1 - 32, via E1.31, to olad on the host,
