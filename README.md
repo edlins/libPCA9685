@@ -88,6 +88,13 @@ DEPENDENCIES
 
         Y
 
+        OLACLIENT
+
+        To build the olaclient, additional ola dependencies must be
+        installed.  For more information, see:
+
+        examples/olaclient/README.md
+
 
 CONNECTION
 
@@ -148,6 +155,10 @@ INSTALL
         $ make
         $ ctest
         $ sudo make install
+
+        Note that "make" will attempt to build olaclient as well and
+        additional dependencies are required or this build will fail
+        on missing header files.  See examples/olaclient/README.md.
 
         This will install libPCA9685.so in your /usr/local/lib directory,
         and PCA9685.h in your /usr/local/include directory.
