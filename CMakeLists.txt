@@ -56,7 +56,7 @@ configure_file (
   "${PROJECT_BINARY_DIR}/examples/olaclient/olaclientConfig.h"
 )
 include_directories("${PROJECT_BINARY_DIR}/examples/olaclient")
-add_executable (olaclient examples/olaclient/olaclient.cpp)
+add_executable (olaclient EXCLUDE_FROM_ALL examples/olaclient/olaclient.cpp)
 target_link_libraries(olaclient PCA9685)
 target_link_libraries(olaclient ola)
 target_link_libraries(olaclient olacommon)

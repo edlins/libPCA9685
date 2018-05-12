@@ -33,6 +33,7 @@ DEPENDENCIES
         however that version has not been tested.  To try it, execute:
 
         $ sudo apt-get update
+        $ sudo apt-get install ola
         $ sudo apt-get install libola-dev
 
         UBUNTU 14.04 "TRUSTY"
@@ -43,6 +44,7 @@ DEPENDENCIES
 
         $ sudo add-apt-repository ppa:voltvisionfrenchy/ola
         $ sudo apt-get update
+        $ sudo apt-get install ola
         $ sudo apt-get install libola-dev
 
 

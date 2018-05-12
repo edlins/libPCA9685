@@ -156,9 +156,12 @@ INSTALL
         $ ctest
         $ sudo make install
 
-        Note that "make" will attempt to build olaclient as well and
-        additional dependencies are required or this build will fail
-        on missing header files.  See examples/olaclient/README.md.
+        Note that "make" will attempt not attempt to build olaclient.
+        In order to build olaclient execute:
+
+        $ make olaclient
+
+        See examples/olaclient/README.md for more information.
 
         This will install libPCA9685.so in your /usr/local/lib directory,
         and PCA9685.h in your /usr/local/include directory.
