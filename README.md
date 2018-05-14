@@ -156,8 +156,8 @@ INSTALL
         $ ctest
         $ sudo make install
 
-        Note that "make" will attempt not attempt to build olaclient.
-        In order to build olaclient execute:
+        Note that "make" will not attempt to build olaclient.  In order
+        to build olaclient execute:
 
         $ make olaclient
 
