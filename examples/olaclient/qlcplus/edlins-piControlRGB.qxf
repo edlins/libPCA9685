@@ -1,0 +1,223 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE FixtureDefinition>
+<FixtureDefinition xmlns="http://www.qlcplus.org/FixtureDefinition">
+ <Creator>
+  <Name>Q Light Controller Plus</Name>
+  <Version>4.10.4</Version>
+  <Author>edlins@yahoo.com</Author>
+ </Creator>
+ <Manufacturer>edlins</Manufacturer>
+ <Model>piControl RGB</Model>
+ <Type>Dimmer</Type>
+ <Channel Name="Red">
+  <Group Byte="0">Intensity</Group>
+  <Colour>Red</Colour>
+ </Channel>
+ <Channel Name="Red Fine">
+  <Group Byte="1">Intensity</Group>
+  <Colour>Red</Colour>
+ </Channel>
+ <Channel Name="Green">
+  <Group Byte="0">Intensity</Group>
+  <Colour>Green</Colour>
+ </Channel>
+ <Channel Name="Green Fine">
+  <Group Byte="1">Intensity</Group>
+  <Colour>Green</Colour>
+ </Channel>
+ <Channel Name="Blue">
+  <Group Byte="0">Intensity</Group>
+  <Colour>Blue</Colour>
+ </Channel>
+ <Channel Name="Blue Fine">
+  <Group Byte="1">Intensity</Group>
+  <Colour>Blue</Colour>
+ </Channel>
+ <Channel Name="Red 1">
+  <Group Byte="0">Intensity</Group>
+  <Colour>Red</Colour>
+ </Channel>
+ <Channel Name="Red Fine 1">
+  <Group Byte="1">Intensity</Group>
+  <Colour>Red</Colour>
+ </Channel>
+ <Channel Name="Green 1">
+  <Group Byte="0">Intensity</Group>
+  <Colour>Green</Colour>
+ </Channel>
+ <Channel Name="Green Fine 1">
+  <Group Byte="1">Intensity</Group>
+  <Colour>Green</Colour>
+ </Channel>
+ <Channel Name="Blue 1">
+  <Group Byte="0">Intensity</Group>
+  <Colour>Blue</Colour>
+ </Channel>
+ <Channel Name="Blue Fine 1">
+  <Group Byte="1">Intensity</Group>
+  <Colour>Blue</Colour>
+ </Channel>
+ <Channel Name="Red 2">
+  <Group Byte="0">Intensity</Group>
+  <Colour>Red</Colour>
+ </Channel>
+ <Channel Name="Red Fine 2">
+  <Group Byte="1">Intensity</Group>
+  <Colour>Red</Colour>
+ </Channel>
+ <Channel Name="Green 2">
+  <Group Byte="0">Intensity</Group>
+  <Colour>Green</Colour>
+ </Channel>
+ <Channel Name="Green Fine 2">
+  <Group Byte="1">Intensity</Group>
+  <Colour>Green</Colour>
+ </Channel>
+ <Channel Name="Blue 2">
+  <Group Byte="0">Intensity</Group>
+  <Colour>Blue</Colour>
+ </Channel>
+ <Channel Name="Blue Fine 2">
+  <Group Byte="1">Intensity</Group>
+  <Colour>Blue</Colour>
+ </Channel>
+ <Channel Name="Red 3">
+  <Group Byte="0">Intensity</Group>
+  <Colour>Red</Colour>
+ </Channel>
+ <Channel Name="Red Fine 3">
+  <Group Byte="1">Intensity</Group>
+  <Colour>Red</Colour>
+ </Channel>
+ <Channel Name="Green 3">
+  <Group Byte="0">Intensity</Group>
+  <Colour>Green</Colour>
+ </Channel>
+ <Channel Name="Green Fine 3">
+  <Group Byte="1">Intensity</Group>
+  <Colour>Green</Colour>
+ </Channel>
+ <Channel Name="Blue 3">
+  <Group Byte="0">Intensity</Group>
+  <Colour>Blue</Colour>
+ </Channel>
+ <Channel Name="Blue Fine 3">
+  <Group Byte="1">Intensity</Group>
+  <Colour>Blue</Colour>
+ </Channel>
+ <Channel Name="Red 4">
+  <Group Byte="0">Intensity</Group>
+  <Colour>Red</Colour>
+ </Channel>
+ <Channel Name="Red Fine 4">
+  <Group Byte="1">Intensity</Group>
+  <Colour>Red</Colour>
+ </Channel>
+ <Channel Name="Green 4">
+  <Group Byte="0">Intensity</Group>
+  <Colour>Green</Colour>
+ </Channel>
+ <Channel Name="Green Fine 4">
+  <Group Byte="1">Intensity</Group>
+  <Colour>Green</Colour>
+ </Channel>
+ <Channel Name="Blue 4">
+  <Group Byte="0">Intensity</Group>
+  <Colour>Blue</Colour>
+ </Channel>
+ <Channel Name="Blue Fine 4">
+  <Group Byte="1">Intensity</Group>
+  <Colour>Blue</Colour>
+ </Channel>
+ <Channel Name="Ch 16">
+  <Group Byte="0">Intensity</Group>
+ </Channel>
+ <Channel Name="Ch 16 Fine">
+  <Group Byte="1">Intensity</Group>
+ </Channel>
+ <Mode Name="all">
+  <Physical>
+   <Bulb Type="" Lumens="0" ColourTemperature="0"/>
+   <Dimensions Weight="0" Width="0" Height="0" Depth="0"/>
+   <Lens Name="Other" DegreesMin="0" DegreesMax="0"/>
+   <Focus Type="Fixed" PanMax="0" TiltMax="0"/>
+   <Technical PowerConsumption="0" DmxConnector="Other"/>
+  </Physical>
+  <Channel Number="0">Red</Channel>
+  <Channel Number="1">Red Fine</Channel>
+  <Channel Number="2">Green</Channel>
+  <Channel Number="3">Green Fine</Channel>
+  <Channel Number="4">Blue</Channel>
+  <Channel Number="5">Blue Fine</Channel>
+  <Channel Number="6">Red 1</Channel>
+  <Channel Number="7">Red Fine 1</Channel>
+  <Channel Number="8">Green 1</Channel>
+  <Channel Number="9">Green Fine 1</Channel>
+  <Channel Number="10">Blue 1</Channel>
+  <Channel Number="11">Blue Fine 1</Channel>
+  <Channel Number="12">Red 2</Channel>
+  <Channel Number="13">Red Fine 2</Channel>
+  <Channel Number="14">Green 2</Channel>
+  <Channel Number="15">Green Fine 2</Channel>
+  <Channel Number="16">Blue 2</Channel>
+  <Channel Number="17">Blue Fine 2</Channel>
+  <Channel Number="18">Red 3</Channel>
+  <Channel Number="19">Red Fine 3</Channel>
+  <Channel Number="20">Green 3</Channel>
+  <Channel Number="21">Green Fine 3</Channel>
+  <Channel Number="22">Blue 3</Channel>
+  <Channel Number="23">Blue Fine 3</Channel>
+  <Channel Number="24">Red 4</Channel>
+  <Channel Number="25">Red Fine 4</Channel>
+  <Channel Number="26">Green 4</Channel>
+  <Channel Number="27">Green Fine 4</Channel>
+  <Channel Number="28">Blue 4</Channel>
+  <Channel Number="29">Blue Fine 4</Channel>
+  <Channel Number="30">Ch 16</Channel>
+  <Channel Number="31">Ch 16 Fine</Channel>
+  <Head>
+   <Channel>4</Channel>
+   <Channel>5</Channel>
+   <Channel>2</Channel>
+   <Channel>3</Channel>
+   <Channel>0</Channel>
+   <Channel>1</Channel>
+  </Head>
+  <Head>
+   <Channel>8</Channel>
+   <Channel>9</Channel>
+   <Channel>6</Channel>
+   <Channel>7</Channel>
+   <Channel>10</Channel>
+   <Channel>11</Channel>
+  </Head>
+  <Head>
+   <Channel>16</Channel>
+   <Channel>17</Channel>
+   <Channel>14</Channel>
+   <Channel>15</Channel>
+   <Channel>12</Channel>
+   <Channel>13</Channel>
+  </Head>
+  <Head>
+   <Channel>22</Channel>
+   <Channel>23</Channel>
+   <Channel>20</Channel>
+   <Channel>21</Channel>
+   <Channel>18</Channel>
+   <Channel>19</Channel>
+  </Head>
+  <Head>
+   <Channel>25</Channel>
+   <Channel>28</Channel>
+   <Channel>29</Channel>
+   <Channel>26</Channel>
+   <Channel>27</Channel>
+   <Channel>24</Channel>
+  </Head>
+  <Head>
+   <Channel>30</Channel>
+   <Channel>31</Channel>
+  </Head>
+ </Mode>
+</FixtureDefinition>

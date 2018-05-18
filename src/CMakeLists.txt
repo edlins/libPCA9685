@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.0)
 project (libPCA9685)
 
 set (libPCA9685_VERSION_MAJOR 0)
-set (libPCA9685_VERSION_MINOR 6)
+set (libPCA9685_VERSION_MINOR 7)
 configure_file (
   "${PROJECT_SOURCE_DIR}/libPCA9685Config.h.in"
   "${PROJECT_BINARY_DIR}/libPCA9685Config.h"
