@@ -16,4 +16,4 @@ before_script:
   - cd build
   - cmake ..
 
-script: make && make olaclient && make install && ctest -V
+script: make && make olaclient && sudo make install && ctest -V
