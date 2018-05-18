@@ -3,7 +3,8 @@
 
 ## [0.7] - unreleased
 ### Added
-- **examples/olaclient/**: example application for driving a PCA9685 via DMX512
+- **examples/olaclient/**: example application for driving a PCA9685 via DMX512 with
+test shell scripts
 
 ### Changed
 - **CMakeLists.txt**: build olaclient but excluded from all, must `make olaclient`
