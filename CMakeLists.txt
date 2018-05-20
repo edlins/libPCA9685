@@ -51,12 +51,5 @@ target_link_libraries (PCA9685test PCA9685)
 
 
 # build the olaclient app
-configure_file (
-  "${PROJECT_SOURCE_DIR}/examples/olaclient/olaclientConfig.h.in"
-  "${PROJECT_BINARY_DIR}/examples/olaclient/olaclientConfig.h"
-)
+add_subdirectory(examples/olaclient)
 include_directories("${PROJECT_BINARY_DIR}/examples/olaclient")
-add_executable (olaclient EXCLUDE_FROM_ALL examples/olaclient/olaclient.cpp)
-target_link_libraries(olaclient PCA9685)
-target_link_libraries(olaclient ola)
-target_link_libraries(olaclient olacommon)

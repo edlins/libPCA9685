@@ -88,6 +88,11 @@ CONNECTION
         in DMX universe 1 channels 1 - 32, via E1.31, to olad on the host,
         and on to the olaclient which directly communicates with PCA9685.
 
+        Once olaclient is running, you can test it by running the provided
+        test scripts `green.sh` and `blackout.sh` which will respectively
+        turn on DMX channels 3, 9, 15, 21, and 27, and turn off all DMX
+        channels.
+
 DOWNLOAD
 
         olaclient is bundled with libPCA9685 0.7 and later as an example
