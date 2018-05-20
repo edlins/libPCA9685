@@ -2,6 +2,12 @@
 
 echo ""
 echo "=== Adding libPCA9685 ==="
+
+# install cmake
+echo ""
+echo "= Adding cmake"
+chroot /rootfs /usr/bin/apt-get -y --no-install-recommends install cmake
+
 # download libPCA9685
 echo ""
 echo "= Cloning libPCA9685"
