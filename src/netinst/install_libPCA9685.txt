@@ -1,0 +1,22 @@
+# post-install.txt style script for raspbian-ua-netinst
+
+echo ""
+echo "=== Adding libPCA9685 ==="
+# download libPCA9685
+echo ""
+echo "= Cloning libPCA9685"
+chroot /rootfs /usr/bin/git clone git://github.com/edlins/libPCA9685 /usr/local/src/libPCA9685
+
+# build and install pibuttonpower
+chroot /rootfs /bin/sh <<'EOFlibPCA9685'
+cd /usr/local/src/libPCA9685
+echo ""
+echo "= Building libPCA9685"
+mkdir build && cd build
+cmake ..
+make
+echo ""
+echo "= Installing libPCA9685"
+make install
+EOFlibPCA9685
+
