@@ -1,13 +1,13 @@
 #include <ola/DmxBuffer.h>
 #include <ola/Logging.h>
-#include <ola/client/ClientWrapper.h>
+#include <ola/OlaClientWrapper.h>
 #include <string>
 #include <bitset>
 #include <ctime>
 using namespace std;
 
 #include <PCA9685.h>
-#include "olaclientConfig.h"
+#include "config.h"
 
 #define PWM_FREQ 200
 #define DMX_UNIVERSE 1

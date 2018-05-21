@@ -7,7 +7,7 @@
 #include <stdbool.h>
 
 #include <PCA9685.h>
-#include "quickstartConfig.h"
+#include "config.h"
 
 int fd;
 int addr = 0x40;
