@@ -18,7 +18,7 @@ set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -D_BSD_SOURCE -std=c11 -Wall -pedantic -We
 add_subdirectory(src)
 
 # build the test app
-add_subdirectory(test)
+add_subdirectory(test EXCLUDE_FROM_ALL)
 
 # build the examples, but not by default
 add_subdirectory(examples EXCLUDE_FROM_ALL)
