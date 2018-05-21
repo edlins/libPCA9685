@@ -8,7 +8,7 @@
 #include <stdbool.h>
 
 #include <PCA9685.h>
-#include "PCA9685testConfig.h"
+#include "config.h"
 
 int adpt;
 int addr;

@@ -12,7 +12,7 @@
 #include <limits.h>
 
 #include <PCA9685.h>
-#include "PCA9685demoConfig.h"
+#include "config.h"
 
 
 // globals
