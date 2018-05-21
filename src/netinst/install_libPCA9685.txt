@@ -19,10 +19,10 @@ echo ""
 echo "= Adding cmake"
 chroot /rootfs /usr/bin/apt-get -y --no-install-recommends install cmake
 
-# install gcc
+# install g++
 echo ""
-echo "= Adding gcc"
-chroot /rootfs /usr/bin/apt-get -y --no-install-recommends install gcc
+echo "= Adding g++"
+chroot /rootfs /usr/bin/apt-get -y --no-install-recommends install g++
 
 # download libPCA9685
 echo ""
