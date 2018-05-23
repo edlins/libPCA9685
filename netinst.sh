@@ -29,7 +29,10 @@ echo "= Adding g++"
 # download libPCA9685
 echo ""
 echo "= Cloning libPCA9685"
-/usr/bin/git clone git://github.com/edlins/libPCA9685 /usr/local/src/libPCA9685
+# develop branch:
+/usr/bin/git clone -b develop git://github.com/edlins/libPCA9685 /usr/local/src/libPCA9685
+# default branch (master):
+#/usr/bin/git clone git://github.com/edlins/libPCA9685 /usr/local/src/libPCA9685
 
 # build and install libPCA9685
 cd /usr/local/src/libPCA9685
