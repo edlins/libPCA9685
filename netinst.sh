@@ -1,5 +1,5 @@
 #!/bin/sh
-# executed by `post-install.txt` as `chroot /rootfs netinst.sh
+# executed by `post-install.txt` as `chroot /rootfs find /tmp/extras -type f -exec sh {} \;`
 # executed by user as `sudo ./netinst.sh`
 
 echo ""
