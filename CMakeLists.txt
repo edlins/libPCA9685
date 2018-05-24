@@ -12,7 +12,7 @@ configure_file(config.h.cmake ${PROJECT_BINARY_DIR}/config.h)
 include_directories(${PROJECT_BINARY_DIR})
 
 # add flags
-set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -D_BSD_SOURCE -std=c11 -Wall -pedantic -Wextra")
+set(CMAKE_C_FLAGS "${CMAKE_CXX_FLAGS} -D_BSD_SOURCE -D_DEFAULT_SOURCE -std=c11 -Wall -pedantic -Wextra")
 
 # build the library
 add_subdirectory(src)
