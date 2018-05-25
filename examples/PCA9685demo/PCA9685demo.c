@@ -7,7 +7,7 @@
 #include <sys/time.h>
 #include <signal.h>
 #include <unistd.h>
-#include <ncurses.h>
+#include <ncurses.h>   // sudo apt-get install libncurses5-dev
 #include <getopt.h>
 #include <limits.h>
 

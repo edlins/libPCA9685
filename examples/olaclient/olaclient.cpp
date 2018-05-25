@@ -1,4 +1,4 @@
-#include <ola/DmxBuffer.h>
+#include <ola/DmxBuffer.h>    // sudo apt-get install libola-dev
 #include <ola/Logging.h>
 #include <ola/OlaClientWrapper.h>
 #include <string>
