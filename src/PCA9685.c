@@ -14,7 +14,7 @@
 
 // set the lib version from the Config header
 // sets libPCA9685_VERSION_MAJOR and libPCA9685_VERSION_MINOR
-#include "libPCA9685Config.h"
+#include "config.h"
 
 // debug flag
 bool _PCA9685_DEBUG = 0;

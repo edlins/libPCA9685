@@ -8,7 +8,8 @@ branches:
 before_install:
   - sudo add-apt-repository -y ppa:voltvisionfrenchy/ola
   - sudo apt-get update
-  - sudo apt-get install -y libola-dev
+  - sudo apt-get install -y --no-install-recommends libola-dev
+  - sudo apt-get install -y --no-install-recommends libncurses5-dev
 
 
 before_script:
@@ -16,4 +17,4 @@ before_script:
   - cd build
   - cmake ..
 
-script: make && make olaclient && sudo make install && ctest -V
+script: make && sudo make install && make PCA9685test && ctest -V && make examples
