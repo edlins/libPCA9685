@@ -41,7 +41,7 @@ echo ""
 echo "= Adding alsa-utils"
 /usr/bin/apt-get -y --no-install-recommends install alsa-utils
 
-# build and install libPCA9685
+# build and install spectrum
 cd /usr/local/src/libPCA9685/examples/spectrum
 echo ""
 echo "= Building spectrum
