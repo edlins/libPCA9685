@@ -1,0 +1,12 @@
+project(spectrum)
+add_executable(6735l1 6735l1.c)
+target_link_libraries(6735l1 asound)
+add_executable(6735l2 6735l2.c)
+target_link_libraries(6735l2 asound)
+add_executable(6735l3 6735l3.c)
+target_link_libraries(6735l3 asound)
+add_executable(6735l4 6735l4.c)
+target_link_libraries(6735l4 asound)
+
+add_custom_target(spectrum)
+add_dependencies(spectrum 6735l1 6735l2 6735l3 6735l4)
