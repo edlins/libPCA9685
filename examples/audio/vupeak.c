@@ -9,11 +9,31 @@ and writes to standard output for 5 seconds of data.
 
 #define CHANNELS 2
 #define FRAMES 512
+#define FREQ 44100;
 
 /* Use the newer ALSA API */
 #define ALSA_PCM_NEW_HW_PARAMS_API
 
 #include <alsa/asoundlib.h>
+#include <stdbool.h>
+#include <PCA9685.h>
+#include <signal.h>
+
+int fd;
+unsigned char addr;
+
+void intHandler(int dummy) {
+  // turn off all channels
+  PCA9685_setAllPWM(fd, addr, _PCA9685_MINVAL, _PCA9685_MINVAL);
+  exit(dummy);
+}
+
+int initHardware(int adpt, int addr, int freq) {
+  int afd = PCA9685_openI2C(adpt, addr);
+  PCA9685_initPWM(afd, addr, freq);
+  return afd;
+}
+
 
 int main(int argc, char **argv) {
   long loops;
@@ -64,7 +84,7 @@ int main(int argc, char **argv) {
   }
 
   /* 44100 bits/second sampling rate (CD quality) */
-  val = 44100;
+  val = FREQ;
   rc = snd_pcm_hw_params_set_rate_near(handle, params, &val, NULL);
   if (rc < 0) {
     fprintf(stderr, "snd_pcm_hw_params_set_rate_near() failed %d\n", rc);
@@ -97,10 +117,21 @@ int main(int argc, char **argv) {
   if (rc < 0) {
     fprintf(stderr, "snd_pcm_hw_params_get_period_time() failed %d\n", rc);
   }
-  loops = 5000000 / val;
 
+  // libPCA9685 init
+  //fprintf(stdout, "quickstart %d.%d\n", libPCA9685_VERSION_MAJOR, libPCA9685_VERSION_MINOR);
+  int adpt = 1;
+  addr = 0x40;
+  int freq = 200;
+  signal(SIGINT, intHandler);
+  fd = initHardware(adpt, addr, freq);
+
+  loops = 5000000 / val;
+  long maxVal = 1000;
+  int minVal = -100;
+  int average = minVal;
   while (loops > 0) {
-    loops--;
+    //loops--;
     rc = snd_pcm_readi(handle, buffer, frames);
     if (rc == -EPIPE) {
       /* EPIPE means overrun */
@@ -113,7 +144,6 @@ int main(int argc, char **argv) {
     }
     /* rc = number of frames read */
     int i;
-    int maxVal = 0;
     int sample;
     long tmp;
     for (i = 0; i < rc; i += 1) {
@@ -123,13 +153,25 @@ int main(int argc, char **argv) {
       if (tmp < 32768) sample = tmp;
       else sample = tmp - 65536;
       //fprintf(stdout, "%d ", sample);
-      if (sample > maxVal) maxVal = sample;
     }
+    //fprintf(stdout, "\n");
+/*
     fprintf(stdout, "%d ", maxVal);
     for (i = 0; i < maxVal / 8; i++) {
       fprintf(stdout, "X");
     }
     fprintf(stdout, "*\n");
+*/
+    sample = sample - minVal;
+    if (sample < 0) sample *= -1;
+    average = (sample + 19 * average) / 20;
+    int ratio = 100.0 * (average) / (maxVal);
+    if (ratio < 0) ratio = 0;
+    if (ratio > 100) ratio = 100;
+    int display = ratio * _PCA9685_MAXVAL / 100;
+    //fprintf(stdout, "%d %d %d\n", average, ratio, display);
+    //fprintf(stdout, "%d (%d - %d) %d\n", average, minVal, maxVal, display);
+    PCA9685_setAllPWM(fd, addr, 0, display);
     //rc = write(1, buffer, size);
     //if (rc != size)
       //fprintf(stderr, "short write: wrote %d bytes\n", rc);
