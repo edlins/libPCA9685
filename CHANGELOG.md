@@ -12,8 +12,8 @@
 
 ## [0.7] - 2018-05-27
 ### Added
-- **examples/olaclient/**: example application for driving a PCA9685 via DMX512 with
-test shell scripts
+- **examples/audio/**: example application for driving a PCA9685 via realtime audio
+- **examples/olaclient/**: example application for driving a PCA9685 via DMX512
 - **netinst.sh**: build script suitable to be run as an EXTRA from `picontrol-netinst`
 
 ### Changed

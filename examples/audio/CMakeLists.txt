@@ -1,4 +1,6 @@
-project(spectrum)
+cmake_minimum_required(VERSION 3.0)
+
+project(audio)
 add_executable(6735l1 6735l1.c)
 target_link_libraries(6735l1 asound)
 add_executable(6735l2 6735l2.c)
@@ -7,6 +9,8 @@ add_executable(6735l3 6735l3.c)
 target_link_libraries(6735l3 asound)
 add_executable(6735l4 6735l4.c)
 target_link_libraries(6735l4 asound)
+add_executable(vupeak vupeak.c)
+target_link_libraries(vupeak asound)
 
-add_custom_target(spectrum)
-add_dependencies(spectrum 6735l1 6735l2 6735l3 6735l4)
+add_custom_target(audio)
+add_dependencies(audio 6735l1 6735l2 6735l3 6735l4 vupeak)
