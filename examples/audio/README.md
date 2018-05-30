@@ -1,10 +1,12 @@
-= Audio analysis example for libPCA9685
+Audio analysis example for libPCA9685
 
-== Dependencies
+DEPENDENCIES
+
 sudo apt-get install libasound2
 sudo apt-get install libasound2-dev
 
-== Default audio
+DEFAULT AUDIO
+
 On a debian system, to use the first USB sound card as the default,
 create a ~/.asounrc with:
 ```
