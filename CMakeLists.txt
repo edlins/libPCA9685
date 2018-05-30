@@ -3,7 +3,7 @@ project(libPCA9685)
 
 # set the lib version
 set(libPCA9685_VERSION_MAJOR 0)
-set(libPCA9685_VERSION_MINOR 7)
+set(libPCA9685_VERSION_MINOR 8)
 
 # save the lib version in config.h
 configure_file(config.h.cmake ${PROJECT_BINARY_DIR}/config.h)
