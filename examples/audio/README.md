@@ -2,8 +2,10 @@ Audio analysis example for libPCA9685
 
 DEPENDENCIES
 
-sudo apt-get install libasound2
-sudo apt-get install libasound2-dev
+```
+$ sudo apt-get install libasound2
+$ sudo apt-get install libasound2-dev
+```
 
 DEFAULT AUDIO
 
