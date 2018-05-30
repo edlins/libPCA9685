@@ -11,7 +11,7 @@
 
 
 echo ""
-echo "=== Adding spectrum ==="
+echo "=== Adding audio ==="
 
 echo ""
 echo "= Turning audio on
@@ -41,13 +41,13 @@ echo ""
 echo "= Adding alsa-utils"
 /usr/bin/apt-get -y --no-install-recommends install alsa-utils
 
-# build and install spectrum
-cd /usr/local/src/libPCA9685/examples/spectrum
+# build and install audio
+cd /usr/local/src/libPCA9685/examples/audio
 echo ""
-echo "= Building spectrum
+echo "= Building audio
 mkdir build && cd build
 cmake ..
 make
 #echo ""
-#echo "= Installing spectrum"
+#echo "= Installing audio"
 #make install
