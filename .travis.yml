@@ -17,4 +17,11 @@ before_script:
   - cd build
   - cmake ..
 
-script: make && sudo make install && make PCA9685test && ctest -V && make examples
+script: 
+  - make
+  - sudo make install
+  - make PCA9685test
+  - ctest -V
+  - make examples
+  - cd examples/olaclient
+  - sudo make install
