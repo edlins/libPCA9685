@@ -13,6 +13,7 @@ before_install:
   - sudo apt-get install -y --no-install-recommends systemd
   - sudo apt-get install -y --no-install-recommends libsystemd-daemon-dev
   - sudo apt-get install -y --no-install-recommends libsystemd-daemon0
+  - sudo apt-get install -y --no-install-recommends libsystemd-journal0
 
 
 before_script:
@@ -30,6 +31,7 @@ script:
   - sudo make install
   - sudo systemctl daemon-reload
   - sudo systemctl list-units --all
+  - sudo systemctl list-unit-files
   - sudo systemctl start olac.service
   - sudo systemctl status olac.service
   - cat /var/log/olac.log
