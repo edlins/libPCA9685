@@ -11,9 +11,7 @@ before_install:
   - sudo apt-get install -y --no-install-recommends libola-dev
   - sudo apt-get install -y --no-install-recommends libncurses5-dev
   - sudo apt-get install -y --no-install-recommends systemd
-#  - sudo apt-get install -y --no-install-recommends libsystemd-daemon-dev
-  - sudo apt-get install -y --no-install-recommends libsystemd-daemon0
-#  - sudo apt-get install -y --no-install-recommends libsystemd-journal0
+#  - sudo apt-get install -y --no-install-recommends libsystemd-daemon0
 
 
 before_script:
@@ -24,13 +22,16 @@ before_script:
 script: 
   - make
   - sudo make install
+  - sudo ldconfig
+
   - make PCA9685test
   - ctest -V
+
   - make examples
   - cd examples/olaclient
   - sudo make install
-  - sudo ldconfig
   - sudo systemctl daemon-reload
-# this should fail:
+# this should "pass":
   - sudo systemctl start olac.service
+# but the log should show an open() failure:
   - cat /var/log/olac.log
