@@ -29,6 +29,7 @@ script:
   - make examples
   - cd examples/olaclient
   - sudo make install
+  - sudo groupadd systemd-journal
   - sudo systemctl daemon-reload
   - sudo systemctl list-units --all
   - sudo systemctl list-unit-files
