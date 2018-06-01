@@ -29,8 +29,9 @@ script:
   - make examples
   - cd examples/olaclient
   - sudo make install
-  - sudo ls /lib/systemd/system
-  - sudo ls /usr/lib/systemd/system
+  - sudo ldconfig
+  - sudo ldconfig -p
+  - sudo ls /etc/systemd/system
   - sudo groupadd systemd-journal
   - sudo systemctl daemon-reload
   - sudo systemctl list-units --all
