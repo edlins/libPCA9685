@@ -74,6 +74,27 @@ DEPENDENCIES
         long compile time.  QLC+ for raspbian is best cross-compiled in
         a more powerful build environment.
 
+CONFIGURE
+
+        Currently olaclient is configured by editing `olaclient.cpp` and
+        manually setting the following constants:
+        `PWM_FREQ` default `200`
+        `DMX_UNIVERSE` default `1`
+        `I2C_ADPT` default `1`
+        `I2C_ADDR` default `0x40`
+
+BUILD
+
+        olaclient is built from the parent libPCA9685 project by executing
+        `make olaclient` or `make examples` in the parent project's build
+        directory.  See the libPCA9684 `README.md` for more details.
+
+INSTALL
+
+        The olaclient binary and helper files may be installed to the system
+        with `cd examples/olaclient && sudo make install` from the libPCA9685
+        build directory.
+
 CONNECTION
 
         Configure the DMX controller to transmit to universe 1 via
@@ -81,7 +102,15 @@ CONNECTION
         to receive input on universe 1 via E1.31.  Using the DMX Monitor
         verify that OLA can receive the output from the DMX controller.
 
-        Run the olaclient binary which should output it's version number
+        The olaclient binary should be started by either running the binary
+        manually from the console with `olaclient`, executing the helper
+        init script `sudo /etc/init.d/olac start`, or rebooting.  The init
+        script is preconfigured to automatically launch olaclient at boot
+        into runlevels 2 - 5.  If run manually from a command line, it
+        will send output to stdout.  If run automatically via the init
+        script, it will send output to its logfile `/var/log/olac.log`.
+
+        The olaclient binary should output it's version number
         and the PWM channel and value of the received DMX data as it is
         received.  At this point, if the PCA9685 is connected and properly
         configured, it's LED outputs should be responding to values sent
