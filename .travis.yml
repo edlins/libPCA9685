@@ -11,8 +11,8 @@ before_install:
   - sudo apt-get install -y --no-install-recommends libola-dev
   - sudo apt-get install -y --no-install-recommends libncurses5-dev
   - sudo apt-get install -y --no-install-recommends systemd
-  - sudo apt-get install -y --no-install-recommends libsystemd-dev
-  - sudo apt-get install -y --no-install-recommends libsystemd0
+  - sudo apt-get install -y --no-install-recommends libsystemd-daemon-dev
+  - sudo apt-get install -y --no-install-recommends libsystemd-daemon0
 
 
 before_script:
