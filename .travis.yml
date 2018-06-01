@@ -29,8 +29,8 @@ script:
   - cd examples/olaclient
   - sudo make install
   - sudo systemctl daemon-reload
-  - sudo systemctl list-units
+  - sudo systemctl list-units --all
   - sudo systemctl start olac.service
   - sudo systemctl status olac.service
   - cat /var/log/olac.log
-  - cat /var/log/syslog
+  - sudo cat /var/log/syslog
