@@ -25,3 +25,5 @@ script:
   - make examples
   - cd examples/olaclient
   - sudo make install
+  - sudo /etc/init.d/olac start
+  - cat /var/log/olac.log
