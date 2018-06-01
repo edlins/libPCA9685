@@ -30,9 +30,7 @@ script:
   - cd examples/olaclient
   - sudo make install
   - sudo ldconfig
-  - sudo groupadd systemd-journal
   - sudo systemctl daemon-reload
 # this should fail:
   - sudo systemctl start olac.service
-  - sudo systemctl status olac.service
   - cat /var/log/olac.log
