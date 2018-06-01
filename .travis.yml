@@ -25,6 +25,6 @@ script:
   - make examples
   - cd examples/olaclient
   - sudo make install
-  - dpkg-query -L sysvinit-utils
-  - sudo /etc/init.d/olac start
+  - sudo systemctl daemon-reload
+  - sudo systemctl start olac.service
   - cat /var/log/olac.log
