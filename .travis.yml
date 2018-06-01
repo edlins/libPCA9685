@@ -10,7 +10,6 @@ before_install:
   - sudo apt-get update
   - sudo apt-get install -y --no-install-recommends libola-dev
   - sudo apt-get install -y --no-install-recommends libncurses5-dev
-  - sudo apt-get install -y --no-install-recommends sysvinit-utils
 
 
 before_script:
@@ -26,5 +25,6 @@ script:
   - make examples
   - cd examples/olaclient
   - sudo make install
+  - sudo find / -name init-d-script
   - sudo /etc/init.d/olac start
   - cat /var/log/olac.log
