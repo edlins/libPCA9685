@@ -25,6 +25,6 @@ script:
   - make examples
   - cd examples/olaclient
   - sudo make install
-  - sudo find / -name init-d-script
+  - sudo find / -name init-d-script -print
   - sudo /etc/init.d/olac start
   - cat /var/log/olac.log
