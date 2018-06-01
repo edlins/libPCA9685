@@ -28,4 +28,5 @@ script:
   - sudo make install
   - sudo systemctl daemon-reload
   - sudo systemctl start olac.service
+  - sudo systemctl status olac.service
   - cat /var/log/olac.log
