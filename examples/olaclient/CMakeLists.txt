@@ -1,3 +1,5 @@
+# olaclient depends on libola-dev, libPCA9685, and systemd
+
 cmake_minimum_required(VERSION 3.0)
 project (olaclient)
 
@@ -9,4 +11,8 @@ target_link_libraries(olaclient olacommon)
 
 install(TARGETS  olaclient    DESTINATION bin)
 install(PROGRAMS olac_wrapper DESTINATION bin)
-install(FILES    olac.service DESTINATION /etc/systemd/system)
+install(FILES    olac.service DESTINATION /etc/systemd/system/multi-user.target.wants)
+
+install(CODE "execute_process(systemctl enable olac.service)")
+install(CODE "execute_process(systemctl daemon-reload)")
+install(CODE "execute_process(systemctl restart olac.service)")
