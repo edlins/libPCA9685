@@ -29,9 +29,10 @@ script:
 
   - make examples
   - cd examples/olaclient
-  - which systemctl
-  - find / -name systemctl
+  - ls -l /bin/systemctl
 # this contains systemctl calls that "pass":
   - sudo make install
+  - ls -l /etc/systemd/system/
+  - ls -l /etc/systemd/system/multi-user.target.wants/
 # but the log should show an open() failure:
   - cat /var/log/olac.log
