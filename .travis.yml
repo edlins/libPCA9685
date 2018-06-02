@@ -21,6 +21,7 @@ before_script:
 script: 
   - make
   - sudo make install
+# move this to CMakeLists.txt for libPCA9685:
   - sudo ldconfig
 
   - make PCA9685test
@@ -28,6 +29,8 @@ script:
 
   - make examples
   - cd examples/olaclient
+  - which systemctl
+  - find / -name systemctl
 # this contains systemctl calls that "pass":
   - sudo make install
 # but the log should show an open() failure:
