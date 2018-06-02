@@ -1,8 +1,9 @@
 [Unit]
 Description=olaclient service
+After=olad.target
 
 [Service]
 ExecStart=/usr/local/bin/olac_wrapper
 
 [Install]
-WantedBy=default.target
+WantedBy=multi-user.target

@@ -25,6 +25,9 @@ DEPENDENCIES
         libPCA9685 0.6 or later is required.  olaclient is bundled in
         versions 0.7 and later.
 
+        The olac.service unit file starts olaclient and requires systemd.
+        However, this is optional and olaclient can be started manually.
+
         RASPBIAN
 
         OLA (Open Lighting Architecture) is required.  ola 0.10.2 works
@@ -83,17 +86,45 @@ CONFIGURE
         `I2C_ADPT` default `1`
         `I2C_ADDR` default `0x40`
 
-BUILD
+BUILD AND INSTALL
 
-        olaclient is built from the parent libPCA9685 project by executing
-        `make olaclient` or `make examples` in the parent project's build
-        directory.  See the libPCA9684 `README.md` for more details.
+        olaclient is by default excluded from libPCA9685's `make`.  In order to build
+        and install the library and build and install olaclient, execute:
 
-INSTALL
+        $ cd /usr/local/src/libPCA9685 && mkdir build && cd build
+        $ cmake ..
+        $ make
+        $ sudo make install
+        $ sudo ldconfig
+        $ make olaclient
+        $ cd examples/olaclient
+        $ sudo make install
 
-        The olaclient binary and helper files may be installed to the system
-        with `cd examples/olaclient && sudo make install` from the libPCA9685
-        build directory.
+        If the library is already built and installed you can just execute:
+
+        $ cd /usr/local/src/libPCA9685/build
+        $ make olaclient
+        $ cd examples/olaclient
+        $ sudo make install
+
+        Not including libPCA9685 this will install:
+
+        /usr/local/bin/olaclient         (binary application)
+        /usr/local/bin/olac_wrapper      (wrapper script for log capture)
+        /etc/systemd/system/olac.service (systemd unit file)
+
+        To manually run olaclient execute `olaclient`.
+
+        If olaclient should be controlled by systemd, execute:
+
+        $ sudo systemctl daemon-reload
+        $ sudo systemctl start olac.service
+
+        To configure olaclient to start automatically at boot time:
+
+        $ sudo systemctl enable olac.service
+
+        Now olaclient should be running and should start at system boot.
 
 CONNECTION
 
@@ -138,25 +169,6 @@ DOWNLOAD
 
 INSTALL
 
-        olaclient is by default excluded from `make`.  In order to build
-        and install the library and build olaclient, execute:
-
-        $ cd libPCA9685 && mkdir build && cd build
-        $ cmake ..
-        $ make
-        $ make olaclient
-        $ ctest
-        $ sudo make install
-
-        This will install libPCA9685.so in your /usr/local/lib directory,
-        and PCA9685.h in your /usr/local/include directory.
-
-        If the library is already built and installed you can just execute
-        `make olaclient` from the build/ directory.
-
-        To run olaclient after the build is complete execute:
-
-        $ ./olaclient
 
 
 CONTRIBUTING
