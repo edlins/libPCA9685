@@ -28,9 +28,7 @@ script:
 
   - make examples
   - cd examples/olaclient
+# this contains systemctl calls that "pass":
   - sudo make install
-  - sudo systemctl daemon-reload
-# this should "pass":
-  - sudo systemctl start olac.service
 # but the log should show an open() failure:
   - cat /var/log/olac.log
