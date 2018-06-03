@@ -95,7 +95,6 @@ BUILD AND INSTALL
         $ cmake ..
         $ make
         $ sudo make install
-        $ sudo ldconfig
         $ make olaclient
         $ cd examples/olaclient
         $ sudo make install
@@ -113,18 +112,14 @@ BUILD AND INSTALL
         /usr/local/bin/olac_wrapper      (wrapper script for log capture)
         /etc/systemd/system/olac.service (systemd unit file)
 
+        By default, olaclient will be started by systemd as part of the
+        multi-user.target, after olad.service starts.  To terminate and disable
+        auto-start, execute:
+
+        $ sudo systemctl stop olac.service
+        $ sudo systemctl disable olac.service
+
         To manually run olaclient execute `olaclient`.
-
-        If olaclient should be controlled by systemd, execute:
-
-        $ sudo systemctl daemon-reload
-        $ sudo systemctl start olac.service
-
-        To configure olaclient to start automatically at boot time:
-
-        $ sudo systemctl enable olac.service
-
-        Now olaclient should be running and should start at system boot.
 
 CONNECTION
 
