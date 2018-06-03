@@ -77,6 +77,20 @@ DEPENDENCIES
         long compile time.  QLC+ for raspbian is best cross-compiled in
         a more powerful build environment.
 
+DOWNLOAD
+
+        olaclient is bundled with libPCA9685 0.7 and later as an example
+        application.  For now, the recommended download procedure is the
+        same as for other GitHub projects without release packages.  To create
+        a new folder in the current working directory containing the latest
+        "master" release of the project:
+
+        $ git clone https://github.com/edlins/libPCA9685
+
+        Or, to you clone the latest unreleased "develop" branch:
+
+        $ git clone -b develop https://github.com/edlins/libPCA9685
+
 CONFIGURE
 
         Currently olaclient is configured by editing `olaclient.cpp` and
@@ -128,13 +142,12 @@ CONNECTION
         to receive input on universe 1 via E1.31.  Using the DMX Monitor
         verify that OLA can receive the output from the DMX controller.
 
-        The olaclient binary should be started by either running the binary
-        manually from the console with `olaclient`, executing the helper
-        init script `sudo /etc/init.d/olac start`, or rebooting.  The init
-        script is preconfigured to automatically launch olaclient at boot
-        into runlevels 2 - 5.  If run manually from a command line, it
-        will send output to stdout.  If run automatically via the init
-        script, it will send output to its logfile `/var/log/olac.log`.
+        The olaclient binary will be automatically started by systemd by
+        default.  If disabled, the olaclient binary can be manually started by
+        `systemctl start olac.service`, or by running `olac_wrapper`,
+        or by running the binary directly with `olaclient`.  The last method
+        will send its output to stdout whereas the other methods will log
+        to the log file `/var/log/olac.log`.
 
         The olaclient binary should output it's version number
         and the PWM channel and value of the received DMX data as it is
@@ -148,31 +161,12 @@ CONNECTION
         turn on DMX channels 3, 9, 15, 21, and 27, and turn off all DMX
         channels.
 
-DOWNLOAD
-
-        olaclient is bundled with libPCA9685 0.7 and later as an example
-        application.  For now, the recommended download procedure is the
-        same as for other GitHub projects without release packages.  To create
-        a new folder in the current working directory containing the latest
-        "master" release of the project:
-
-        $ git clone https://github.com/edlins/libPCA9685
-
-        Or, to you clone the latest unreleased "develop" branch:
-
-        $ git clone -b develop https://github.com/edlins/libPCA9685
-
-INSTALL
-
-
-
 CONTRIBUTING
 
         Your contributions are very welcome!  Please develop contributions
         against the "develop" branch and submit PRs against "develop".
         PRs against "master" will not be accepted.  For all but trivial
         contributions please open an Issue for discussion first.
-
 
 CONSTANTS
 
