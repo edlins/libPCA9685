@@ -4,6 +4,7 @@ After=olad.target
 
 [Service]
 ExecStart=/usr/local/bin/olac_wrapper
+Restart=always
 
 [Install]
 WantedBy=multi-user.target
