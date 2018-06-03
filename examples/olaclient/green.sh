@@ -1,3 +1,3 @@
 #!/bin/sh
 
-/usr/local/bin/ola_recorder -l 4 -p ./green.dmx
+/usr/bin/ola_recorder -l 4 -p /usr/local/src/libPCA9685/examples/olaclient/green.dmx
