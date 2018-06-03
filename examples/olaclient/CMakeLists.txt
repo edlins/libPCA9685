@@ -11,7 +11,7 @@ target_link_libraries(olaclient olacommon)
 
 install(TARGETS  olaclient    DESTINATION bin)
 install(PROGRAMS olac_wrapper DESTINATION bin)
-install(FILES    olac.service DESTINATION /etc/systemd/system/multi-user.target.wants)
+install(FILES    olac.service DESTINATION /etc/systemd/system)
 
 install(CODE "message(\"execute_process(COMMAND /bin/systemctl status olac.service)\")")
 install(CODE "execute_process(COMMAND /bin/systemctl status olac.service)")
@@ -22,8 +22,8 @@ install(CODE "execute_process(COMMAND /bin/systemctl daemon-reload)")
 install(CODE "message(\"execute_process(COMMAND /bin/systemctl status olac.service)\")")
 install(CODE "execute_process(COMMAND /bin/systemctl status olac.service)")
 
-install(CODE "message(\"execute_process(COMMAND /bin/systemctl enable /etc/systemd/system/multi-user.target.wants/olac.service)\")")
-install(CODE "execute_process(COMMAND /bin/systemctl enable /etc/systemd/system/multi-user.target.wants/olac.service)")
+install(CODE "message(\"execute_process(COMMAND /bin/systemctl enable olac.service)\")")
+install(CODE "execute_process(COMMAND /bin/systemctl enable olac.service)")
 
 install(CODE "message(\"execute_process(COMMAND /bin/systemctl status olac.service)\")")
 install(CODE "execute_process(COMMAND /bin/systemctl status olac.service)")
