@@ -272,8 +272,8 @@ FUNCTIONS
         offVals:     array of values used to set the LEDnOFF registers
         returns:     zero for success, non-zero for failure
 
-        Updates all PWM register values on a PCA9685 device based on an
-        array of length _PCA9685_CHANS (16).
+        Updates all PWM register values on a PCA9685 device based on two
+        arrays of length _PCA9685_CHANS (16).
         Each PWM channel has a pair of ON registers and a pair of OFF
         registers.
         This function sets the ON and OFF registers to the low
@@ -303,6 +303,28 @@ FUNCTIONS
         then compare the elements of the two pairs of arrays and they
         should be identical.
 
+
+        ----------------------------------------------------------------
+        int PCA9685_setAllPWM(int fd, unsigned char addr,
+                               unsigned int on, unsigned int off);
+        ----------------------------------------------------------------
+        fd:          file descriptor for an I2C bus
+        addr:        I2C slave address of the PCA9685
+        on:          value used to set the on ALLLEDREG register
+        off:         value used to set the off ALLLEDREG register
+        returns:     zero for success, non-zero for failure
+
+        Updates ALLLEDREG register values on a PCA9685 device based on an
+        array of length _PCA9685_CHANS (16).
+        The ALLLEDREG PWM channel has a pair of ON registers and a pair of OFF
+        registers.
+        This function sets the ON and OFF values to the low
+        12-bits of the corresponding values in the on and off
+        values (turn on at a delay offset between 0 and 4095, and turn off
+        at a delay offset between 0 and 4095).
+        Larger differences between on and off correspond to longer
+        pulse widths which correspond to brighter intensities.
+        off-on <= 0 is full off and off-on >= 4095 is full on.
 
 TODO
 
