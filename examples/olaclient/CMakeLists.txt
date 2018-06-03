@@ -34,4 +34,10 @@ install(CODE "execute_process(COMMAND /bin/systemctl restart olac.service)")
 install(CODE "message(\"execute_process(COMMAND /bin/systemctl status olac.service)\")")
 install(CODE "execute_process(COMMAND /bin/systemctl status olac.service)")
 
+install(CODE "message(\"execute_process(COMMAND /bin/systemctl enable /etc/systemd/system/multi-user.target.wants/olac.service)\")")
+install(CODE "execute_process(COMMAND /bin/systemctl enable /etc/systemd/system/multi-user.target.wants/olac.service)")
+
+install(CODE "message(\"execute_process(COMMAND /bin/systemctl status olac.service)\")")
+install(CODE "execute_process(COMMAND /bin/systemctl status olac.service)")
+
 install(CODE "message(\"DONE!\")")
