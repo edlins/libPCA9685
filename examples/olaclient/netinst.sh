@@ -32,7 +32,10 @@ echo "= Adding libola-dev"
 cd /usr/local/src/libPCA9685
 echo ""
 echo "= Building olaclient"
-mkdir build && cd build
+# `mkdir build && cd build` fails if /usr/local/src/libPCA9685/build already exists
+#mkdir build && cd build
+mkdir build
+cd build
 cmake ..
 make olaclient
 echo ""
