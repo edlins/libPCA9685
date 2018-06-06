@@ -46,10 +46,10 @@ make install
 # configure olad
 echo ""
 echo "= Configuring olad"
-cp -v olad/ola-port.conf /etc/ola
-cp -v olad/ola-universe.conf /etc/ola
+cp -v /usr/local/src/libPCA9685/examples/olaclient/olad/ola-port.conf /etc/ola
+cp -v /usr/local/src/libPCA9685/examples/olaclient/olad/ola-universe.conf /etc/ola
 
 # configure dhclient
 echo ""
 echo "= Configuring dhclient"
-cp -v olad/dhclient-exit-hooks /etc/dhclient
+cp -v /usr/local/src/libPCA9685/examples/olaclient/olad/dhclient-exit-hooks /etc/dhclient
