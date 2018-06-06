@@ -44,7 +44,7 @@ int main(int argc, char **argv) {
   unsigned int val;
   snd_pcm_uframes_t frames;
   char *buffer;
-  
+
   /* Open PCM device for recording (capture). */
   char *dev = "default";
   if (argc > 1) dev = argv[1];
@@ -53,9 +53,9 @@ int main(int argc, char **argv) {
     fprintf(stderr, "unable to open pcm device '%s': %s\n", dev, snd_strerror(rc));
     exit(1);
   }
-  
+
   /* Allocate a hardware parameters object. */
-  snd_pcm_hw_params_alloca(&params); 
+  snd_pcm_hw_params_alloca(&params);
 
   /* Fill it in with default values. */
   rc = snd_pcm_hw_params_any(handle, params);

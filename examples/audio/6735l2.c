@@ -10,7 +10,7 @@ perform any sound playback or recording.
 /* Use the newer ALSA API */
 #define ALSA_PCM_NEW_HW_PARAMS_API
 
-/* All of the ALSA library API is defined 
+/* All of the ALSA library API is defined
  * in this header */
 #include <alsa/asoundlib.h>
 
@@ -21,17 +21,17 @@ int main() {
   unsigned int val, val2;
   int dir;
   snd_pcm_uframes_t frames;
-  
+
   /* Open PCM device for playback. */
   rc = snd_pcm_open(&handle, "default",
                     SND_PCM_STREAM_PLAYBACK, 0);
   if (rc < 0) {
-    fprintf(stderr, 
+    fprintf(stderr,
             "unable to open pcm device: %s\n",
             snd_strerror(rc));
     exit(1);
   }
-  
+
   /* Allocate a hardware parameters object. */
   snd_pcm_hw_params_alloca(&params);
 
@@ -45,7 +45,7 @@ int main() {
                       SND_PCM_ACCESS_RW_INTERLEAVED);
 
   /* Signed 16-bit little-endian format */
-  snd_pcm_hw_params_set_format(handle, params, 
+  snd_pcm_hw_params_set_format(handle, params,
                               SND_PCM_FORMAT_S16_LE);
 
   /* Two channels (stereo) */
@@ -53,13 +53,13 @@ int main() {
 
   /* 44100 bits/second sampling rate (CD quality) */
   val = 44100;
-  snd_pcm_hw_params_set_rate_near(handle, 
+  snd_pcm_hw_params_set_rate_near(handle,
                                  params, &val, &dir);
 
   /* Write the parameters to the driver */
   rc = snd_pcm_hw_params(handle, params);
   if (rc < 0) {
-    fprintf(stderr, 
+    fprintf(stderr,
             "unable to set hw parameters: %s\n",
             snd_strerror(rc));
     exit(1);
@@ -73,9 +73,9 @@ int main() {
   printf("PCM state = %s\n",
          snd_pcm_state_name(snd_pcm_state(handle)));
 
-  snd_pcm_hw_params_get_access(params, 
+  snd_pcm_hw_params_get_access(params,
                           (snd_pcm_access_t *) &val);
-  printf("access type = %s\n", 
+  printf("access type = %s\n",
          snd_pcm_access_name((snd_pcm_access_t)val));
 
   snd_pcm_hw_params_get_format(params, &val);
@@ -97,15 +97,15 @@ int main() {
   snd_pcm_hw_params_get_rate(params, &val, &dir);
   printf("rate = %d bps\n", val);
 
-  snd_pcm_hw_params_get_period_time(params, 
+  snd_pcm_hw_params_get_period_time(params,
                                     &val, &dir);
   printf("period time = %d us\n", val);
 
-  snd_pcm_hw_params_get_period_size(params, 
+  snd_pcm_hw_params_get_period_size(params,
                                     &frames, &dir);
   printf("period size = %d frames\n", (int)frames);
 
-  snd_pcm_hw_params_get_buffer_time(params, 
+  snd_pcm_hw_params_get_buffer_time(params,
                                     &val, &dir);
   printf("buffer time = %d us\n", val);
 
@@ -123,7 +123,7 @@ int main() {
   val = snd_pcm_hw_params_get_sbits(params);
   printf("significant bits = %d\n", val);
 
-  snd_pcm_hw_params_get_tick_time(params, 
+  snd_pcm_hw_params_get_tick_time(params,
                                   &val, &dir);
   printf("tick time = %d us\n", val);
 

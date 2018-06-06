@@ -12,10 +12,21 @@ before_install:
   - sudo apt-get install -y --no-install-recommends libncurses5-dev
   - sudo apt-get install -y --no-install-recommends libasound2-dev
 
-
 before_script:
   - mkdir build
   - cd build
   - cmake ..
 
-script: make && sudo make install && make PCA9685test && ctest -V && make examples
+script: 
+  - make
+  - sudo make install
+
+  - make PCA9685test
+  - ctest -V
+
+  - make examples
+  - cd examples/olaclient
+# this contains systemctl calls that "pass":
+  - sudo make install
+# but the log should show an open() failure:
+  - cat /var/log/olac.log

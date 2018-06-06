@@ -6,6 +6,9 @@
 - **examples/audio/**: example application for driving a PCA9685 via realtime audio
 
 ### Changed
+- **examples/olaclient/**: change from sysvinit to systemd, pathing, README
+- **.travis.yml**: move sysvinit and ldconfig commands to CMakeLists.txt's
+- **CMakeLists.txt: fix version to 0.8
 
 ### Removed
 

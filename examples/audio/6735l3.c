@@ -22,18 +22,18 @@ int main(int argc, char **argv) {
   int dir;
   snd_pcm_uframes_t frames;
   char *buffer;
-  
+
   /* Open PCM device for playback. */
   char *dev = argv[1];
-  rc = snd_pcm_open(&handle, dev, 
+  rc = snd_pcm_open(&handle, dev,
                     SND_PCM_STREAM_PLAYBACK, 0);
   if (rc < 0) {
-    fprintf(stderr, 
+    fprintf(stderr,
             "unable to open pcm device '%s': %s\n",
             dev, snd_strerror(rc));
     exit(1);
   }
-  
+
   /* Allocate a hardware parameters object. */
   snd_pcm_hw_params_alloca(&params);
 
@@ -55,7 +55,7 @@ int main(int argc, char **argv) {
 
   /* 44100 bits/second sampling rate (CD quality) */
   val = 44100;
-  snd_pcm_hw_params_set_rate_near(handle, params, 
+  snd_pcm_hw_params_set_rate_near(handle, params,
                                   &val, &dir);
 
   /* Set period size to 32 frames. */
@@ -66,7 +66,7 @@ int main(int argc, char **argv) {
   /* Write the parameters to the driver */
   rc = snd_pcm_hw_params(handle, params);
   if (rc < 0) {
-    fprintf(stderr, 
+    fprintf(stderr,
             "unable to set hw parameters: %s\n",
             snd_strerror(rc));
     exit(1);
@@ -79,9 +79,9 @@ int main(int argc, char **argv) {
   buffer = (char *) malloc(size);
 
   /* We want to loop for 5 seconds */
-  snd_pcm_hw_params_get_period_time(params, 
+  snd_pcm_hw_params_get_period_time(params,
                                     &val, &dir);
-  /* 5 seconds in microseconds divided by 
+  /* 5 seconds in microseconds divided by
    * period time */
   loops = 5000000 / val;
 
@@ -105,7 +105,7 @@ int main(int argc, char **argv) {
               "error from writei: %s\n",
               snd_strerror(rc));
     }  else if (rc != (int)frames) {
-      fprintf(stderr, 
+      fprintf(stderr,
               "short write, write %d frames\n", rc);
     }
   }
@@ -113,6 +113,6 @@ int main(int argc, char **argv) {
   snd_pcm_drain(handle);
   snd_pcm_close(handle);
   free(buffer);
-  
+
   return 0;
 }
