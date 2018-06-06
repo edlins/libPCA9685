@@ -326,7 +326,6 @@ FUNCTIONS
         pulse widths which correspond to brighter intensities.
         off-on <= 0 is full off and off-on >= 4095 is full on.
 
-
 TODO
 
         CPack release packages
