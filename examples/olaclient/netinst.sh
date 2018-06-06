@@ -42,3 +42,14 @@ echo ""
 echo "= Installing olaclient"
 cd examples/olaclient
 make install
+
+# configure olad
+echo ""
+echo "= Configuring olad"
+cp -v olad/ola-port.conf /etc/ola
+cp -v olad/ola-universe.conf /etc/ola
+
+# configure dhclient
+echo ""
+echo "= Configuring dhclient"
+cp -v olad/dhclient-exit-hooks /etc/dhclient

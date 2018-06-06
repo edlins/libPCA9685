@@ -1,0 +1,4 @@
+#!/bin/sh
+
+echo "running dhclient-exit-hooks"
+kill -HUP `cat /var/run/olad.pid`
