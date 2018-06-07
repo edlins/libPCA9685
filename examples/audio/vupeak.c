@@ -130,6 +130,7 @@ int main(int argc, char **argv) {
   long maxVal = 1000;
   int minVal = -100;
   int average = minVal;
+  int j = 0;
   while (loops > 0) {
     //loops--;
     rc = snd_pcm_readi(handle, buffer, frames);
@@ -146,35 +147,28 @@ int main(int argc, char **argv) {
     int i;
     int sample;
     long tmp;
+    int minSample=32000;
+    int maxSample=-32000;
     for (i = 0; i < rc; i += 1) {
-      /* 1 frame = 4 bytes = left LSB, left MSB, right LSB, right MSB */
-      /* mic is mono so only use the first two bytes of each frame */
       tmp = (long)buffer[4*i+1] << 8 | buffer[4*i];
       if (tmp < 32768) sample = tmp;
       else sample = tmp - 65536;
-      //fprintf(stdout, "%d ", sample);
+      sample = sample - minVal;
+      if (sample < 0) sample *= -1;
+      if (sample > maxSample) {
+        maxSample = sample;
+      }
+      if (sample < minSample) {
+        minSample = sample;
+      }
     }
-    //fprintf(stdout, "\n");
-/*
-    fprintf(stdout, "%d ", maxVal);
-    for (i = 0; i < maxVal / 8; i++) {
-      fprintf(stdout, "X");
-    }
-    fprintf(stdout, "*\n");
-*/
-    sample = sample - minVal;
-    if (sample < 0) sample *= -1;
-    average = (sample + 19 * average) / 20;
+    int value = maxSample - minSample;
+    average = (value + 2 * average) / 3;
     int ratio = 100.0 * (average) / (maxVal);
     if (ratio < 0) ratio = 0;
     if (ratio > 100) ratio = 100;
-    int display = ratio * _PCA9685_MAXVAL / 100;
-    //fprintf(stdout, "%d %d %d\n", average, ratio, display);
-    //fprintf(stdout, "%d (%d - %d) %d\n", average, minVal, maxVal, display);
+    int display = ratio * _PCA9685_MAXVAL / 200;
     PCA9685_setAllPWM(fd, addr, 0, display);
-    //rc = write(1, buffer, size);
-    //if (rc != size)
-      //fprintf(stderr, "short write: wrote %d bytes\n", rc);
   }
 
   snd_pcm_drain(handle);
