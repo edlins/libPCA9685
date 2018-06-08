@@ -1,15 +1,13 @@
-/*
+#define CHANNELS 1
+#define FRAMES 26
+#define AUDIOFREQ 22050
 
-Example 4 - Simple sound recording
+/* low freq resp = audiofreq / 2*frames */
+/* high freq resp = audiofreq / 2 */
 
-This example reads from the default PCM device
-and writes to standard output for 5 seconds of data.
-
-*/
-
-#define CHANNELS 2
-#define FRAMES 512
-#define FREQ 44100;
+#define ADPT 1
+#define ADDR 0x40
+#define PWMFREQ 200
 
 /* Use the newer ALSA API */
 #define ALSA_PCM_NEW_HW_PARAMS_API
@@ -28,26 +26,23 @@ void intHandler(int dummy) {
   exit(dummy);
 }
 
-int initHardware(int adpt, int addr, int freq) {
+int initPCA9685(int adpt, int addr, int freq) {
   int afd = PCA9685_openI2C(adpt, addr);
   PCA9685_initPWM(afd, addr, freq);
   return afd;
 }
 
 
-int main(int argc, char **argv) {
-  long loops;
+snd_pcm_t* initALSA(char *dev, char **bufferPtr, snd_pcm_uframes_t *framesPtr) {
   int rc;
   int size;
   snd_pcm_t *handle;
   snd_pcm_hw_params_t *params;
   unsigned int val;
-  snd_pcm_uframes_t frames;
-  char *buffer;
+  //snd_pcm_uframes_t frames;
+  //char *buffer;
 
   /* Open PCM device for recording (capture). */
-  char *dev = "default";
-  if (argc > 1) dev = argv[1];
   rc = snd_pcm_open(&handle, dev, SND_PCM_STREAM_CAPTURE, 0);
   if (rc < 0) {
     fprintf(stderr, "unable to open pcm device '%s': %s\n", dev, snd_strerror(rc));
@@ -84,7 +79,7 @@ int main(int argc, char **argv) {
   }
 
   /* 44100 bits/second sampling rate (CD quality) */
-  val = FREQ;
+  val = AUDIOFREQ;
   rc = snd_pcm_hw_params_set_rate_near(handle, params, &val, NULL);
   if (rc < 0) {
     fprintf(stderr, "snd_pcm_hw_params_set_rate_near() failed %d\n", rc);
@@ -92,13 +87,13 @@ int main(int argc, char **argv) {
   fprintf(stdout, "set_rate_near val %u\n", val);
 
   /* Set period size to 32 frames. */
-  frames = FRAMES;
-  fprintf(stdout, "frames %lu\n", frames);
-  rc = snd_pcm_hw_params_set_period_size_near(handle, params, &frames, NULL);
+  *framesPtr = FRAMES;
+  fprintf(stdout, "frames %lu\n", *framesPtr);
+  rc = snd_pcm_hw_params_set_period_size_near(handle, params, framesPtr, NULL);
   if (rc < 0) {
     fprintf(stderr, "snd_pcm_hw_params_set_period_size_near() failed %d\n", rc);
   }
-  fprintf(stdout, "frames %lu\n", frames);
+  fprintf(stdout, "frames %lu\n", *framesPtr);
 
   /* Write the parameters to the driver */
   rc = snd_pcm_hw_params(handle, params);
@@ -108,32 +103,45 @@ int main(int argc, char **argv) {
   }
 
   /* Use a buffer large enough to hold one period */
-  snd_pcm_hw_params_get_period_size(params, &frames, NULL);
-  size = frames * 2 * CHANNELS; /* 2 bytes/sample, 2 channels */
-  buffer = (char *) malloc(size);
+  snd_pcm_hw_params_get_period_size(params, framesPtr, NULL);
+  size = *framesPtr * 2 * CHANNELS; /* 2 bytes/sample, 2 channels */
+  *bufferPtr = (char *) malloc(size);
 
   /* We want to loop for 5 seconds */
   rc = snd_pcm_hw_params_get_period_time(params, &val, NULL);
   if (rc < 0) {
     fprintf(stderr, "snd_pcm_hw_params_get_period_time() failed %d\n", rc);
   }
+  return handle;
+}
+
+
+
+
+int main(int argc, char **argv) {
+  //fprintf(stdout, "quickstart %d.%d\n", libPCA9685_VERSION_MAJOR, libPCA9685_VERSION_MINOR);
+  signal(SIGINT, intHandler);
+
+  // ALSA init
+  char *buffer;
+  snd_pcm_t *handle;
+  snd_pcm_uframes_t frames;
+  char *dev = "default";
+  if (argc > 1) dev = argv[1];
+  handle = initALSA(dev, &buffer, &frames);
 
   // libPCA9685 init
-  //fprintf(stdout, "quickstart %d.%d\n", libPCA9685_VERSION_MAJOR, libPCA9685_VERSION_MINOR);
-  int adpt = 1;
-  addr = 0x40;
-  int freq = 200;
-  signal(SIGINT, intHandler);
-  fd = initHardware(adpt, addr, freq);
+  int adpt = ADPT;
+  addr = ADDR;
+  int freq = PWMFREQ;
+  fd = initPCA9685(adpt, addr, freq);
 
-  loops = 5000000 / val;
-  long maxVal = 1000;
-  int minVal = -100;
-  int average = minVal;
-  int j = 0;
-  while (loops > 0) {
-    //loops--;
-    rc = snd_pcm_readi(handle, buffer, frames);
+  int maxVal = 32000;
+  int minVal = -32000;
+  int average = 0;
+  int minValue = 32000;
+  while (1) {
+    int rc = snd_pcm_readi(handle, buffer, frames);
     if (rc == -EPIPE) {
       /* EPIPE means overrun */
       fprintf(stderr, "overrun occurred\n");
@@ -142,7 +150,7 @@ int main(int argc, char **argv) {
       fprintf(stderr, "error from read: %s\n", snd_strerror(rc));
     } else if (rc != (int)frames) {
       fprintf(stderr, "short read, read %d frames\n", rc);
-    }
+    } else {
     /* rc = number of frames read */
     int i;
     int sample;
@@ -153,8 +161,8 @@ int main(int argc, char **argv) {
       tmp = (long)buffer[4*i+1] << 8 | buffer[4*i];
       if (tmp < 32768) sample = tmp;
       else sample = tmp - 65536;
-      sample = sample - minVal;
-      if (sample < 0) sample *= -1;
+      //sample = sample - minVal;
+      //if (sample < 0) sample *= -1;
       if (sample > maxSample) {
         maxSample = sample;
       }
@@ -163,12 +171,28 @@ int main(int argc, char **argv) {
       }
     }
     int value = maxSample - minSample;
+    if (value < minValue) {
+      minValue = value;
+    }
+    value -= minValue;
+    //if (value < 100) {
+      //value = 0;
+    //}
     average = (value + 2 * average) / 3;
-    int ratio = 100.0 * (average) / (maxVal);
+    //int ratio = 100.0 * (average - minVal) / (maxVal - minVal);
+    int ratio = 100 * (average) / (1000);
+    //int ratio = 100 * (value) / (1000);
     if (ratio < 0) ratio = 0;
     if (ratio > 100) ratio = 100;
-    int display = ratio * _PCA9685_MAXVAL / 200;
+    int display = ratio / 100.0 * _PCA9685_MAXVAL;
+    //fprintf(stdout, "%d %d %d %d\n", value, average, ratio, display);
+    int j;
+    //for (j = 0; j < ratio / 10; j++) {
+      //fprintf(stdout, "*");
+    //}
+    //fprintf(stdout, "\n");
     PCA9685_setAllPWM(fd, addr, 0, display);
+    }
   }
 
   snd_pcm_drain(handle);
