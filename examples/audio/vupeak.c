@@ -1,13 +1,12 @@
-#define CHANNELS 1
-#define FRAMES 26
-#define AUDIOFREQ 22050
+// audio params
+#define CHANNELS 2      // this fucks up alsa if set to 1
+#define FRAMES 16       // periods with more frames take more time to process
+#define AUDIOFREQ 8000  // lower sampling rates take more time to fill the buffer
 
-/* low freq resp = audiofreq / 2*frames */
-/* high freq resp = audiofreq / 2 */
-
+// pwm params
 #define ADPT 1
 #define ADDR 0x40
-#define PWMFREQ 200
+#define PWMFREQ 200     // just needs to be high enough to hide the flicker
 
 /* Use the newer ALSA API */
 #define ALSA_PCM_NEW_HW_PARAMS_API
@@ -16,6 +15,9 @@
 #include <stdbool.h>
 #include <PCA9685.h>
 #include <signal.h>
+//#include <complex.h>
+#include <fftw3.h>
+#include <math.h>
 
 int fd;
 unsigned char addr;
@@ -23,10 +25,22 @@ unsigned char addr;
 void intHandler(int dummy) {
   // turn off all channels
   PCA9685_setAllPWM(fd, addr, _PCA9685_MINVAL, _PCA9685_MINVAL);
+
+  // cleanup alsa
+  //snd_pcm_drain(handle);
+  //snd_pcm_close(handle);
+  //free(buffer);
+
+  // cleanup fftw
+  //fftw_destroy_plan(p);
+  //fftw_free(in);
+  //fftw_free(out);
+
   exit(dummy);
 }
 
 int initPCA9685(int adpt, int addr, int freq) {
+  //_PCA9685_DEBUG = true;
   int afd = PCA9685_openI2C(adpt, addr);
   PCA9685_initPWM(afd, addr, freq);
   return afd;
@@ -39,80 +53,55 @@ snd_pcm_t* initALSA(char *dev, char **bufferPtr, snd_pcm_uframes_t *framesPtr) {
   snd_pcm_t *handle;
   snd_pcm_hw_params_t *params;
   unsigned int val;
-  //snd_pcm_uframes_t frames;
-  //char *buffer;
-
-  /* Open PCM device for recording (capture). */
   rc = snd_pcm_open(&handle, dev, SND_PCM_STREAM_CAPTURE, 0);
   if (rc < 0) {
     fprintf(stderr, "unable to open pcm device '%s': %s\n", dev, snd_strerror(rc));
     exit(1);
   }
-
-  /* Allocate a hardware parameters object. */
   snd_pcm_hw_params_alloca(&params);
-
-  /* Fill it in with default values. */
   rc = snd_pcm_hw_params_any(handle, params);
-  if (rc < 0) {
-    fprintf(stderr, "snd_pcm_hw_params_any() failed %d\n", rc);
-  }
-
-  /* Set the desired hardware parameters. */
-
-  /* Interleaved mode */
+  if (rc < 0) fprintf(stderr, "snd_pcm_hw_params_any() failed %d\n", rc);
   rc = snd_pcm_hw_params_set_access(handle, params, SND_PCM_ACCESS_RW_INTERLEAVED);
-  if (rc < 0) {
-    fprintf(stderr, "snd_pcm_hw_params_set_access() failed %d\n", rc);
-  }
-
-  /* Signed 16-bit little-endian format */
+  if (rc < 0) fprintf(stderr, "snd_pcm_hw_params_set_access() failed %d\n", rc);
   rc = snd_pcm_hw_params_set_format(handle, params, SND_PCM_FORMAT_S16_LE);
-  if (rc < 0) {
-    fprintf(stderr, "snd_pcm_hw_params_set_format() failed %d\n", rc);
-  }
-
-  /* channels */
+  if (rc < 0) fprintf(stderr, "snd_pcm_hw_params_set_format() failed %d\n", rc);
   rc = snd_pcm_hw_params_set_channels(handle, params, 2);
-  if (rc < 0) {
-    fprintf(stderr, "snd_pcm_hw_params_set_channels() failed %d\n", rc);
-  }
-
-  /* 44100 bits/second sampling rate (CD quality) */
-  val = AUDIOFREQ;
-  rc = snd_pcm_hw_params_set_rate_near(handle, params, &val, NULL);
-  if (rc < 0) {
-    fprintf(stderr, "snd_pcm_hw_params_set_rate_near() failed %d\n", rc);
-  }
-  fprintf(stdout, "set_rate_near val %u\n", val);
-
-  /* Set period size to 32 frames. */
+  if (rc < 0) fprintf(stderr, "snd_pcm_hw_params_set_channels() failed %d\n", rc);
+  unsigned int rate = AUDIOFREQ;
+  rc = snd_pcm_hw_params_set_rate_near(handle, params, &rate, NULL);
+  if (rc < 0) fprintf(stderr, "snd_pcm_hw_params_set_rate_near() failed %d\n", rc);
+  fprintf(stdout, "rate %u\n", rate);
   *framesPtr = FRAMES;
-  fprintf(stdout, "frames %lu\n", *framesPtr);
   rc = snd_pcm_hw_params_set_period_size_near(handle, params, framesPtr, NULL);
-  if (rc < 0) {
-    fprintf(stderr, "snd_pcm_hw_params_set_period_size_near() failed %d\n", rc);
-  }
+  if (rc < 0) fprintf(stderr, "snd_pcm_hw_params_set_period_size_near() failed %d\n", rc);
   fprintf(stdout, "frames %lu\n", *framesPtr);
-
-  /* Write the parameters to the driver */
+  fprintf(stdout, "frequency response %lu - %d\n", rate / (2 * *framesPtr), rate / 2);
   rc = snd_pcm_hw_params(handle, params);
   if (rc < 0) {
     fprintf(stderr, "unable to set hw parameters: (%d), %s\n", rc, snd_strerror(rc));
     exit(1);
   }
-
-  /* Use a buffer large enough to hold one period */
   snd_pcm_hw_params_get_period_size(params, framesPtr, NULL);
   size = *framesPtr * 2 * CHANNELS; /* 2 bytes/sample, 2 channels */
+  fprintf(stdout, "buffer size %d\n", size);
   *bufferPtr = (char *) malloc(size);
-
-  /* We want to loop for 5 seconds */
   rc = snd_pcm_hw_params_get_period_time(params, &val, NULL);
-  if (rc < 0) {
-    fprintf(stderr, "snd_pcm_hw_params_get_period_time() failed %d\n", rc);
-  }
+  if (rc < 0) fprintf(stderr, "snd_pcm_hw_params_get_period_time() failed %d\n", rc);
   return handle;
+}
+
+
+
+double *hanning(int N) {
+  int i;
+  double *window = (double *) malloc(sizeof(double) * N);
+  //fprintf(stdout, "hanning:\n");
+  for (i = 0; i < N; i++) {
+    window[i] = 0.5 * (1 - cos(2 * M_PI * i / N));
+    //fprintf(stdout, "%f ", window[i]);
+  }
+  //fprintf(stdout, "\n");
+  return window;
 }
 
 
@@ -136,62 +125,83 @@ int main(int argc, char **argv) {
   int freq = PWMFREQ;
   fd = initPCA9685(adpt, addr, freq);
 
-  int maxVal = 32000;
-  int minVal = -32000;
+  // fftw init
+  int N = frames;
+  fftw_plan p;
+  fftw_complex *out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N);
+  double in[N];
+  p = fftw_plan_dft_r2c_1d(N, in, out, FFTW_ESTIMATE);
+  double *han = hanning(N);
+
   int average = 0;
   int minValue = 32000;
+  int rc = 64;
   while (1) {
-    int rc = snd_pcm_readi(handle, buffer, frames);
+    rc = snd_pcm_readi(handle, buffer, frames);
     if (rc == -EPIPE) {
-      /* EPIPE means overrun */
       fprintf(stderr, "overrun occurred\n");
       snd_pcm_prepare(handle);
     } else if (rc < 0) {
       fprintf(stderr, "error from read: %s\n", snd_strerror(rc));
-    } else if (rc != (int)frames) {
+    } else if (rc != (int) frames) {
       fprintf(stderr, "short read, read %d frames\n", rc);
     } else {
-    /* rc = number of frames read */
-    int i;
-    int sample;
-    long tmp;
-    int minSample=32000;
-    int maxSample=-32000;
-    for (i = 0; i < rc; i += 1) {
-      tmp = (long)buffer[4*i+1] << 8 | buffer[4*i];
-      if (tmp < 32768) sample = tmp;
-      else sample = tmp - 65536;
-      //sample = sample - minVal;
-      //if (sample < 0) sample *= -1;
-      if (sample > maxSample) {
-        maxSample = sample;
+      // find the min and max time and value
+      int sample;
+      long tmp;
+      int minSample=32000;
+      int maxSample=-32000;
+
+      // process all frames recorded
+      int i;
+      for (i = 0; i < FRAMES; i++) {
+        //fprintf(stdout, "examing buffer at %d and %d\n", 2*CHANNELS*i+1, 2*CHANNELS*i);
+        tmp = (long)((char*)buffer)[2*CHANNELS*i+1] << 8 | ((char*)buffer)[2*CHANNELS*i];
+        if (tmp < 32768) sample = tmp;
+        else sample = tmp - 65536;
+        if (sample > maxSample) {
+          maxSample = sample;
+        }
+        if (sample < minSample) {
+          minSample = sample;
+        }
+        in[i] = (double) sample * han[i];
       }
-      if (sample < minSample) {
-        minSample = sample;
+      // fftw
+      fftw_execute(p);
+      for (i = 1; i < (FRAMES / 2) + 1 && i < 50; i++) {
+        out[i][0] *= (2.0 / FRAMES);
+        out[i][1] *= (2.0 / FRAMES);
+        double mag = sqrtf(out[i][0] * out[i][0] + out[i][1] * out[i][1]);
+        int db = 10.0f * log10f(mag + 1.0);
+        fprintf(stdout, "%02d ", db);
       }
-    }
-    int value = maxSample - minSample;
-    if (value < minValue) {
-      minValue = value;
-    }
-    value -= minValue;
-    //if (value < 100) {
-      //value = 0;
-    //}
-    average = (value + 2 * average) / 3;
-    //int ratio = 100.0 * (average - minVal) / (maxVal - minVal);
-    int ratio = 100 * (average) / (1000);
-    //int ratio = 100 * (value) / (1000);
-    if (ratio < 0) ratio = 0;
-    if (ratio > 100) ratio = 100;
-    int display = ratio / 100.0 * _PCA9685_MAXVAL;
-    //fprintf(stdout, "%d %d %d %d\n", value, average, ratio, display);
-    int j;
-    //for (j = 0; j < ratio / 10; j++) {
-      //fprintf(stdout, "*");
-    //}
-    //fprintf(stdout, "\n");
-    PCA9685_setAllPWM(fd, addr, 0, display);
+      fprintf(stdout, "\n");
+
+      // intensity-based value
+      int intensity_value = maxSample - minSample;
+      //fprintf(stdout, "intensity %d\n", intensity_value);
+
+      // minValue is the smallest value seen, use for offset
+      if (intensity_value < minValue) {
+        minValue = intensity_value;
+      }
+      intensity_value -= minValue;
+      //fprintf(stdout, "adjusted intensity %d\n", intensity_value);
+
+      // modified moving average for smoothing
+      average = (intensity_value + 2 * average) / 3;
+      //fprintf(stdout, "average %d\n", average);
+      int ratio = 100 * (average) / (1000);
+      if (ratio < 0) ratio = 0;
+      if (ratio > 100) ratio = 100;
+      //fprintf(stdout, "ratio %d\n", ratio);
+      int display = ratio / 100.0 * _PCA9685_MAXVAL;
+      //fprintf(stdout, "display %d\n", display);
+
+      // update the pwms
+      //fprintf(stdout, "%d %d %d\n", frames, intensity_value, display);
+      PCA9685_setAllPWM(fd, addr, 0, display);
     }
   }
 
