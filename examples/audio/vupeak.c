@@ -1,7 +1,12 @@
 // audio params
-#define CHANNELS 2      // this fucks up alsa if set to 1
-#define FRAMES 16       // periods with more frames take more time to process
-#define AUDIOFREQ 8000  // lower sampling rates take more time to fill the buffer
+// this fucks up alsa if set to 1
+#define CHANNELS 2
+// periods with more frames take more time to process
+// periods with fewer frames increase the bin size
+#define FRAMES 1024
+// lower sampling rates take more time to fill the buffer
+// higher sampling rates increase the bin size
+#define AUDIOFREQ 44100
 
 // pwm params
 #define ADPT 1
@@ -15,9 +20,9 @@
 #include <stdbool.h>
 #include <PCA9685.h>
 #include <signal.h>
-//#include <complex.h>
 #include <fftw3.h>
 #include <math.h>
+#include <sys/time.h>
 
 int fd;
 unsigned char addr;
@@ -136,6 +141,9 @@ int main(int argc, char **argv) {
   int average = 0;
   int minValue = 32000;
   int rc = 64;
+  struct timeval then, now, diff;
+  rc = 1024;
+  gettimeofday(&then, NULL);
   while (1) {
     rc = snd_pcm_readi(handle, buffer, frames);
     if (rc == -EPIPE) {
@@ -169,14 +177,26 @@ int main(int argc, char **argv) {
       }
       // fftw
       fftw_execute(p);
-      for (i = 1; i < (FRAMES / 2) + 1 && i < 50; i++) {
-        out[i][0] *= (2.0 / FRAMES);
-        out[i][1] *= (2.0 / FRAMES);
-        double mag = sqrtf(out[i][0] * out[i][0] + out[i][1] * out[i][1]);
-        int db = 10.0f * log10f(mag + 1.0);
-        fprintf(stdout, "%02d ", db);
+      unsigned int pwmoff[16];
+      int minbin = 11;
+      for (i = 0; i < (FRAMES / 2) + 1; i++) {
+        if (i >= minbin && i <= minbin+15) {
+          // normalize by the number of frames in a period and the hanning factor
+          double mag = 2.0 * sqrtf(out[i][0] * out[i][0] + out[i][1] * out[i][1]) / FRAMES;
+          double amp = 20 * log10f(mag);
+          //fprintf(stdout, "%3d ", (int) amp);
+          float cutoff = 2;
+          if (amp > cutoff) {
+            double val = pow(amp - cutoff, 3);
+            if (val > 4096) val = 4096;
+            int alpha = 10;
+            pwmoff[i-minbin] = (unsigned int) ((alpha-1) * pwmoff[i-minbin] + val) / alpha;
+          } else {
+            pwmoff[i-minbin] = 0;
+          }
+        }
       }
-      fprintf(stdout, "\n");
+      //fprintf(stdout, "\n");
 
       // intensity-based value
       int intensity_value = maxSample - minSample;
@@ -201,7 +221,16 @@ int main(int argc, char **argv) {
 
       // update the pwms
       //fprintf(stdout, "%d %d %d\n", frames, intensity_value, display);
-      PCA9685_setAllPWM(fd, addr, 0, display);
+      //PCA9685_setAllPWM(fd, addr, 0, display);
+      unsigned int pwmon[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+      PCA9685_setPWMVals(fd, addr, pwmon, pwmoff);
+
+      gettimeofday(&now, NULL);
+      timersub(&now, &then, &diff);
+      long int micros = (long int)diff.tv_sec*1000000 + (long int)diff.tv_usec;
+      int millis = micros / 1000;
+      //fprintf(stdout, "%d %d\n", rc, millis);
+      then = now;
     }
   }
 
