@@ -5,6 +5,7 @@ DEPENDENCIES
 ```
 $ sudo apt-get install libasound2
 $ sudo apt-get install libasound2-dev
+$ sudo apt-get install libfftw3-3
 ```
 
 DEFAULT AUDIO
