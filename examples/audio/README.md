@@ -25,3 +25,26 @@ ctl.!default {
         card 1
 }
 ```
+
+NOTES
+
+https://soundcloud.com/subquakeaudio/frequency-dreams-meditate-lp
+Works well for such "sparse" music with space between tones:
+```
+minbin = 2;
+gap = 3;
+cutoff = 3;
+alpha = 2;
+```
+
+Then:
+```
+vupeak -m spectrum -p 1024 -r 44100
+```
+
+TODO
+
+- Make gap logarithmic
+- Smarter scaling instead of pow()
+- Tune for shitty music like Skrillex..  :cry:
+
