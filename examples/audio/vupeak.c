@@ -270,21 +270,24 @@ int main(int argc, char **argv) {
         // fftw
         fftw_execute(p);
         unsigned int pwmoff[16];
-        unsigned int minbin = 11;
+        unsigned int minbin = 2;
+        unsigned int gap = 3;
         for (i = 0; i < (args.audio_period / 2) + 1; i++) {
-          if (i >= minbin && i <= minbin+15) {
+          if (i >= minbin && i <= minbin + 15) {
             // normalize by the number of frames in a period and the hanning factor
-            double mag = 2.0 * sqrtf(out[i][0] * out[i][0] + out[i][1] * out[i][1]) / args.audio_period;
+            unsigned int index = minbin + (i - minbin) * gap;
+            double mag = 2.0 * sqrtf(out[index][0] * out[index][0] + out[index][1] * out[index][1]) / args.audio_period;
             double amp = 20 * log10f(mag);
             if (verbose) fprintf(stdout, "%3d ", (int) amp);
-            float cutoff = 2;
+            float cutoff = 3;
             if (amp > cutoff) {
-              double val = pow(amp - cutoff, 3);
+              double val = pow(amp - cutoff, 2);
               if (val > 4096) val = 4096;
-              int alpha = 10;
-              pwmoff[i-minbin] = (unsigned int) ((alpha-1) * pwmoff[i-minbin] + val) / alpha;
+              int alpha = 2;
+              double scaled = ((alpha - 1) * pwmoff[i - minbin] + val) / alpha;
+                pwmoff[i - minbin] = scaled;
             } else {
-              pwmoff[i-minbin] = 0;
+              pwmoff[i - minbin] = 0;
             } // if amp
           } // if i
         } // for i
