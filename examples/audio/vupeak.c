@@ -28,7 +28,7 @@ void intHandler(int dummy) {
   // cleanup alsa
   snd_pcm_drain(handle);
   snd_pcm_close(handle);
-  free(buffer);
+  //free(buffer);
 
   // cleanup fftw
   //fftw_destroy_plan(p);
@@ -118,10 +118,11 @@ void process_args(int argc, char **argv) {
   args.pwm_addr = 0x40;
   args.pwm_freq = 200;
   args.pwm_debug = false;
+  args.pwm_smoothing = 10;
 
   opterr = 0;
   int c;
-  while ((c = getopt(argc, argv, "m:d:p:r:c:b:a:f:vD")) != -1) {
+  while ((c = getopt(argc, argv, "m:d:p:r:c:b:a:f:vDs:")) != -1) {
     switch (c) {
       case 'm':
         args.mode = 0;
@@ -159,6 +160,9 @@ void process_args(int argc, char **argv) {
       case 'D':
         args.pwm_debug = true;
         break;
+      case 's':
+        args.pwm_smoothing = atoi(optarg);
+        break;
       case '?':
         fprintf(stderr, "problem\n");
         exit(-1);
@@ -168,8 +172,13 @@ void process_args(int argc, char **argv) {
     } //switch
   } // while
   // sanity checks
-  if (args.mode == 1 && args.audio_period > 45) {
-    fprintf(stdout, "'levels' mode works best with a short period like 45\n");
+  if (args.mode == 1) {
+    fprintf(stdout, "'level' mode suggested args: -p 24 -r 44100 -s 1\n");
+    fprintf(stdout, "'level' mode suggested input volume at 100%%\n");
+  } // if mode && period
+  else if (args.mode == 2) {
+    fprintf(stdout, "'spectrum' mode suggested args: -p 1024 -r 44100 -s 3\n");
+    fprintf(stdout, "'spectrum' mode suggested cut input volume to 50%%\n");
   } // if mode && period
 } // process_args
 
@@ -200,6 +209,9 @@ int main(int argc, char **argv) {
   int minValue = 32000;
   int rc = 64;
   rc = 1024;
+  int count = 0;
+  double min[16] = { 10,15,25, 10,10,10, 9,9,9, 8,8,8, 8,8,8, 0 };
+  double max[16] = { 77,77,77, 77,77,77, 77,77,77, 77,77,77, 77,77,77, 0 };
   while (1) {
     rc = snd_pcm_readi(handle, buffer, args.audio_period);
     if (rc == -EPIPE) {
@@ -215,44 +227,47 @@ int main(int argc, char **argv) {
         // find the min and max value
         int sample;
         long tmp;
-        int minSample=32000;
         int maxSample=-32000;
+        int minSample=32000;
+
         // process all frames recorded
         unsigned int i;
-        for (i = 0; i < args.audio_period; i++) {
+        for (i = 0; i < args.audio_period; i+=2) {
           tmp = (long) ((char*) buffer)[2 * args.audio_channels * i + 1] << 8 | ((char*) buffer)[2 * args.audio_channels * i];
           if (tmp < 32768) sample = tmp;
           else sample = tmp - 65536;
           if (sample > maxSample) {
             maxSample = sample;
-          }
+          } // if sample >
           if (sample < minSample) {
             minSample = sample;
-          } // if sample
+          } // if sample <
         } // for i
+
         // intensity-based value
         int intensity_value = maxSample - minSample;
-        if (verbose) fprintf(stdout, "intensity %d\n", intensity_value);
 
         // minValue is the smallest value seen, use for offset
         if (intensity_value < minValue) {
           minValue = intensity_value;
         }
         intensity_value -= minValue;
-        if (verbose) fprintf(stdout, "adjusted intensity %d\n", intensity_value);
 
         // modified moving average for smoothing
-        average = (intensity_value + 2 * average) / 3;
-        if (verbose) fprintf(stdout, "average %d\n", average);
-        int ratio = 100 * (average) / (1000);
+        int alpha = args.pwm_smoothing;
+        average = (intensity_value + (alpha-1) * average) / alpha;
+
+        int ratio = 100.0 * average / 65535;
+        ratio = (ratio / 10.0) * (ratio / 10.0);
+        ratio = (ratio / 10.0) * (ratio / 10.0);
         if (ratio < 0) ratio = 0;
         if (ratio > 100) ratio = 100;
-        if (verbose) fprintf(stdout, "ratio %d\n", ratio);
+
         int display = ratio / 100.0 * _PCA9685_MAXVAL;
-        if (verbose) fprintf(stdout, "display %d\n", display);
-        if (verbose) fprintf(stdout, "%d %d %d\n", args.audio_period, intensity_value, display);
+        if (verbose) fprintf(stdout, "%d %d\n", intensity_value, ratio);
+
         // update the pwms
-        PCA9685_setAllPWM(fd, args.pwm_addr, 0, display);
+        if (count == 0) PCA9685_setAllPWM(fd, args.pwm_addr, 0, display);
       }
 
       else if (args.mode == 2) {
@@ -270,26 +285,36 @@ int main(int argc, char **argv) {
         // fftw
         fftw_execute(p);
         unsigned int pwmoff[16];
-        unsigned int minbin = 2;
-        unsigned int gap = 3;
-        for (i = 0; i < (args.audio_period / 2) + 1; i++) {
-          if (i >= minbin && i <= minbin + 15) {
+        // 4096 @ 88200 good bass bins are 2,4,7
+        // 2048 @ 88200 good bass bins are 2,3,4,5(,6) and fast (also very good and fast 256 @ 22050 wide)
+        unsigned int bins[16] = {0,0,2, 0,3,3, 0,4,0, 5,5,0, 6,0,0};
+        //unsigned int bins[16] = {4,3,2, 0,0,16, 0,20,0, 30,30,0, 90,0,0};
+        //unsigned int bins[16] = {1024,1024,1024, 1024,1024,1024, 1024,1024,1024, 1024,1024,1024, 1024,1024,1024};
+        for (i = 0; i < 16; i++) {
             // normalize by the number of frames in a period and the hanning factor
-            unsigned int index = minbin + (i - minbin) * gap;
+            //unsigned int index = minbin + (i - minbin) * gap;
+            unsigned int index = bins[i];
+            if (index == 0) {
+              pwmoff[i] = 0;
+              continue;
+            } // if index
             double mag = 2.0 * sqrtf(out[index][0] * out[index][0] + out[index][1] * out[index][1]) / args.audio_period;
             double amp = 20 * log10f(mag);
-            if (verbose) fprintf(stdout, "%3d ", (int) amp);
-            float cutoff = 3;
-            if (amp > cutoff) {
-              double val = pow(amp - cutoff, 2);
+            if (verbose) fprintf(stdout, "%2d:%3d  ", index, (int) amp);
+            if (amp > min[i]) {
+              double ratio = (amp - min[i]) / (max[i] - min[i]);
+              ratio *= ratio;
+              ratio *= ratio;
+              ratio *= ratio;
+              double val = _PCA9685_MAXVAL * ratio;
+              //fprintf(stdout, "%f %f\n", ratio, val);
               if (val > 4096) val = 4096;
-              int alpha = 2;
-              double scaled = ((alpha - 1) * pwmoff[i - minbin] + val) / alpha;
-                pwmoff[i - minbin] = scaled;
+              int alpha = args.pwm_smoothing;
+              double scaled = ((alpha - 1) * pwmoff[i] + val) / alpha;
+                pwmoff[i] = scaled;
             } else {
-              pwmoff[i - minbin] = 0;
+              pwmoff[i] = 0;
             } // if amp
-          } // if i
         } // for i
         if (verbose) fprintf(stdout, "\n");
         // update the pwms

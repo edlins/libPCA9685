@@ -8,4 +8,5 @@ typedef struct audiopwms {
   unsigned int pwm_addr;
   unsigned int pwm_freq;
   unsigned int pwm_debug;
+  unsigned int pwm_smoothing;
 } audiopwm;
