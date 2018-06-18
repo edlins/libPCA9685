@@ -14,7 +14,7 @@ echo ""
 echo "=== Adding audio ==="
 
 echo ""
-echo "= Turning audio on
+echo "= Turning audio on"
 echo "dtparam=audio=on" >> /boot/config.txt
 
 echo ""
@@ -41,18 +41,19 @@ echo ""
 echo "= Adding alsa-utils"
 /usr/bin/apt-get -y --no-install-recommends install alsa-utils
 
-# install libfftw3-3
+# install libfftw3-dev
 echo ""
-echo "= Adding libfftw3-3
-/usr/bin/apt-get -y --no-install-recommends install libfftw3-3
+echo "= Adding libfftw3-dev"
+/usr/bin/apt-get -y --no-install-recommends install libfftw3-dev
 
 # build and install audio
 cd /usr/local/src/libPCA9685/examples/audio
 echo ""
-echo "= Building audio
-mkdir build && cd build
+echo "= Building audio"
+mkdir build
+cd build
 cmake ..
 make
-#echo ""
-#echo "= Installing audio"
-#make install
+echo ""
+echo "= Installing audio"
+make install
