@@ -1,26 +1,14 @@
 # Changelog
 
 
-## [0.8] - unreleased
+## [0.7] - unreleased
 ### Added
-- **examples/audio/**: example application for driving a PCA9685 via realtime audio
+- **examples/olaclient/**: example application for driving a PCA9685 via DMX512 with
+test shell scripts
 
 ### Changed
-- **examples/olaclient/**: change from sysvinit to systemd, pathing, README
-- **.travis.yml**: move sysvinit and ldconfig commands to CMakeLists.txt's
-- **CMakeLists.txt: fix version to 0.8
-
-### Removed
-
-
-## [0.7] - 2018-05-27
-### Added
-- **examples/olaclient/**: example application for driving a PCA9685 via DMX512
-- **netinst.sh**: build script suitable to be run as an EXTRA from `picontrol-netinst`
-
-### Changed
-- **.travis.yml**: install libola-dev on Trusty, add `make examples`
-- **[build]**: overhaul: exclude examples from default, every obj has own CMakeLists.txt
+- **CMakeLists.txt**: build olaclient but excluded from all, must `make olaclient`
+- **.travis.yml**: install libola-dev on Trusty, add `make olaclient`
 
 ### Removed
 
