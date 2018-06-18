@@ -28,11 +28,6 @@ echo ""
 echo "= Adding libola-dev"
 /usr/bin/apt-get -y --no-install-recommends install libola-dev
 
-# install libfftw3-3
-echo ""
-echo "= Adding libfftw3-3
-/usr/bin/apt-get -y --no-install-recommends install libfftw3-3
-
 # build and install olaclient
 cd /usr/local/src/libPCA9685
 echo ""

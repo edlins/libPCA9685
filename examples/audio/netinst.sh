@@ -41,6 +41,11 @@ echo ""
 echo "= Adding alsa-utils"
 /usr/bin/apt-get -y --no-install-recommends install alsa-utils
 
+# install libfftw3-3
+echo ""
+echo "= Adding libfftw3-3
+/usr/bin/apt-get -y --no-install-recommends install libfftw3-3
+
 # build and install audio
 cd /usr/local/src/libPCA9685/examples/audio
 echo ""
