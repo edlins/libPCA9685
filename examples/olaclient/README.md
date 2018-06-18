@@ -25,9 +25,6 @@ DEPENDENCIES
         libPCA9685 0.6 or later is required.  olaclient is bundled in
         versions 0.7 and later.
 
-        The olac.service unit file starts olaclient and requires systemd.
-        However, this is optional and olaclient can be started manually.
-
         RASPBIAN
 
         OLA (Open Lighting Architecture) is required.  ola 0.10.2 works
@@ -77,6 +74,25 @@ DEPENDENCIES
         long compile time.  QLC+ for raspbian is best cross-compiled in
         a more powerful build environment.
 
+CONNECTION
+
+        Configure the DMX controller to transmit to universe 1 via
+        E1.31 to the IP address of the olaclient host.  Configure OLA
+        to receive input on universe 1 via E1.31.  Using the DMX Monitor
+        verify that OLA can receive the output from the DMX controller.
+
+        Run the olaclient binary which should output it's version number
+        and the PWM channel and value of the received DMX data as it is
+        received.  At this point, if the PCA9685 is connected and properly
+        configured, it's LED outputs should be responding to values sent
+        in DMX universe 1 channels 1 - 32, via E1.31, to olad on the host,
+        and on to the olaclient which directly communicates with PCA9685.
+
+        Once olaclient is running, you can test it by running the provided
+        test scripts `green.sh` and `blackout.sh` which will respectively
+        turn on DMX channels 3, 9, 15, 21, and 27, and turn off all DMX
+        channels.
+
 DOWNLOAD
 
         olaclient is bundled with libPCA9685 0.7 and later as an example
@@ -91,75 +107,28 @@ DOWNLOAD
 
         $ git clone -b develop https://github.com/edlins/libPCA9685
 
-CONFIGURE
+INSTALL
 
-        Currently olaclient is configured by editing `olaclient.cpp` and
-        manually setting the following constants:
-        `PWM_FREQ` default `200`
-        `DMX_UNIVERSE` default `1`
-        `I2C_ADPT` default `1`
-        `I2C_ADDR` default `0x40`
+        olaclient is by default excluded from `make`.  In order to build
+        and install the library and build olaclient, execute:
 
-BUILD AND INSTALL
-
-        olaclient is by default excluded from libPCA9685's `make`.  In order to build
-        and install the library and build and install olaclient, execute:
-
-        $ cd /usr/local/src/libPCA9685 && mkdir build && cd build
+        $ cd libPCA9685 && mkdir build && cd build
         $ cmake ..
         $ make
-        $ sudo make install
         $ make olaclient
-        $ cd examples/olaclient
+        $ ctest
         $ sudo make install
 
-        If the library is already built and installed you can just execute:
+        This will install libPCA9685.so in your /usr/local/lib directory,
+        and PCA9685.h in your /usr/local/include directory.
 
-        $ cd /usr/local/src/libPCA9685/build
-        $ make olaclient
-        $ cd examples/olaclient
-        $ sudo make install
+        If the library is already built and installed you can just execute
+        `make olaclient` from the build/ directory.
 
-        Not including libPCA9685 this will install:
+        To run olaclient after the build is complete execute:
 
-        /usr/local/bin/olaclient         (binary application)
-        /usr/local/bin/olac_wrapper      (wrapper script for log capture)
-        /etc/systemd/system/olac.service (systemd unit file)
+        $ ./olaclient
 
-        By default, olaclient will be started by systemd as part of the
-        multi-user.target, after olad.service starts.  To terminate and disable
-        auto-start, execute:
-
-        $ sudo systemctl stop olac.service
-        $ sudo systemctl disable olac.service
-
-        To manually run olaclient execute `olaclient`.
-
-CONNECTION
-
-        Configure the DMX controller to transmit to universe 1 via
-        E1.31 to the IP address of the olaclient host.  Configure OLA
-        to receive input on universe 1 via E1.31.  Using the DMX Monitor
-        verify that OLA can receive the output from the DMX controller.
-
-        The olaclient binary will be automatically started by systemd by
-        default.  If disabled, the olaclient binary can be manually started by
-        `systemctl start olac.service`, or by running `olac_wrapper`,
-        or by running the binary directly with `olaclient`.  The last method
-        will send its output to stdout whereas the other methods will log
-        to the log file `/var/log/olac.log`.
-
-        The olaclient binary should output it's version number
-        and the PWM channel and value of the received DMX data as it is
-        received.  At this point, if the PCA9685 is connected and properly
-        configured, it's LED outputs should be responding to values sent
-        in DMX universe 1 channels 1 - 32, via E1.31, to olad on the host,
-        and on to the olaclient which directly communicates with PCA9685.
-
-        Once olaclient is running, you can test it by running the provided
-        test scripts `green.sh` and `blackout.sh` which will respectively
-        turn on DMX channels 3, 9, 15, 21, and 27, and turn off all DMX
-        channels.
 
 CONTRIBUTING
 
@@ -167,6 +136,7 @@ CONTRIBUTING
         against the "develop" branch and submit PRs against "develop".
         PRs against "master" will not be accepted.  For all but trivial
         contributions please open an Issue for discussion first.
+
 
 CONSTANTS
 

@@ -1,0 +1,21 @@
+#!/bin/sh
+# kFreeBSD do not accept scripts as interpreters, using #!/bin/sh and sourcing.
+if [ true != "$INIT_D_SCRIPT_SOURCED" ] ; then
+    set "$0" "$@"; INIT_D_SCRIPT_SOURCED=true . /lib/init/init-d-script
+fi
+### BEGIN INIT INFO
+# Provides:          olac
+# Required-Start:    olad
+# Required-Stop:     olad
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: olac initscript
+# Description:       Starts the olaclient app via the olac_wrapper
+### END INIT INFO
+
+# Author: Scott Edlin <edlins@yahoo.com>
+#
+DESC="olac client"
+NAME=olac
+DAEMON=/usr/local/bin/olac_wrapper
+START_ARGS="-b -m -C"
