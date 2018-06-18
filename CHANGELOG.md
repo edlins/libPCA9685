@@ -3,6 +3,7 @@
 
 ## [0.8] - unreleased
 ### Added
+- **examples/audio/**: example application for driving a PCA9685 via realtime audio
 
 ### Changed
 - **examples/olaclient/**: change from sysvinit to systemd, pathing, README

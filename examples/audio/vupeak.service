@@ -1,0 +1,9 @@
+[Unit]
+Description=vupeak service
+
+[Service]
+ExecStart=/usr/local/bin/vupeak_wrapper
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

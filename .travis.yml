@@ -9,8 +9,10 @@ before_install:
   - sudo add-apt-repository -y ppa:voltvisionfrenchy/ola
   - sudo apt-get update
   - sudo apt-get install -y --no-install-recommends libola-dev
+  - sudo apt-get install -y --no-install-recommends libncurses5-dev
+  - sudo apt-get install -y --no-install-recommends libasound2-dev
+  - sudo apt-get install -y --no-install-recommends libfftw3-dev
   - sudo apt-get install -y --no-install-recommends systemd
-
 
 before_script:
   - mkdir build
@@ -30,3 +32,9 @@ script:
   - sudo make install
 # but the log should show an open() failure:
   - cat /var/log/olac.log
+  - cd ../..
+
+  - cd examples/audio
+  - sudo make install
+  - cat /var/log/vupeak.log
+  - cd ../..

@@ -1,0 +1,3 @@
+#!/bin/sh
+
+exec /usr/local/bin/vupeak -m spectrum > /var/log/vupeak.log 2>&1
