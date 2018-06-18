@@ -48,6 +48,8 @@ echo ""
 echo "= Configuring olad"
 cp -v /usr/local/src/libPCA9685/examples/olaclient/olad/ola-port.conf /etc/ola
 cp -v /usr/local/src/libPCA9685/examples/olaclient/olad/ola-universe.conf /etc/ola
+sed -i 's/enabled = true/enabled = false/g' /etc/ola/*
+sed -i 's/enabled = false/enabled = true/g' /etc/ola/ola-e131.conf
 
 # configure dhclient
 echo ""
