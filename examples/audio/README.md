@@ -6,12 +6,13 @@ DEPENDENCIES
 $ sudo apt-get install libasound2
 $ sudo apt-get install libasound2-dev
 $ sudo apt-get install libfftw3-3
+$ sudo apt-get install libfftw3-dev
 ```
 
 DEFAULT AUDIO
 
 On a debian system, to use the first USB sound card as the default,
-create a ~/.asounrc with:
+create an /etc/asound.conf with:
 ```
 pcm.!default {
         type plug
@@ -28,23 +29,8 @@ ctl.!default {
 
 NOTES
 
-https://soundcloud.com/subquakeaudio/frequency-dreams-meditate-lp
-Works well for such "sparse" music with space between tones:
+For an automated network build and install, download netinst.sh
+and execute as root.
 ```
-minbin = 2;
-gap = 3;
-cutoff = 3;
-alpha = 2;
+sudo ./netinst.sh
 ```
-
-Then:
-```
-vupeak -m spectrum -p 1024 -r 44100
-```
-
-TODO
-
-- Make gap logarithmic
-- Smarter scaling instead of pow()
-- Tune for shitty music like Skrillex..  :cry:
-
