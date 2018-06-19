@@ -31,6 +31,7 @@ make install
 echo ""
 echo "= Configuring olad and plugins"
 cp -v /usr/local/src/libPCA9685/examples/olaclient/olad/conf/* /etc/ola
+chown olad.olad /etc/ola/*
 grep 'enabled' /etc/ola/*
 
 # configure dhclient
