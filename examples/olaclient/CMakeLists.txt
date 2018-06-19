@@ -10,7 +10,6 @@ target_link_libraries(olaclient ola)
 target_link_libraries(olaclient olacommon)
 
 install(TARGETS  olaclient    DESTINATION bin)
-install(PROGRAMS olac_wrapper DESTINATION bin)
 install(FILES    olac.service DESTINATION /etc/systemd/system)
 
 install(CODE "message(\"execute_process(COMMAND /bin/systemctl daemon-reload)\")")

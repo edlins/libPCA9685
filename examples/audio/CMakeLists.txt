@@ -16,7 +16,6 @@ add_custom_target(audio)
 add_dependencies(audio 6735l1 6735l2 6735l3 6735l4 vupeak)
 
 install(TARGETS vupeak DESTINATION bin)
-install(PROGRAMS vupeak_wrapper DESTINATION bin)
 install(FILES vupeak.service DESTINATION /etc/systemd/system)
 install(FILES asound.conf DESTINATION /etc)
 

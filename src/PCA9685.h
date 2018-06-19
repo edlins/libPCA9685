@@ -2,8 +2,13 @@
 extern "C" {
 #endif
 
+#include <stdbool.h>
+
+// debug and test flags
 extern bool _PCA9685_DEBUG;
 extern bool _PCA9685_TEST;
+
+// mode registers for direct access
 extern unsigned char _PCA9685_MODE1;
 extern unsigned char _PCA9685_MODE2;
 

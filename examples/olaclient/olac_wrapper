@@ -1,5 +1,0 @@
-#!/bin/sh
-
-# to run at startup, needed 2m sleep for some reason..
-#sleep 120 
-exec /usr/local/bin/olaclient > /var/log/olac.log 2>&1
