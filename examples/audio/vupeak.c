@@ -4,13 +4,13 @@
 #define ALSA_PCM_NEW_HW_PARAMS_API
 
 #include <alsa/asoundlib.h>
-#include <stdbool.h>
 #include <PCA9685.h>
 #include <signal.h>
 #include <fftw3.h>
 #include <math.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include "config.h"
 
 // globals, defined here only for intHandler() to cleanup
 audiopwm args;
@@ -186,9 +186,10 @@ void process_args(int argc, char **argv) {
 
 
 int main(int argc, char **argv) {
+  setvbuf(stdout, NULL, _IONBF, 0);
+  fprintf(stdout, "vupeak %d.%d\n", libPCA9685_VERSION_MAJOR, libPCA9685_VERSION_MINOR);
   process_args(argc, argv);
 
-  //fprintf(stdout, "quickstart %d.%d\n", libPCA9685_VERSION_MAJOR, libPCA9685_VERSION_MINOR);
   signal(SIGINT, intHandler);
 
   // ALSA init

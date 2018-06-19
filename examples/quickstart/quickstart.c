@@ -4,7 +4,6 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <stdio.h>
-#include <stdbool.h>
 
 #include <PCA9685.h>
 #include "config.h"

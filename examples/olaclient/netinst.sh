@@ -8,21 +8,6 @@
 echo ""
 echo "=== Adding olaclient ==="
 
-# install make
-echo ""
-echo "= Adding make"
-/usr/bin/apt-get -y --no-install-recommends install make
-
-# install cmake
-echo ""
-echo "= Adding cmake"
-/usr/bin/apt-get -y --no-install-recommends install cmake
-
-# install g++
-echo ""
-echo "= Adding g++"
-/usr/bin/apt-get -y --no-install-recommends install g++
-
 # install libola-dev
 echo ""
 echo "= Adding libola-dev"
@@ -32,8 +17,6 @@ echo "= Adding libola-dev"
 cd /usr/local/src/libPCA9685
 echo ""
 echo "= Building olaclient"
-# `mkdir build && cd build` fails if /usr/local/src/libPCA9685/build already exists
-#mkdir build && cd build
 mkdir build
 cd build
 cmake ..
@@ -48,8 +31,13 @@ echo ""
 echo "= Configuring olad"
 cp -v /usr/local/src/libPCA9685/examples/olaclient/olad/ola-port.conf /etc/ola
 cp -v /usr/local/src/libPCA9685/examples/olaclient/olad/ola-universe.conf /etc/ola
+
+# configure olad plugins
+echo ""
+echo "= Configuring olad plugins"
 sed -i 's/enabled = true/enabled = false/g' /etc/ola/*
 sed -i 's/enabled = false/enabled = true/g' /etc/ola/ola-e131.conf
+grep 'enabled' /etc/ola/*
 
 # configure dhclient
 echo ""

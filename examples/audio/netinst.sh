@@ -17,20 +17,6 @@ echo ""
 echo "= Turning audio on"
 echo "dtparam=audio=on" >> /boot/config.txt
 
-echo ""
-echo "= Adding make"
-/usr/bin/apt-get -y --no-install-recommends install make
-
-# install cmake
-echo ""
-echo "= Adding cmake"
-/usr/bin/apt-get -y --no-install-recommends install cmake
-
-# install g++
-echo ""
-echo "= Adding g++"
-/usr/bin/apt-get -y --no-install-recommends install g++
-
 # install libasound2-dev
 echo ""
 echo "= Adding libasound2-dev"
@@ -47,13 +33,14 @@ echo "= Adding libfftw3-dev"
 /usr/bin/apt-get -y --no-install-recommends install libfftw3-dev
 
 # build and install audio
-cd /usr/local/src/libPCA9685/examples/audio
+cd /usr/local/src/libPCA9685
 echo ""
 echo "= Building audio"
 mkdir build
 cd build
 cmake ..
-make
+make vupeak
 echo ""
 echo "= Installing audio"
+cd examples/audio
 make install

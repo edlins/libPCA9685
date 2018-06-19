@@ -8,7 +8,6 @@
 #include <sys/ioctl.h>
 #include <sys/select.h>
 #include <stdint.h>
-#include <stdbool.h>
 
 #include "PCA9685.h"
 
