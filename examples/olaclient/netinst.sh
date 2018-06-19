@@ -36,4 +36,4 @@ grep 'enabled' /etc/ola/*
 # configure dhclient
 echo ""
 echo "= Configuring dhclient"
-cp -v /usr/local/src/libPCA9685/examples/olaclient/olad/dhclient-exit-hooks /etc/dhclient
+cp -v /usr/local/src/libPCA9685/examples/olaclient/olad/dhclient-exit-hooks /etc/dhcp/dhclient-exit-hooks
