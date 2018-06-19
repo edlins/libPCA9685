@@ -3,7 +3,7 @@ Description=olaclient service
 After=olad.target
 
 [Service]
-ExecStart=/usr/local/bin/olac > /var/log/olac.log 2>&1
+ExecStart=/bin/sh -ce '/usr/local/bin/olac > /var/log/olac.log 2>&1'
 Restart=always
 
 [Install]

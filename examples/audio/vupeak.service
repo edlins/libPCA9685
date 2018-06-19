@@ -2,7 +2,7 @@
 Description=vupeak service
 
 [Service]
-ExecStart=/usr/local/bin/vupeak > /var/log/vupeak.log 2>&1
+ExecStart=/bin/sh -ce '/usr/local/bin/vupeak > /var/log/vupeak.log 2>&1'
 Restart=always
 
 [Install]
