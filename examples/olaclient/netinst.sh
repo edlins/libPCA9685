@@ -26,17 +26,11 @@ echo "= Installing olaclient"
 cd examples/olaclient
 make install
 
-# configure olad
+# configure olad and plugins...
+# have to maintain copies of the plugins because olad doesn't build them until first run
 echo ""
-echo "= Configuring olad"
-cp -v /usr/local/src/libPCA9685/examples/olaclient/olad/ola-port.conf /etc/ola
-cp -v /usr/local/src/libPCA9685/examples/olaclient/olad/ola-universe.conf /etc/ola
-
-# configure olad plugins
-echo ""
-echo "= Configuring olad plugins"
-sed -i 's/enabled = true/enabled = false/g' /etc/ola/*
-sed -i 's/enabled = false/enabled = true/g' /etc/ola/ola-e131.conf
+echo "= Configuring olad and plugins"
+cp -v /usr/local/src/libPCA9685/examples/olaclient/olad/conf/* /etc/ola
 grep 'enabled' /etc/ola/*
 
 # configure dhclient
