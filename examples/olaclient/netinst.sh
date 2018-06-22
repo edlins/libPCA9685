@@ -35,10 +35,10 @@ chown olad.olad /etc/ola/*
 grep 'enabled' /etc/ola/*
 
 # setup olad.service
-echo ""
-echo "= Setting up olad.service"
-cp -v /usr/local/src/libPCA9685/examples/olaclient/olad/olad.service /etc/systemd/system
-rm -v /etc/init.d/olad
+#echo ""
+#echo "= Setting up olad.service"
+#cp -v /usr/local/src/libPCA9685/examples/olaclient/olad/olad.service /etc/systemd/system
+#rm -v /etc/init.d/olad
 
 # configure dhclient
 echo ""
