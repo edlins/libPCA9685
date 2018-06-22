@@ -13,6 +13,11 @@ echo ""
 echo "= Adding libola-dev"
 /usr/bin/apt-get -y --no-install-recommends install libola-dev
 
+# add olad to i2c group
+echo ""
+echo "= Adding user olad to group i2c"
+adduser --debug olad i2c
+
 # build and install olaclient
 cd /usr/local/src/libPCA9685
 echo ""
@@ -33,12 +38,6 @@ echo "= Configuring olad and plugins"
 cp -v /usr/local/src/libPCA9685/examples/olaclient/olad/conf/* /etc/ola
 chown olad.olad /etc/ola/*
 grep 'enabled' /etc/ola/*
-
-# setup olad.service
-#echo ""
-#echo "= Setting up olad.service"
-#cp -v /usr/local/src/libPCA9685/examples/olaclient/olad/olad.service /etc/systemd/system
-#rm -v /etc/init.d/olad
 
 # configure dhclient
 echo ""

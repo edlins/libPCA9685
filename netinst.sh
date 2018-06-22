@@ -11,6 +11,14 @@ echo "dtparam=i2c_arm_baudrate=1000000" >> /boot/config.txt
 echo "options i2c_bcm2708 combined=1" >> /etc/modprobe.d/i2c_repeated_start.conf
 echo "i2c-dev" >> /etc/modules
 
+# setup i2c-dev
+echo ""
+echo "= Setting up i2c group and /dev permissions"
+groupadd i2c
+grep i2c /etc/group
+sed -i 's/SUBSYSTEM=="i2c-dev", GROUP="i2c", MODE="0660"/SUBSYSTEM=="i2c-dev", GROUP="i2c", MODE="0666"/' /etc/udev/rules.d/99-com.rules
+grep i2c-dev /etc/udev/rules.d/99-com.rules
+
 # install make
 echo ""
 echo "= Adding make"

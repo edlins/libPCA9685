@@ -1,9 +1,10 @@
 [Unit]
 Description=olaclient service
-After=olad.target
+After=olad.service
 
 [Service]
-ExecStart=/bin/sh -ce '/usr/local/bin/olaclient > /var/log/olaclient.log 2>&1'
+User=olad
+ExecStart=/usr/local/bin/olaclient
 Restart=always
 
 [Install]
