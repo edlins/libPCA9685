@@ -18,7 +18,7 @@ echo ""
 echo "= Setting up i2c group and /dev permissions"
 groupadd i2c
 grep i2c /etc/group
-sed -i 's/SUBSYSTEM=="i2c-dev", GROUP="i2c", MODE="0660"/SUBSYSTEM=="i2c-dev", GROUP="i2c", MODE="0666"/' /etc/udev/rules.d/99-com.rules
+#sed -i 's/SUBSYSTEM=="i2c-dev", GROUP="i2c", MODE="0660"/SUBSYSTEM=="i2c-dev", GROUP="i2c", MODE="0666"/' /etc/udev/rules.d/99-com.rules
 grep i2c-dev /etc/udev/rules.d/99-com.rules
 
 # install make
