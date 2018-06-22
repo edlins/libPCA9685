@@ -6,6 +6,8 @@ echo ""
 echo "=== Adding libPCA9685 ==="
 
 # activate i2c
+echo ""
+echo "= Activating i2c"
 echo "dtparam=i2c_arm=on" >> /boot/config.txt
 echo "dtparam=i2c_arm_baudrate=1000000" >> /boot/config.txt
 echo "options i2c_bcm2708 combined=1" >> /etc/modprobe.d/i2c_repeated_start.conf
