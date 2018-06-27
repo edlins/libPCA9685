@@ -11,6 +11,8 @@ add_executable(6735l4 6735l4.c)
 target_link_libraries(6735l4 asound)
 add_executable(vupeak vupeak.c)
 target_link_libraries(vupeak asound PCA9685 fftw3 m)
+add_executable(hello_fft.bin hello_fft.c mailbox.c gpu_fft.c gpu_fft_base.c gpu_fft_twiddles.c gpu_fft_shaders.c gpu_fft.h mailbox.h)
+target_link_libraries(hello_fft.bin rt m dl)
 
 add_custom_target(audio)
 add_dependencies(audio 6735l1 6735l2 6735l3 6735l4 vupeak)

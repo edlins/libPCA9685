@@ -21,6 +21,13 @@ snd_pcm_t *handle;
 bool verbose = false;
 
 
+unsigned Microseconds(void) {
+    struct timespec ts;
+    clock_gettime(CLOCK_REALTIME, &ts);
+    return ts.tv_sec*1000000 + ts.tv_nsec/1000;
+}
+
+
 void intHandler(int dummy) {
   // turn off all channels
   PCA9685_setAllPWM(fd, args.pwm_addr, _PCA9685_MINVAL, _PCA9685_MINVAL);
@@ -213,6 +220,7 @@ int main(int argc, char **argv) {
   int count = 0;
   double min[16] = { 10,15,25, 10,10,10, 9,9,9, 8,8,8, 8,8,8, 0 };
   double max[16] = { 77,77,77, 77,77,77, 77,77,77, 77,77,77, 77,77,77, 0 };
+  int loop = 0;
   while (1) {
     rc = snd_pcm_readi(handle, buffer, args.audio_period);
     if (rc == -EPIPE) {
@@ -284,7 +292,14 @@ int main(int argc, char **argv) {
         } // for i
 
         // fftw
+        unsigned int b = Microseconds();
         fftw_execute(p);
+        unsigned int a = Microseconds();
+        unsigned int diff = a - b;
+        if (loop++ > 100) {
+          loop = 0;
+          printf("%d\n", diff);
+        }
         unsigned int pwmoff[16];
         // 4096 @ 88200 good bass bins are 2,4,7
         // 2048 @ 88200 good bass bins are 2,3,4,5(,6) and fast (also very good and fast 256 @ 22050 wide)
