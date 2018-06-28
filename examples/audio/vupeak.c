@@ -217,11 +217,36 @@ int main(int argc, char **argv) {
   int minValue = 32000;
   int rc = 64;
   rc = 1024;
-  int count = 0;
-  double min[16] = { 10,15,25, 10,10,10, 9,9,9, 8,8,8, 8,8,8, 0 };
-  double max[16] = { 77,77,77, 77,77,77, 77,77,77, 77,77,77, 77,77,77, 0 };
+  double min[16] = { 0,0,20, 0,69,69, 0,50,0, 55,55,0, 20,0,0, 0 };
+  double max[16] = { 0,0,86, 0,74,74, 0,70,0, 70,70,0, 86,0,0, 0 };
+  double mins[16] = { 10000,10000,10000,10000,10000,10000,10000,10000,10000,10000,10000,10000,10000,10000,10000,10000, };
+  double maxs[16] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0, };
+  //unsigned int bins[16] = {0,0,2, 0,3,3, 0,4,0, 5,5,0, 6,0,0};
+  unsigned int bins[16] = {0,0,1, 0,2,2, 0,3,0, 4,4,0, 5,0,0};
   int loop = 0;
+  unsigned int b = Microseconds();
+  printf("  ms     hz\n");
   while (1) {
+    unsigned int a = Microseconds();
+    if (a - b > 3000000) {
+      unsigned int diff = a - b;
+      double ms = (double) diff / 1000.0 / loop;
+      printf("%d %0.2f %0.2f  ", loop, ms, 1000.0/ms);
+      printf("%0.2f-%0.2f ", mins[2], maxs[2]);
+      printf("%0.2f-%0.2f ", mins[4], maxs[4]);
+      printf("%0.2f-%0.2f ", mins[7], maxs[7]);
+      printf("%0.2f-%0.2f ", mins[9], maxs[9]);
+      printf("%0.2f-%0.2f ", mins[12], maxs[12]);
+      printf("\n");
+      int i;
+      for (i = 0; i < 16; i++) {
+        mins[i] = 10000;
+        maxs[i] = 0;
+      }
+      b = a;
+      loop = 0;
+    }
+    loop++;
     rc = snd_pcm_readi(handle, buffer, args.audio_period);
     if (rc == -EPIPE) {
       fprintf(stderr, "overrun occurred\n");
@@ -276,7 +301,7 @@ int main(int argc, char **argv) {
         if (verbose) fprintf(stdout, "%d %d\n", intensity_value, ratio);
 
         // update the pwms
-        if (count == 0) PCA9685_setAllPWM(fd, args.pwm_addr, 0, display);
+        PCA9685_setAllPWM(fd, args.pwm_addr, 0, display);
       }
 
       else if (args.mode == 2) {
@@ -288,27 +313,15 @@ int main(int argc, char **argv) {
           tmp = (long) ((char*) buffer)[2 * args.audio_channels * i + 1] << 8 | ((char*) buffer)[2 * args.audio_channels * i];
           if (tmp < 32768) sample = tmp;
           else sample = tmp - 65536;
+          // apply hanning window
           in[i] = (double) sample * han[i];
         } // for i
 
         // fftw
-        unsigned int b = Microseconds();
         fftw_execute(p);
-        unsigned int a = Microseconds();
-        unsigned int diff = a - b;
-        if (loop++ > 100) {
-          loop = 0;
-          printf("%d\n", diff);
-        }
         unsigned int pwmoff[16];
-        // 4096 @ 88200 good bass bins are 2,4,7
-        // 2048 @ 88200 good bass bins are 2,3,4,5(,6) and fast (also very good and fast 256 @ 22050 wide)
-        unsigned int bins[16] = {0,0,2, 0,3,3, 0,4,0, 5,5,0, 6,0,0};
-        //unsigned int bins[16] = {4,3,2, 0,0,16, 0,20,0, 30,30,0, 90,0,0};
-        //unsigned int bins[16] = {1024,1024,1024, 1024,1024,1024, 1024,1024,1024, 1024,1024,1024, 1024,1024,1024};
         for (i = 0; i < 16; i++) {
             // normalize by the number of frames in a period and the hanning factor
-            //unsigned int index = minbin + (i - minbin) * gap;
             unsigned int index = bins[i];
             if (index == 0) {
               pwmoff[i] = 0;
@@ -316,9 +329,12 @@ int main(int argc, char **argv) {
             } // if index
             double mag = 2.0 * sqrtf(out[index][0] * out[index][0] + out[index][1] * out[index][1]) / args.audio_period;
             double amp = 20 * log10f(mag);
+            if (amp > maxs[i]) maxs[i] = amp;
+            if (amp < mins[i]) mins[i] = amp;
             if (verbose) fprintf(stdout, "%2d:%3d  ", index, (int) amp);
             if (amp > min[i]) {
               double ratio = (amp - min[i]) / (max[i] - min[i]);
+              if (ratio > 1.0) ratio = 1.0;
               ratio *= ratio;
               ratio *= ratio;
               ratio *= ratio;
@@ -326,8 +342,8 @@ int main(int argc, char **argv) {
               //fprintf(stdout, "%f %f\n", ratio, val);
               if (val > 4096) val = 4096;
               int alpha = args.pwm_smoothing;
-              double scaled = ((alpha - 1) * pwmoff[i] + val) / alpha;
-                pwmoff[i] = scaled;
+              double scaled = val < pwmoff[i] ? ((alpha - 1) * pwmoff[i] + val) / alpha : val;
+              pwmoff[i] = scaled;
             } else {
               pwmoff[i] = 0;
             } // if amp
