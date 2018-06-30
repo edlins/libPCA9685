@@ -1,3 +1,5 @@
+#include <stdbool.h>
+
 typedef struct audiopwms {
   unsigned int mode;
   char *audio_device;
@@ -7,6 +9,6 @@ typedef struct audiopwms {
   unsigned int pwm_bus;
   unsigned int pwm_addr;
   unsigned int pwm_freq;
-  unsigned int pwm_debug;
+  bool pwm_debug;
   unsigned int pwm_smoothing;
 } audiopwm;

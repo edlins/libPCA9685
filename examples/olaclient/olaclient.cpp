@@ -56,9 +56,9 @@ void NewDmx(const ola::client::DMXMetadata &metadata,
     unsigned int pwmVal = dmxVals[pwmChan] >> 4;
  
     if (pwmVal != offVals[pwmChan]) {
-      cout << showbase << std::internal << setfill('0');
-      cout << dec << setw(2) << pwmChan << ": ";
-      cout << hex << setw(5) << pwmVal << endl;
+      //cout << showbase << std::internal << setfill('0');
+      //cout << dec << setw(2) << pwmChan << ": ";
+      //cout << hex << setw(5) << pwmVal << endl;
     } // if
 
     // store the 12-bit pwmVal
