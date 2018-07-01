@@ -53,15 +53,15 @@ int initPCA9685(audiopwm args) {
 }
 
 
-snd_pcm_t* initALSA(audiopwm args, char **bufferPtr) {
+snd_pcm_t* initALSA(audiopwm *args, char **bufferPtr) {
   int rc;
   int size;
   snd_pcm_t *handle;
   snd_pcm_hw_params_t *params;
   unsigned int val;
-  rc = snd_pcm_open(&handle, args.audio_device, SND_PCM_STREAM_CAPTURE, 0);
+  rc = snd_pcm_open(&handle, args->audio_device, SND_PCM_STREAM_CAPTURE, 0);
   if (rc < 0) {
-    fprintf(stderr, "unable to open pcm device '%s': %s\n", args.audio_device, snd_strerror(rc));
+    fprintf(stderr, "unable to open pcm device '%s': %s\n", args->audio_device, snd_strerror(rc));
     exit(1);
   }
   snd_pcm_hw_params_alloca(&params);
@@ -73,16 +73,17 @@ snd_pcm_t* initALSA(audiopwm args, char **bufferPtr) {
   if (rc < 0) fprintf(stderr, "snd_pcm_hw_params_set_format() failed %d\n", rc);
   rc = snd_pcm_hw_params_set_channels(handle, params, 2);
   if (rc < 0) fprintf(stderr, "snd_pcm_hw_params_set_channels() failed %d\n", rc);
-  //unsigned int rate = args.audio_rate;
-  rc = snd_pcm_hw_params_set_rate_near(handle, params, &args.audio_rate, NULL);
+  //unsigned int rate = args->audio_rate;
+  rc = snd_pcm_hw_params_set_rate_near(handle, params, &args->audio_rate, NULL);
   if (rc < 0) fprintf(stderr, "snd_pcm_hw_params_set_rate_near() failed %d\n", rc);
-  fprintf(stdout, "sample rate %u\n", args.audio_rate);
+  fprintf(stdout, "sample rate %u\n", args->audio_rate);
   snd_pcm_uframes_t frames;
   snd_pcm_uframes_t *framesPtr = &frames;
-  *framesPtr = args.audio_period;
+  *framesPtr = args->audio_period;
   rc = snd_pcm_hw_params_set_period_size_near(handle, params, framesPtr, NULL);
   if (rc < 0) fprintf(stderr, "snd_pcm_hw_params_set_period_size_near() failed %d\n", rc);
-  fprintf(stdout, "period size %lu\n", *framesPtr);
+  args->audio_period = *framesPtr;
+  fprintf(stdout, "period size %d\n", args->audio_period);
   //fprintf(stdout, "frequency response %lu - %d\n", rate / (2 * *framesPtr), rate / 2);
   rc = snd_pcm_hw_params(handle, params);
   if (rc < 0) {
@@ -90,7 +91,7 @@ snd_pcm_t* initALSA(audiopwm args, char **bufferPtr) {
     exit(1);
   }
   snd_pcm_hw_params_get_period_size(params, framesPtr, NULL);
-  size = *framesPtr * 2 * args.audio_channels; /* 2 bytes/sample, 2 channels */
+  size = *framesPtr * 2 * args->audio_channels; /* 2 bytes/sample, 2 channels */
   fprintf(stdout, "buffer size %d\n", size);
   *bufferPtr = (char *) malloc(size);
   rc = snd_pcm_hw_params_get_period_time(params, &val, NULL);
@@ -122,8 +123,26 @@ double *hanning(int N) {
 
 // period p 1024, rate r 44100, bus b 1, address a 0x40, pwm freq f 200, audio device d default, mode m level (spectrum)
 void process_args(int argc, char **argv) {
+  char *usage = "\
+Usage: vupeak [-m level|spectrum] [-d audio device] [-p audio period] [-r audio rate] [-c audio channels] [-o]\n\
+              [-b pwm bus] [-a pwm address] [-f pwm frequency] [-v] [-D] [-s pwm smoothing] [-h]\n\
+where\n\
+  -m sets the mode of audio processing (spectrum)\n\
+  -d sets the audio device (default)\n\
+  -p sets the audio period (1024)\n\
+  -r sets the audio rate (44100)\n\
+  -c sets the audio channels (2)\n\
+  -o sets audio overlap to false (true)\n\
+  -b sets the pwm i2c bus (1)\n\
+  -a sets the pwm i2c address (0x40)\n\
+  -f sets the pwm frequency (200)\n\
+  -v sets verbose to true (false)\n\
+  -D sets debug to true (false)\n\
+  -s sets the pwm smoothing (1)\n\
+  -h sets the fft hanning to true (false)\n";
+
   // default values
-  args.mode = 1;
+  args.mode = 2;
   args.audio_device = "default";
   args.audio_period = 1024;
   args.audio_rate = 44100;
@@ -132,11 +151,12 @@ void process_args(int argc, char **argv) {
   args.pwm_addr = 0x40;
   args.pwm_freq = 200;
   args.pwm_debug = false;
-  args.pwm_smoothing = 10;
+  args.pwm_smoothing = 1;
+  args.fft_hanning = false;
 
   opterr = 0;
   int c;
-  while ((c = getopt(argc, argv, "m:d:p:r:c:b:a:f:vDs:")) != -1) {
+  while ((c = getopt(argc, argv, "m:d:p:r:c:b:a:f:vDs:h")) != -1) {
     switch (c) {
       case 'm':
         args.mode = 0;
@@ -177,21 +197,24 @@ void process_args(int argc, char **argv) {
       case 's':
         args.pwm_smoothing = atoi(optarg);
         break;
+      case 'h':
+        args.fft_hanning = true;
+        break;
       case '?':
-        fprintf(stderr, "problem\n");
-        exit(-1);
+        fprintf(stdout, "%s", usage);
+        exit(0);
       default:
         fprintf(stderr, "optopt '%c'\n", optopt);
+        fprintf(stderr, "%s", usage);
         abort();
     } //switch
   } // while
   // sanity checks
   if (args.mode == 1) {
-    fprintf(stdout, "'level' mode suggested args: -p 256 -r 192000 -s 1\n");
+    fprintf(stdout, "'level' mode suggested args: -p 256 -r 192000\n");
     fprintf(stdout, "'level' mode suggested line level input volume at 100%%\n");
   } // if mode && period
   else if (args.mode == 2) {
-    fprintf(stdout, "'spectrum' mode suggested args: -p 1024 -r 44100 -s 1\n");
     fprintf(stdout, "'spectrum' mode suggested cut line level input volume to 50%%\n");
   } // if mode && period
 } // process_args
@@ -207,19 +230,20 @@ int main(int argc, char **argv) {
   signal(SIGINT, intHandler);
 
   // ALSA init
-  handle = initALSA(args, &buffer);
+  handle = initALSA(&args, &buffer);
 
   // libPCA9685 init
   fd = initPCA9685(args);
 
   // fftw init
   int N = args.audio_period;
+  printf("N %d\n", N);
   fftw_plan p;
   fftw_complex *out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N);
   double in[N];
   p = fftw_plan_dft_r2c_1d(N, in, out, FFTW_ESTIMATE);
-  // disabled hanning, uncomment here and where used to use
-  //double *han = hanning(N);
+  double *han;
+  if (args.fft_hanning) han = hanning(N);
 
   int average = 0;
   int minValue = 32000;
@@ -329,7 +353,7 @@ int main(int argc, char **argv) {
           else sample = tmp - 65536;
           // apply hanning window
           in[frame] = (double) sample;
-          //in[frame] = in[frame] * han[frame];
+          if (args.fft_hanning) in[frame] = in[frame] * han[frame];
         } // for frame
 
         // fftw
