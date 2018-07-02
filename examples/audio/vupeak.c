@@ -55,15 +55,14 @@ int initPCA9685(audiopwm args) {
 
 snd_pcm_t* initALSA(audiopwm *args, char **bufferPtr) {
   int rc;
-  int size;
   snd_pcm_t *handle;
   snd_pcm_hw_params_t *params;
-  unsigned int val;
   rc = snd_pcm_open(&handle, args->audio_device, SND_PCM_STREAM_CAPTURE, 0);
   if (rc < 0) {
     fprintf(stderr, "unable to open pcm device '%s': %s\n", args->audio_device, snd_strerror(rc));
     exit(1);
   }
+
   snd_pcm_hw_params_alloca(&params);
   rc = snd_pcm_hw_params_any(handle, params);
   if (rc < 0) fprintf(stderr, "snd_pcm_hw_params_any() failed %d\n", rc);
@@ -73,29 +72,27 @@ snd_pcm_t* initALSA(audiopwm *args, char **bufferPtr) {
   if (rc < 0) fprintf(stderr, "snd_pcm_hw_params_set_format() failed %d\n", rc);
   rc = snd_pcm_hw_params_set_channels(handle, params, 2);
   if (rc < 0) fprintf(stderr, "snd_pcm_hw_params_set_channels() failed %d\n", rc);
-  //unsigned int rate = args->audio_rate;
+
   rc = snd_pcm_hw_params_set_rate_near(handle, params, &args->audio_rate, NULL);
   if (rc < 0) fprintf(stderr, "snd_pcm_hw_params_set_rate_near() failed %d\n", rc);
   fprintf(stdout, "sample rate %u\n", args->audio_rate);
-  snd_pcm_uframes_t frames;
-  snd_pcm_uframes_t *framesPtr = &frames;
-  *framesPtr = args->audio_period;
-  rc = snd_pcm_hw_params_set_period_size_near(handle, params, framesPtr, NULL);
+
+  rc = snd_pcm_hw_params_set_period_size_near(handle, params, (snd_pcm_uframes_t *) &args->audio_period, NULL);
   if (rc < 0) fprintf(stderr, "snd_pcm_hw_params_set_period_size_near() failed %d\n", rc);
-  args->audio_period = *framesPtr;
-  fprintf(stdout, "period size %d\n", args->audio_period);
-  //fprintf(stdout, "frequency response %lu - %d\n", rate / (2 * *framesPtr), rate / 2);
+  fprintf(stdout, "audio period %d\n", args->audio_period);
+  args->audio_buffer_period = args->audio_period;
+
+  if (args->audio_overlap) args->audio_buffer_period *= 2;
+  fprintf(stdout, "buffer period %d\n", args->audio_buffer_period);
+
   rc = snd_pcm_hw_params(handle, params);
   if (rc < 0) {
     fprintf(stderr, "unable to set hw parameters: (%d), %s\n", rc, snd_strerror(rc));
     exit(1);
   }
-  snd_pcm_hw_params_get_period_size(params, framesPtr, NULL);
-  size = *framesPtr * 2 * args->audio_channels; /* 2 bytes/sample, 2 channels */
-  fprintf(stdout, "buffer size %d\n", size);
-  *bufferPtr = (char *) malloc(size);
-  rc = snd_pcm_hw_params_get_period_time(params, &val, NULL);
-  if (rc < 0) fprintf(stderr, "snd_pcm_hw_params_get_period_time() failed %d\n", rc);
+  args->audio_buffer_size = args->audio_buffer_period * 2 * args->audio_channels; /* 2 bytes/sample, 2 channels */
+  fprintf(stdout, "buffer size %d\n", args->audio_buffer_size);
+  *bufferPtr = (char *) malloc(args->audio_buffer_size);
   return handle;
 }
 
@@ -132,7 +129,7 @@ where\n\
   -p sets the audio period (1024)\n\
   -r sets the audio rate (44100)\n\
   -c sets the audio channels (2)\n\
-  -o sets audio overlap to false (true)\n\
+  -o sets the audio overlap to false (true)\n\
   -b sets the pwm i2c bus (1)\n\
   -a sets the pwm i2c address (0x40)\n\
   -f sets the pwm frequency (200)\n\
@@ -147,6 +144,7 @@ where\n\
   args.audio_period = 1024;
   args.audio_rate = 44100;
   args.audio_channels = 2;
+  args.audio_overlap = true;
   args.pwm_bus = 1;
   args.pwm_addr = 0x40;
   args.pwm_freq = 200;
@@ -156,7 +154,7 @@ where\n\
 
   opterr = 0;
   int c;
-  while ((c = getopt(argc, argv, "m:d:p:r:c:b:a:f:vDs:h")) != -1) {
+  while ((c = getopt(argc, argv, "m:d:p:r:c:ob:a:f:vDs:h")) != -1) {
     switch (c) {
       case 'm':
         args.mode = 0;
@@ -178,6 +176,9 @@ where\n\
         break;
       case 'c':
         args.audio_channels = atoi(optarg);
+        break;
+      case 'o':
+        args.audio_overlap = false;
         break;
       case 'b':
         args.pwm_bus = atoi(optarg);
@@ -220,6 +221,21 @@ where\n\
 } // process_args
 
 
+char *representation(float val) {
+  if (val < 50) return " ";
+  if (val < 52) return "-";
+  if (val < 54) return ".";
+  if (val < 56) return ",";
+  if (val < 58) return ":";
+  if (val < 60) return ";";
+  if (val < 62) return "+";
+  if (val < 64) return "=";
+  if (val < 66) return "&";
+  if (val < 68) return "@";
+  return "# ";
+}
+
+
 
 
 int main(int argc, char **argv) {
@@ -236,7 +252,8 @@ int main(int argc, char **argv) {
   fd = initPCA9685(args);
 
   // fftw init
-  int N = args.audio_period;
+  // the buffer period may be bigger than the audio period
+  int N = args.audio_buffer_period;
   printf("N %d\n", N);
   fftw_plan p;
   fftw_complex *out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N);
@@ -265,23 +282,18 @@ int main(int argc, char **argv) {
   //unsigned int bins[16] = {0,0,2, 0,3,3, 0,4,0, 5,5,0, 6,0,0};
   int loop = 0;
   unsigned int b = Microseconds();
-  printf("  ms     hz\n");
+  printf("loops  ms    hz\n");
+
+  bool testperiod = false;
+
+  FILE* infh;
+  FILE* outfh;
+  if (testperiod) infh = fopen("input.dat", "w");
+  if (testperiod) outfh = fopen("output.dat", "w");
   while (1) {
-    unsigned int a = Microseconds();
-    if (a - b > 3000000) {
-      unsigned int diff = a - b;
-      double ms = (double) diff / 1000.0 / loop;
-      printf("%d %0.2f %0.2f  ", loop, ms, 1000.0/ms);
-      printf("%0.2f-%0.2f ", mins[2], maxs[2]);
-      printf("%0.2f-%0.2f ", mins[4], maxs[4]);
-      printf("%0.2f-%0.2f ", mins[7], maxs[7]);
-      printf("%0.2f-%0.2f ", mins[9], maxs[9]);
-      printf("%0.2f-%0.2f ", mins[12], maxs[12]);
-      printf("\n");
-      b = a;
-      loop = 0;
-    }
-    loop++;
+    if (args.audio_overlap) {
+      memcpy(buffer + args.audio_buffer_size / 2, buffer, args.audio_buffer_size / 2);
+    } // overlap
     rc = snd_pcm_readi(handle, buffer, args.audio_period);
     if (rc == -EPIPE) {
       fprintf(stderr, "overrun occurred\n");
@@ -301,7 +313,7 @@ int main(int argc, char **argv) {
 
         // process all frames recorded
         unsigned int frame;
-        for (frame = 0; frame < args.audio_period; frame += 2) {
+        for (frame = 0; frame < args.audio_buffer_period; frame++) {
           tmp = (long) ((char*) buffer)[2 * args.audio_channels * frame + 1] << 8 | ((char*) buffer)[2 * args.audio_channels * frame];
           if (tmp < 32768) sample = tmp;
           else sample = tmp - 65536;
@@ -346,33 +358,41 @@ int main(int argc, char **argv) {
         // window for fftw
         unsigned int frame;
         long tmp;
-        int sample;
-        for (frame = 0; frame < args.audio_period; frame++) {
+        double sample;
+        for (frame = 0; frame < args.audio_buffer_period; frame++) {
           tmp = (long) ((char*) buffer)[2 * args.audio_channels * frame + 1] << 8 | ((char*) buffer)[2 * args.audio_channels * frame];
           if (tmp < 32768) sample = tmp;
           else sample = tmp - 65536;
           // apply hanning window
           in[frame] = (double) sample;
-          if (args.fft_hanning) in[frame] = in[frame] * han[frame];
+          if (args.fft_hanning) in[frame] *= han[frame];
+          if (testperiod) fprintf(infh, "%f\n", in[frame]);
         } // for frame
 
         // fftw
         fftw_execute(p);
+        int j;
+        for (j = 0; j < 512; j++) {
+          float val = 20.0 * log10f(2.0 * sqrtf(out[j][0]*out[j][0] + out[j][1]*out[j][1]) / args.audio_buffer_period);
+          //if (j <= 30) printf("%s", representation(val));
+          if (testperiod) fprintf(outfh, "%f\n", val);
+        } // for j
+        //printf("\n");
         unsigned int pwmoff[16];
         int pwmindex;
         for (pwmindex = 0; pwmindex < 16; pwmindex++) {
             // normalize by the number of frames in a period and the hanning factor
             unsigned int binindex = bins[pwmindex];
             unsigned int width = binwidths[pwmindex];
-            //if (binindex == 0) {
-              //pwmoff[pwmindex] = 0;
-              //continue;
-            //} // if index
+            if (binindex == 0) {
+              pwmoff[pwmindex] = 0;
+              continue;
+            } // if index
             unsigned int j;
             double amp = 0;
             int ampbinindex = binindex;
             for (j = 0; j < width; j++) {
-              double mag = 2.0 * sqrtf(out[binindex + j][0] * out[binindex + j][0] + out[binindex + j][1] * out[binindex + j][1]) / args.audio_period;
+              double mag = 2.0 * sqrtf(out[binindex + j][0] * out[binindex + j][0] + out[binindex + j][1] * out[binindex + j][1]) / args.audio_buffer_period;
               double thisamp = 20 * log10f(mag);
               //amp += thisamp;
               if (thisamp > amp) {
@@ -395,9 +415,11 @@ int main(int argc, char **argv) {
             if (mins[pwmindex] < 0) {
               mins[pwmindex] = 0;
             }
-            int minsize = 30 - binindex / 2 > 0 ? 30 - binindex / 2 : 1;
-            if (maxs[pwmindex] - mins[pwmindex] < minsize) {
-              maxs[pwmindex] = mins[pwmindex] + minsize;
+            int minsize = 30;
+            //if (maxs[pwmindex] - mins[pwmindex] < minsize) {
+            if (maxs[pwmindex] < minsize) {
+              //maxs[pwmindex] = mins[pwmindex] + minsize;
+              maxs[pwmindex] = minsize;
             } // if maxs-mins
             if (verbose) fprintf(stdout, "%2d:%3d %f-%f\n", ampbinindex, (int) amp, mins[pwmindex], maxs[pwmindex]);
             if (amp > mins[pwmindex]) {
@@ -430,5 +452,22 @@ int main(int argc, char **argv) {
         } // context
       } // if mode 2
     } // else good audio read
+    unsigned int a = Microseconds();
+    if (a - b > 3000000) {
+      unsigned int diff = a - b;
+      double ms = (double) diff / 1000.0 / loop;
+      printf("%d %0.2f %0.2f  ", loop, ms, 1000.0/ms);
+      int j;
+      for (j = 0; j < 16; j++) {
+        if (bins[j] == 0) continue;
+        printf("%3.0f-%-3.0f ", mins[j], maxs[j]);
+      } // for j
+      printf("\n");
+      b = a;
+      loop = 0;
+    }
+    loop++;
+    // for testing, to process only one period
+    if (testperiod) exit(0);
   } // while 1
 } // main
