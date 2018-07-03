@@ -363,11 +363,17 @@ int main(int argc, char **argv) {
           tmp = (long) ((char*) buffer)[2 * args.audio_channels * frame + 1] << 8 | ((char*) buffer)[2 * args.audio_channels * frame];
           if (tmp < 32768) sample = tmp;
           else sample = tmp - 65536;
-          // apply hanning window
           in[frame] = (double) sample;
-          if (args.fft_hanning) in[frame] *= han[frame];
           if (testperiod) fprintf(infh, "%f\n", in[frame]);
         } // for frame
+
+        // apply hanning window
+        if (args.fft_hanning) {
+          int i;
+          for (i = 0; i < args.audio_buffer_period; i++) {
+            in[i] *= han[i];
+          } // for i
+        } // if hanning
 
         // fftw
         fftw_execute(p);
