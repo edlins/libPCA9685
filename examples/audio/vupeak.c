@@ -82,7 +82,7 @@ snd_pcm_t* initALSA(audiopwm *args, char **bufferPtr) {
   fprintf(stdout, "audio period %d\n", args->audio_period);
   args->audio_buffer_period = args->audio_period;
 
-  if (args->audio_overlap) args->audio_buffer_period *= 2;
+  if (args->audio_overlap) args->audio_buffer_period = args->audio_period << args->audio_overlap;
   fprintf(stdout, "buffer period %d\n", args->audio_buffer_period);
 
   rc = snd_pcm_hw_params(handle, params);
@@ -121,22 +121,26 @@ double *hanning(int N) {
 // period p 1024, rate r 44100, bus b 1, address a 0x40, pwm freq f 200, audio device d default, mode m level (spectrum)
 void process_args(int argc, char **argv) {
   char *usage = "\
-Usage: vupeak [-m level|spectrum] [-d audio device] [-p audio period] [-r audio rate] [-c audio channels] [-o]\n\
-              [-b pwm bus] [-a pwm address] [-f pwm frequency] [-v] [-D] [-s pwm smoothing] [-h]\n\
+Usage: vupeak [-m level|spectrum] [-d audio device] [-p audio period]\n\
+              [-r audio rate] [-c audio channels] [-o audio overlap]\n\
+              [-b pwm bus] [-a pwm address] [-f pwm frequency]\n\
+              [-v] [-D] [-s pwm smoothing] [-h] [-t]\n\
 where\n\
   -m sets the mode of audio processing (spectrum)\n\
   -d sets the audio device (default)\n\
   -p sets the audio period (1024)\n\
   -r sets the audio rate (44100)\n\
   -c sets the audio channels (2)\n\
-  -o sets the audio overlap to false (true)\n\
+  -o sets the audio overlap (1)\n\
   -b sets the pwm i2c bus (1)\n\
   -a sets the pwm i2c address (0x40)\n\
   -f sets the pwm frequency (200)\n\
   -v sets verbose to true (false)\n\
   -D sets debug to true (false)\n\
   -s sets the pwm smoothing (1)\n\
-  -h sets the fft hanning to true (false)\n";
+  -h sets the fft hanning to true (false)\n\
+  -t sets the test period to true (false)\n\
+";
 
   // default values
   args.mode = 2;
@@ -144,17 +148,18 @@ where\n\
   args.audio_period = 1024;
   args.audio_rate = 44100;
   args.audio_channels = 2;
-  args.audio_overlap = true;
+  args.audio_overlap = 1;
   args.pwm_bus = 1;
   args.pwm_addr = 0x40;
   args.pwm_freq = 200;
   args.pwm_debug = false;
   args.pwm_smoothing = 1;
   args.fft_hanning = false;
+  args.test_period = false;
 
   opterr = 0;
   int c;
-  while ((c = getopt(argc, argv, "m:d:p:r:c:ob:a:f:vDs:h")) != -1) {
+  while ((c = getopt(argc, argv, "m:d:p:r:c:o:b:a:f:vDs:ht")) != -1) {
     switch (c) {
       case 'm':
         args.mode = 0;
@@ -178,7 +183,7 @@ where\n\
         args.audio_channels = atoi(optarg);
         break;
       case 'o':
-        args.audio_overlap = false;
+        args.audio_overlap = atoi(optarg);
         break;
       case 'b':
         args.pwm_bus = atoi(optarg);
@@ -200,6 +205,9 @@ where\n\
         break;
       case 'h':
         args.fft_hanning = true;
+        break;
+      case 't':
+        args.test_period = true;
         break;
       case '?':
         fprintf(stdout, "%s", usage);
@@ -284,17 +292,28 @@ int main(int argc, char **argv) {
   unsigned int b = Microseconds();
   printf("loops  ms    hz\n");
 
-  bool testperiod = false;
-
   FILE* infh;
+  FILE* inhfh;
   FILE* outfh;
-  if (testperiod) infh = fopen("input.dat", "w");
-  if (testperiod) outfh = fopen("output.dat", "w");
+  if (args.test_period) {
+    infh = fopen("input.dat", "w");
+    inhfh = fopen("inputh.dat", "w");
+    outfh = fopen("output.dat", "w");
+  } // if test period
+  int recorded_periods = 0;
+  bool initialized = false;
+  double speed_scaler = 1024.0 / args.audio_period;
   while (1) {
-    if (args.audio_overlap) {
-      memcpy(buffer + args.audio_buffer_size / 2, buffer, args.audio_buffer_size / 2);
+    if (args.audio_overlap && recorded_periods > 0) {
+      // shift prior data to the left, record into buffer one hop from the end
+      // move buffer + one hop to buffer
+      char* dst = buffer;
+      char* src = buffer + 2 * args.audio_channels * args.audio_period;
+      int length = args.audio_buffer_size - 2 * args.audio_channels * args.audio_period;
+      memmove(dst, src, length);
     } // overlap
-    rc = snd_pcm_readi(handle, buffer, args.audio_period);
+    char* onehopfromend = buffer + args.audio_buffer_size - 2 * args.audio_channels * args.audio_period;
+    rc = snd_pcm_readi(handle, onehopfromend, args.audio_period);
     if (rc == -EPIPE) {
       fprintf(stderr, "overrun occurred\n");
       snd_pcm_prepare(handle);
@@ -303,6 +322,15 @@ int main(int argc, char **argv) {
     } else if (rc != (int) args.audio_period) {
       fprintf(stderr, "short read, read %d frames\n", rc);
     } else {
+      if (!initialized && ++recorded_periods < args.audio_buffer_period / args.audio_period) {
+        printf("buffering one period\n");
+        continue;
+      }
+      if (!initialized) {
+        initialized = true;
+        printf("done buffering\n");
+        printf("%d %d %d %d\n", recorded_periods, args.audio_buffer_period, args.audio_period, args.audio_buffer_period / args.audio_period);
+      }
 
       if (args.mode == 1) {
         // find the min and max value
@@ -339,6 +367,7 @@ int main(int argc, char **argv) {
 
         // modified moving average for smoothing
         int alpha = args.pwm_smoothing;
+        alpha *= speed_scaler;
         average = (intensity_value + (alpha-1) * average) / alpha;
 
         int ratio = 100.0 * average / (maxValue - minValue);
@@ -364,7 +393,7 @@ int main(int argc, char **argv) {
           if (tmp < 32768) sample = tmp;
           else sample = tmp - 65536;
           in[frame] = (double) sample;
-          if (testperiod) fprintf(infh, "%f\n", in[frame]);
+          if (args.test_period) fprintf(infh, "%f\n", in[frame]);
         } // for frame
 
         // apply hanning window
@@ -372,18 +401,22 @@ int main(int argc, char **argv) {
           int i;
           for (i = 0; i < args.audio_buffer_period; i++) {
             in[i] *= han[i];
+            if (args.test_period) fprintf(inhfh, "%f\n", in[i]);
           } // for i
         } // if hanning
 
         // fftw
         fftw_execute(p);
+
         int j;
-        for (j = 0; j < 512; j++) {
-          float val = 20.0 * log10f(2.0 * sqrtf(out[j][0]*out[j][0] + out[j][1]*out[j][1]) / args.audio_buffer_period);
+        for (j = 1; j < args.audio_buffer_period / 2; j++) {
+          double val = 20.0 * log10f(2.0 * sqrtf(out[j][0]*out[j][0] + out[j][1]*out[j][1]) / args.audio_buffer_period);
           //if (j <= 30) printf("%s", representation(val));
-          if (testperiod) fprintf(outfh, "%f\n", val);
+          if (args.test_period) fprintf(outfh, "%f\n", val);
+          //printf("%3.0f ", val);
         } // for j
         //printf("\n");
+
         unsigned int pwmoff[16];
         int pwmindex;
         for (pwmindex = 0; pwmindex < 16; pwmindex++) {
@@ -408,11 +441,11 @@ int main(int argc, char **argv) {
             } // for j
             //amp /= width;
             int a = 3;
-            //if (verbose) printf("check: %d amp %f mins[%d] %f maxs[%d] %f\n", ampbinindex, amp, pwmindex, mins[pwmindex], pwmindex, maxs[pwmindex]);
+            a *= speed_scaler;
             if (verbose) printf("check: amp %f mins[%d] %f maxs[%d] %f\n", amp, pwmindex, mins[pwmindex], pwmindex, maxs[pwmindex]);
             if (amp > maxs[pwmindex]) {
-              if (verbose) printf("maxs[%d] %f amp %f newmax %f\n", pwmindex, maxs[pwmindex], amp, ((a - 1) * maxs[pwmindex] + amp) / a);
               maxs[pwmindex] = ((a - 1) * maxs[pwmindex] + amp) / a;
+              if (verbose) printf("maxs[%d] %f amp %f newmax %f\n", pwmindex, maxs[pwmindex], amp, ((a - 1) * maxs[pwmindex] + amp) / a);
             }
             if (amp < mins[pwmindex]) {
               if (verbose) printf("mins[%d] %f amp %f newmin %f\n", pwmindex, mins[pwmindex], amp, ((a - 1) * mins[pwmindex] + amp) / a);
@@ -421,12 +454,14 @@ int main(int argc, char **argv) {
             if (mins[pwmindex] < 0) {
               mins[pwmindex] = 0;
             }
-            int minsize = 30;
-            //if (maxs[pwmindex] - mins[pwmindex] < minsize) {
-            if (maxs[pwmindex] < minsize) {
-              //maxs[pwmindex] = mins[pwmindex] + minsize;
-              maxs[pwmindex] = minsize;
-            } // if maxs-mins
+            int minmin = binindex == 1 ? 38 : 15;
+            if (mins[pwmindex] < minmin) {
+              mins[pwmindex] = minmin;
+            } // if minmax
+            int minsize = 0;
+            if (maxs[pwmindex] - mins[pwmindex] > 0 && maxs[pwmindex] - mins[pwmindex] < minsize) {
+              maxs[pwmindex] = mins[pwmindex] + minsize;
+            } // if minsize
             if (verbose) fprintf(stdout, "%2d:%3d %f-%f\n", ampbinindex, (int) amp, mins[pwmindex], maxs[pwmindex]);
             if (amp > mins[pwmindex]) {
               double ratio = (amp - mins[pwmindex]) / (maxs[pwmindex] - mins[pwmindex]);
@@ -440,6 +475,7 @@ int main(int argc, char **argv) {
               //fprintf(stdout, "%f %f\n", ratio, val);
               if (val > 4096) val = 4096;
               int alpha = args.pwm_smoothing;
+              alpha *= speed_scaler;
               double scaled = val < pwmoff[pwmindex] ? ((alpha - 1) * pwmoff[pwmindex] + val) / alpha : val;
               pwmoff[pwmindex] = scaled;
             } else {
@@ -452,8 +488,8 @@ int main(int argc, char **argv) {
         PCA9685_setPWMVals(fd, args.pwm_addr, pwmon, pwmoff);
         { int pwmindex;
           for (pwmindex = 0; pwmindex < 16; pwmindex++) {
-            mins[pwmindex] += 0.01;
-            maxs[pwmindex] -= 0.1;
+            mins[pwmindex] += 0.01 / speed_scaler;
+            maxs[pwmindex] -= 0.1 / speed_scaler;
           } // for pwmindex
         } // context
       } // if mode 2
@@ -474,6 +510,6 @@ int main(int argc, char **argv) {
     }
     loop++;
     // for testing, to process only one period
-    if (testperiod) exit(0);
+    if (args.test_period) exit(0);
   } // while 1
 } // main

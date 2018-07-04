@@ -15,4 +15,5 @@ typedef struct audiopwms {
   bool pwm_debug;
   unsigned int pwm_smoothing;
   bool fft_hanning;
+  bool test_period;
 } audiopwm;
