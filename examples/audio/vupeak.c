@@ -128,10 +128,10 @@ Usage: vupeak [-m level|spectrum] [-d audio device] [-p audio period]\n\
 where\n\
   -m sets the mode of audio processing (spectrum)\n\
   -d sets the audio device (default)\n\
-  -p sets the audio period (1024)\n\
+  -p sets the audio period (256)\n\
   -r sets the audio rate (44100)\n\
   -c sets the audio channels (2)\n\
-  -o sets the audio overlap (1)\n\
+  -o sets the audio overlap (2)\n\
   -b sets the pwm i2c bus (1)\n\
   -a sets the pwm i2c address (0x40)\n\
   -f sets the pwm frequency (200)\n\
@@ -145,10 +145,10 @@ where\n\
   // default values
   args.mode = 2;
   args.audio_device = "default";
-  args.audio_period = 1024;
+  args.audio_period = 256;
   args.audio_rate = 44100;
   args.audio_channels = 2;
-  args.audio_overlap = 1;
+  args.audio_overlap = 2;
   args.pwm_bus = 1;
   args.pwm_addr = 0x40;
   args.pwm_freq = 200;
