@@ -118,13 +118,12 @@ double *hanning(int N) {
 }
 
 
-// period p 1024, rate r 44100, bus b 1, address a 0x40, pwm freq f 200, audio device d default, mode m level (spectrum)
 void process_args(int argc, char **argv) {
   char *usage = "\
 Usage: vupeak [-m level|spectrum] [-d audio device] [-p audio period]\n\
               [-r audio rate] [-c audio channels] [-o audio overlap]\n\
               [-b pwm bus] [-a pwm address] [-f pwm frequency]\n\
-              [-v] [-D] [-s pwm smoothing] [-h] [-t]\n\
+              [-v] [-D] [-s pwm smoothing] [-h] [-t] [-w]\n\
 where\n\
   -m sets the mode of audio processing (spectrum)\n\
   -d sets the audio device (default)\n\
@@ -140,6 +139,7 @@ where\n\
   -s sets the pwm smoothing (1)\n\
   -h sets the fft hanning to true (false)\n\
   -t sets the test period to true (false)\n\
+  -w sets the ascii waterfall to true (false)\n\
 ";
 
   // default values
@@ -156,10 +156,11 @@ where\n\
   args.pwm_smoothing = 1;
   args.fft_hanning = false;
   args.test_period = false;
+  args.ascii_waterfall = false;
 
   opterr = 0;
   int c;
-  while ((c = getopt(argc, argv, "m:d:p:r:c:o:b:a:f:vDs:ht")) != -1) {
+  while ((c = getopt(argc, argv, "m:d:p:r:c:o:b:a:f:vDs:htw")) != -1) {
     switch (c) {
       case 'm':
         args.mode = 0;
@@ -209,6 +210,9 @@ where\n\
       case 't':
         args.test_period = true;
         break;
+      case 'w':
+        args.ascii_waterfall = true;
+        break;
       case '?':
         fprintf(stdout, "%s", usage);
         exit(0);
@@ -218,28 +222,25 @@ where\n\
         abort();
     } //switch
   } // while
+
   // sanity checks
   if (args.mode == 1) {
-    fprintf(stdout, "'level' mode suggested args: -p 256 -r 192000\n");
-    fprintf(stdout, "'level' mode suggested line level input volume at 100%%\n");
-  } // if mode && period
-  else if (args.mode == 2) {
-    fprintf(stdout, "'spectrum' mode suggested cut line level input volume to 50%%\n");
-  } // if mode && period
+    fprintf(stdout, "'level' mode suggested args: -o 0 -p 256 -r 192000\n");
+  } // if mode
 } // process_args
 
 
 char *representation(float val) {
-  if (val < 50) return " ";
-  if (val < 52) return "-";
-  if (val < 54) return ".";
-  if (val < 56) return ",";
-  if (val < 58) return ":";
-  if (val < 60) return ";";
-  if (val < 62) return "+";
-  if (val < 64) return "=";
-  if (val < 66) return "&";
-  if (val < 68) return "@";
+  if (val < 71) return " ";
+  if (val < 72) return "-";
+  if (val < 73) return ".";
+  if (val < 74) return ",";
+  if (val < 75) return ":";
+  if (val < 76) return ";";
+  if (val < 77) return "+";
+  if (val < 78) return "=";
+  if (val < 79) return "&";
+  if (val < 80) return "@";
   return "# ";
 }
 
@@ -276,20 +277,15 @@ int main(int argc, char **argv) {
   int rc = 64;
   rc = 1024;
 
-  // bass 44100 1024:
   unsigned int bins[16] = {0,0,1, 0,2,2, 0,3,0, 4,4,0, 20,0,0};
   unsigned int binwidths[16] = {0,0,1, 0,1,1, 0,1,0, 16,16,0, 20,0,0};
 
   double mins[16] = { 100,100,100,100,100,100,100,100,100,100,100,100,100,100,100,100 };
   double maxs[16] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
-  { int i;
-    for (i = 0; i < 16; i++) {
-      if (verbose) printf("%d %f - %f\n", i, mins[i], maxs[i]);
-    }
-  }
-  //unsigned int bins[16] = {0,0,2, 0,3,3, 0,4,0, 5,5,0, 6,0,0};
+
   int loop = 0;
-  unsigned int b = Microseconds();
+  unsigned int prevstats = Microseconds();
+  unsigned int prevwater = Microseconds();
   printf("loops  ms    hz\n");
 
   FILE* infh;
@@ -304,6 +300,7 @@ int main(int argc, char **argv) {
   bool initialized = false;
   double speed_scaler = 1024.0 / args.audio_period;
   while (1) {
+    unsigned int current = Microseconds();
     if (args.audio_overlap && recorded_periods > 0) {
       // shift prior data to the left, record into buffer one hop from the end
       // move buffer + one hop to buffer
@@ -393,6 +390,7 @@ int main(int argc, char **argv) {
           if (tmp < 32768) sample = tmp;
           else sample = tmp - 65536;
           in[frame] = (double) sample;
+          // for testing, save the waveform
           if (args.test_period) fprintf(infh, "%f\n", in[frame]);
         } // for frame
 
@@ -401,6 +399,7 @@ int main(int argc, char **argv) {
           int i;
           for (i = 0; i < args.audio_buffer_period; i++) {
             in[i] *= han[i];
+            // for testing, save the windowed waveform
             if (args.test_period) fprintf(inhfh, "%f\n", in[i]);
           } // for i
         } // if hanning
@@ -408,14 +407,24 @@ int main(int argc, char **argv) {
         // fftw
         fftw_execute(p);
 
-        int j;
-        for (j = 1; j < args.audio_buffer_period / 2; j++) {
-          double val = 20.0 * log10f(2.0 * sqrtf(out[j][0]*out[j][0] + out[j][1]*out[j][1]) / args.audio_buffer_period);
-          //if (j <= 30) printf("%s", representation(val));
-          if (args.test_period) fprintf(outfh, "%f\n", val);
-          //printf("%3.0f ", val);
-        } // for j
-        //printf("\n");
+        // for testing, save transform output
+        if (args.test_period) {
+          int i;
+          for (i = 1; i < args.audio_buffer_period / 2; i++) {
+            double val = 20.0 * log10f(2.0 * sqrtf(out[i][0]*out[i][0] + out[i][1]*out[i][1]) / args.audio_buffer_period);
+            fprintf(outfh, "%f\n", val);
+          } // for i
+        } // if test period
+
+        if (args.ascii_waterfall && current - prevwater > 50000) {
+          int i;
+          for (i = 1; i < 40; i++) {
+            double val = 20.0 * log10f(2.0 * sqrtf(out[i][0]*out[i][0] + out[i][1]*out[i][1]) / args.audio_buffer_period);
+            printf("%s", representation(val));
+          }
+          printf("\n");
+          prevwater = current;
+        }
 
         unsigned int pwmoff[16];
         int pwmindex;
@@ -427,19 +436,20 @@ int main(int argc, char **argv) {
               pwmoff[pwmindex] = 0;
               continue;
             } // if index
+
+            // determine the 'amp' for each pwm index
             unsigned int j;
             double amp = 0;
             int ampbinindex = binindex;
             for (j = 0; j < width; j++) {
               double mag = 2.0 * sqrtf(out[binindex + j][0] * out[binindex + j][0] + out[binindex + j][1] * out[binindex + j][1]) / args.audio_buffer_period;
               double thisamp = 20 * log10f(mag);
-              //amp += thisamp;
               if (thisamp > amp) {
                 amp = thisamp;
                 ampbinindex = binindex + j;
               } // if thisamp
             } // for j
-            //amp /= width;
+
             int a = 3;
             a *= speed_scaler;
             if (verbose) printf("check: amp %f mins[%d] %f maxs[%d] %f\n", amp, pwmindex, mins[pwmindex], pwmindex, maxs[pwmindex]);
@@ -451,28 +461,28 @@ int main(int argc, char **argv) {
               if (verbose) printf("mins[%d] %f amp %f newmin %f\n", pwmindex, mins[pwmindex], amp, ((a - 1) * mins[pwmindex] + amp) / a);
               mins[pwmindex] = ((a - 1) * mins[pwmindex] + amp) / a;
             }
-            if (mins[pwmindex] < 0) {
-              mins[pwmindex] = 0;
-            }
+
             int minmin = binindex == 1 ? 38 : 15;
             if (mins[pwmindex] < minmin) {
               mins[pwmindex] = minmin;
             } // if minmax
-            int minsize = 0;
-            if (maxs[pwmindex] - mins[pwmindex] > 0 && maxs[pwmindex] - mins[pwmindex] < minsize) {
-              maxs[pwmindex] = mins[pwmindex] + minsize;
-            } // if minsize
+            int minsize = 15;
+            int minmax = minmin + minsize;
+            if (maxs[pwmindex] < minmax) {
+              maxs[pwmindex] = minmax;
+            } // if minmax
+
             if (verbose) fprintf(stdout, "%2d:%3d %f-%f\n", ampbinindex, (int) amp, mins[pwmindex], maxs[pwmindex]);
             if (amp > mins[pwmindex]) {
               double ratio = (amp - mins[pwmindex]) / (maxs[pwmindex] - mins[pwmindex]);
               if (ratio > 1.0) ratio = 1.0;
+              if (ratio < 0.0) ratio = 0.0;
               ratio *= ratio;
               ratio *= ratio;
               ratio *= ratio;
               ratio *= ratio;
               ratio *= ratio;
               double val = _PCA9685_MAXVAL * ratio;
-              //fprintf(stdout, "%f %f\n", ratio, val);
               if (val > 4096) val = 4096;
               int alpha = args.pwm_smoothing;
               alpha *= speed_scaler;
@@ -494,9 +504,8 @@ int main(int argc, char **argv) {
         } // context
       } // if mode 2
     } // else good audio read
-    unsigned int a = Microseconds();
-    if (a - b > 3000000) {
-      unsigned int diff = a - b;
+    if (current - prevstats > 3000000) {
+      unsigned int diff = current - prevstats;
       double ms = (double) diff / 1000.0 / loop;
       printf("%d %0.2f %0.2f  ", loop, ms, 1000.0/ms);
       int j;
@@ -505,7 +514,7 @@ int main(int argc, char **argv) {
         printf("%3.0f-%-3.0f ", mins[j], maxs[j]);
       } // for j
       printf("\n");
-      b = a;
+      prevstats = current;
       loop = 0;
     }
     loop++;
