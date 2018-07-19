@@ -17,14 +17,21 @@ audiopwm args;
 int fd;
 char *buffer;
 snd_pcm_t *handle;
+snd_pcm_t *playhandle;
 // verbosity flag
 bool verbose = false;
 // factor to standardize smoothing time
 double speed_scaler;
 unsigned int current;
 int loop = 0;
-bool autoexpand = false;
-bool autocontract = false;
+bool autoexpand = true;
+bool autocontract = true;
+FILE* infh;
+FILE* inhfh;
+FILE* outfh;
+FILE* outphfh;
+FILE* outplay;
+FILE* outwav;
 
 
 unsigned Microseconds(void) {
@@ -59,10 +66,12 @@ int initPCA9685(audiopwm args) {
 }
 
 
-snd_pcm_t* initALSA(audiopwm *args, char **bufferPtr) {
+snd_pcm_t** initALSA(audiopwm *args, char **bufferPtr) {
   int rc;
-  snd_pcm_t *handle;
-  snd_pcm_hw_params_t *params;
+  snd_pcm_t* handle;
+  snd_pcm_t* playhandle;
+  snd_pcm_t** handles = (snd_pcm_t**) malloc(sizeof(snd_pcm_t*) * 2);
+  snd_pcm_hw_params_t* params;
   rc = snd_pcm_open(&handle, args->audio_device, SND_PCM_STREAM_CAPTURE, 0);
   if (rc < 0) {
     fprintf(stderr, "unable to open pcm device '%s': %s\n", args->audio_device, snd_strerror(rc));
@@ -74,7 +83,8 @@ snd_pcm_t* initALSA(audiopwm *args, char **bufferPtr) {
   if (rc < 0) fprintf(stderr, "snd_pcm_hw_params_any() failed %d\n", rc);
   rc = snd_pcm_hw_params_set_access(handle, params, SND_PCM_ACCESS_RW_INTERLEAVED);
   if (rc < 0) fprintf(stderr, "snd_pcm_hw_params_set_access() failed %d\n", rc);
-  rc = snd_pcm_hw_params_set_format(handle, params, SND_PCM_FORMAT_S16_LE);
+  if (args->audio_bytes == 1) rc = snd_pcm_hw_params_set_format(handle, params, SND_PCM_FORMAT_S8);
+  else if (args->audio_bytes == 2) rc = snd_pcm_hw_params_set_format(handle, params, SND_PCM_FORMAT_S16_LE);
   if (rc < 0) fprintf(stderr, "snd_pcm_hw_params_set_format() failed %d\n", rc);
   rc = snd_pcm_hw_params_set_channels(handle, params, 2);
   if (rc < 0) fprintf(stderr, "snd_pcm_hw_params_set_channels() failed %d\n", rc);
@@ -96,10 +106,48 @@ snd_pcm_t* initALSA(audiopwm *args, char **bufferPtr) {
     fprintf(stderr, "unable to set hw parameters: (%d), %s\n", rc, snd_strerror(rc));
     exit(1);
   }
-  args->audio_buffer_size = args->audio_buffer_period * 2 * args->audio_channels; /* 2 bytes/sample, 2 channels */
+  args->audio_buffer_size = args->audio_buffer_period * args->audio_bytes * args->audio_channels; /* 2 bytes/sample, 2 channels */
   fprintf(stdout, "buffer size %d\n", args->audio_buffer_size);
   *bufferPtr = (char *) malloc(args->audio_buffer_size);
-  return handle;
+
+  if (args->vocoder) {
+    rc = snd_pcm_open(&playhandle, args->audio_playback_device, SND_PCM_STREAM_PLAYBACK, 0);
+    snd_pcm_hw_params_alloca(&params);
+    snd_pcm_hw_params_any(playhandle, params);
+    snd_pcm_hw_params_set_access(playhandle, params, SND_PCM_ACCESS_RW_INTERLEAVED);
+    if (args->audio_bytes == 1) snd_pcm_hw_params_set_format(playhandle, params, SND_PCM_FORMAT_S8);
+    else if (args->audio_bytes == 2) snd_pcm_hw_params_set_format(playhandle, params, SND_PCM_FORMAT_S16_LE);
+    snd_pcm_hw_params_set_channels(playhandle, params, args->audio_channels);
+    unsigned int val = args->audio_rate;
+    int dir;
+    snd_pcm_hw_params_set_rate_near(playhandle, params, &val, &dir);
+    fprintf(stderr, "playback sampling rate %d\n", val);
+    long unsigned int frames = args->audio_period;
+    snd_pcm_hw_params_set_period_size_near(playhandle, params, &frames, &dir);
+    fprintf(stderr, "playback period size %lu\n", frames);
+    rc = snd_pcm_hw_params(playhandle, params);
+    if (rc < 0) {
+      fprintf(stderr, "unable to set hw parameters: %s\n", snd_strerror(rc));
+      exit(1);
+    } // if rc
+    snd_pcm_sw_params_t* swparams;
+    snd_pcm_sw_params_alloca(&swparams);
+    snd_pcm_sw_params_current(handle, swparams);
+    rc = snd_pcm_sw_params_set_start_threshold(handle, swparams, (snd_pcm_uframes_t) args->audio_buffer_size);
+    //rc = snd_pcm_sw_params_set_avail_min(handle, swparams, frames);
+    if (rc < 0) {
+      fprintf(stderr, "unable to set sw start threshold: %s\n", snd_strerror(rc));
+      exit(1);
+    }
+    rc = snd_pcm_sw_params(handle, swparams);
+    if (rc < 0) {
+      fprintf(stderr, "unable to set sw parameters: %s\n", snd_strerror(rc));
+      exit(1);
+    }
+  } // if vocoder
+  handles[0] = handle;
+  handles[1] = playhandle;
+  return handles;
 }
 
 
@@ -127,16 +175,18 @@ double *hanning(int N) {
 void process_args(int argc, char **argv) {
   char *usage = "\
 Usage: vupeak [-m level|spectrum] [-d audio device] [-p audio period]\n\
-              [-r audio rate] [-c audio channels] [-o audio overlap]\n\
+              [-r audio rate] [-c audio channels] [-o audio overlap] [-B audio bytes] [-P audio playback device]\n\
               [-b pwm bus] [-a pwm address] [-f pwm frequency]\n\
-              [-v] [-D] [-s pwm smoothing] [-h] [-t] [-w]\n\
+              [-v] [-D] [-s pwm smoothing] [-h] [-t] [-w] [-V]\n\
 where\n\
   -m sets the mode of audio processing (spectrum)\n\
   -d sets the audio device (default)\n\
+  -P sets the audio playback device (default)\n\
   -p sets the audio period (256)\n\
   -r sets the audio rate (44100)\n\
   -c sets the audio channels (2)\n\
   -o sets the audio overlap (2)\n\
+  -B sets the audio bytes (2)\n\
   -b sets the pwm i2c bus (1)\n\
   -a sets the pwm i2c address (0x40)\n\
   -f sets the pwm frequency (200)\n\
@@ -146,15 +196,18 @@ where\n\
   -h sets the fft hanning to true (false)\n\
   -t sets the test period to true (false)\n\
   -w sets the ascii waterfall to true (false)\n\
+  -V sets the vocoder to true (false)\n\
 ";
 
   // default values
   args.mode = 2;
   args.audio_device = "default";
+  args.audio_playback_device = "default";
   args.audio_period = 256;
   args.audio_rate = 44100;
   args.audio_channels = 2;
   args.audio_overlap = 2;
+  args.audio_bytes = 2;
   args.pwm_bus = 1;
   args.pwm_addr = 0x40;
   args.pwm_freq = 200;
@@ -163,10 +216,11 @@ where\n\
   args.fft_hanning = false;
   args.test_period = false;
   args.ascii_waterfall = false;
+  args.vocoder = false;
 
   opterr = 0;
   int c;
-  while ((c = getopt(argc, argv, "m:d:p:r:c:o:b:a:f:vDs:htw")) != -1) {
+  while ((c = getopt(argc, argv, "m:d:p:r:c:o:b:a:f:vDs:htwV")) != -1) {
     switch (c) {
       case 'm':
         args.mode = 0;
@@ -180,6 +234,9 @@ where\n\
       case 'd':
         args.audio_device = optarg;
         break;
+      case 'P':
+        args.audio_playback_device = optarg;
+        break;
       case 'p':
         args.audio_period = atoi(optarg);
         break;
@@ -191,6 +248,9 @@ where\n\
         break;
       case 'o':
         args.audio_overlap = atoi(optarg);
+        break;
+      case 'B':
+        args.audio_bytes = atoi(optarg);
         break;
       case 'b':
         args.pwm_bus = atoi(optarg);
@@ -218,6 +278,9 @@ where\n\
         break;
       case 'w':
         args.ascii_waterfall = true;
+        break;
+      case 'V':
+        args.vocoder = true;
         break;
       case '?':
         fprintf(stdout, "%s", usage);
@@ -306,7 +369,117 @@ void level(char* buffer) {
 } // level
 
 
-void spectrum(char* buffer, double* han, fftw_plan p, double* in, fftw_complex* out) {
+void insert_sample(char* buffer, int frame, long value) {
+  if (args.audio_bytes == 1 && value < 0) value += 256;
+  if (args.audio_bytes == 2 && value < 0) value += 65536;
+  value /= args.audio_buffer_period;
+  buffer[args.audio_bytes * args.audio_channels * frame] = value % 256;
+  if (args.audio_bytes == 2) buffer[args.audio_bytes * args.audio_channels * frame + 1] = value / 256;
+  // zero out other channel
+  if (args.audio_channels == 2) {
+    buffer[args.audio_bytes * args.audio_channels * frame + args.audio_bytes] = 0;
+    if (args.audio_bytes == 2) buffer[args.audio_bytes * args.audio_channels * frame + args.audio_bytes + 1] = 0;
+  } // if 2 channels
+} // insert sample
+
+
+double extract_sample(char* buffer, int frame) {
+  // extract a signed int from the unsigned 2-byte first channel of the frame
+  long tmp = (long) ((char*) buffer)[args.audio_bytes * args.audio_channels * frame];
+  if (args.audio_bytes == 2) tmp |= (long) ((char*) buffer)[args.audio_bytes * args.audio_channels * frame + 1] << 8;
+  if (args.audio_bytes == 1 && tmp >= 128) tmp = tmp - 256;
+  else if (args.audio_bytes == 2 && tmp >= 32768) tmp = tmp - 65536;
+  // insert the sample into the complex input array, zeroing the imaginary part
+  return (double) tmp;
+} // extract sample
+
+
+void vocoder(fftw_complex* in, fftw_plan pi) {
+  int outsize = args.audio_period * args.audio_channels * args.audio_bytes;
+  //printf("outsize %d\n", outsize);
+  char* outbuffer = (char*) malloc(outsize);
+  fftw_execute(pi);
+  for (unsigned int i = 0; i < args.audio_period; i++) {
+    //printf("%d:%d ", i, in[i][0]);
+    insert_sample(outbuffer, i, in[i][0]);
+  } // for i
+  //printf("\n");
+  if (args.test_period) {
+    //for (unsigned int i = 0; i < args.audio_period * args.audio_channels * args.audio_bytes; i++) {
+    for (unsigned int i = 0; i < args.audio_period; i++) {
+      fprintf(outplay, "%f ", in[i][0]);
+      fprintf(outwav, "%f ", extract_sample(outbuffer, i));
+      if (i == args.audio_period - 1) {
+        fprintf(outplay, "\n");
+        fprintf(outwav, "\n");
+      } // if i
+    } // for i
+  } // if test period
+  int rc = snd_pcm_writei(playhandle, outbuffer, outsize);
+  if (rc == -EPIPE) {
+    // EPIPE means underrun
+    fprintf(stderr, "underrun occurred\n");
+    snd_pcm_prepare(playhandle);
+  } else if (rc < 0) {
+    fprintf(stderr, "error from writei: %s\n", snd_strerror(rc));
+  } else if ((unsigned int) rc != outsize) {
+    fprintf(stderr, "short write, write %d frames\n", rc);
+  }
+} // vocoder
+
+
+#define MAX_LENGTH 10000
+
+void unwrap(double p[], int N) {
+    double dp[MAX_LENGTH];     
+    double dps[MAX_LENGTH];    
+    double dp_corr[MAX_LENGTH];
+    double cumsum[MAX_LENGTH];
+    double cutoff = M_PI;               /* default value in matlab */
+    int j;
+
+    assert(N <= MAX_LENGTH);
+   // incremental phase variation 
+   // MATLAB: dp = diff(p, 1, 1);
+    for (j = 0; j < N-1; j++)
+      dp[j] = p[j+1] - p[j];
+      
+   // equivalent phase variation in [-pi, pi]
+   // MATLAB: dps = mod(dp+dp,2*pi) - pi;
+    for (j = 0; j < N-1; j++)
+      dps[j] = (dp[j]+M_PI) - floor((dp[j]+M_PI) / (2*M_PI))*(2*M_PI) - M_PI;
+
+   // preserve variation sign for +pi vs. -pi
+   // MATLAB: dps(dps==pi & dp>0,:) = pi;
+    for (j = 0; j < N-1; j++)
+      if ((dps[j] == -M_PI) && (dp[j] > 0))
+        dps[j] = M_PI;
+
+   // incremental phase correction
+   // MATLAB: dp_corr = dps - dp;
+    for (j = 0; j < N-1; j++)
+      dp_corr[j] = dps[j] - dp[j];
+      
+   // Ignore correction when incremental variation is smaller than cutoff
+   // MATLAB: dp_corr(abs(dp)<cutoff,:) = 0;
+    for (j = 0; j < N-1; j++)
+      if (fabs(dp[j]) < cutoff)
+        dp_corr[j] = 0;
+
+   // Find cumulative sum of deltas
+   // MATLAB: cumsum = cumsum(dp_corr, 1);
+    cumsum[0] = dp_corr[0];
+    for (j = 1; j < N-1; j++)
+      cumsum[j] = cumsum[j-1] + dp_corr[j];
+
+   // Integrate corrections and add to P to produce smoothed phase values
+   // MATLAB: p(2:m,:) = p(2:m,:) + cumsum(dp_corr,1);
+    for (j = 1; j < N; j++)
+      p[j] += cumsum[j-1];
+}
+
+
+void spectrum(char* buffer, double* han, fftw_plan p, fftw_plan pi, fftw_complex* in, fftw_complex* out) {
   static int prevwater;
   static int prevstats;
   unsigned int bins[16] = {0,0,1, 0,2,2, 0,3,0, 4,4,0, 20,0,0};
@@ -350,34 +523,27 @@ void spectrum(char* buffer, double* han, fftw_plan p, double* in, fftw_complex* 
 
   // window for fftw
   unsigned int frame;
-  long tmp;
   double sample;
-  FILE* infh;
-  FILE* inhfh;
-  FILE* outfh;
-  if (args.test_period) {
-    infh = fopen("input.dat", "w");
-    inhfh = fopen("inputh.dat", "w");
-    outfh = fopen("output.dat", "w");
-  } // if test period
   for (frame = 0; frame < args.audio_buffer_period; frame++) {
-    tmp = (long) ((char*) buffer)[2 * args.audio_channels * frame + 1] << 8 | ((char*) buffer)[2 * args.audio_channels * frame];
-    if (tmp < 32768) sample = tmp;
-    else sample = tmp - 65536;
-    in[frame] = (double) sample;
+    sample = extract_sample(buffer, frame);
+    in[frame][0] = (double) sample;
+    in[frame][1] = 0;
     // for testing, save the waveform
     if (args.test_period) {
-      fprintf(infh, "%f\n", in[frame]);
+      fprintf(infh, "%f\n", in[frame][0]);
     } // if test period
   } // for frame
 
   // apply hanning window
   if (args.fft_hanning) {
-    int i;
+    unsigned int i;
     for (i = 0; i < args.audio_buffer_period; i++) {
-      in[i] *= han[i];
+      in[i][0] *= han[i];
       // for testing, save the windowed waveform
-      if (args.test_period) fprintf(inhfh, "%f\n", in[i]);
+      if (args.test_period) {
+        fprintf(inhfh, "%f ", in[i][0]);
+        if (i == args.audio_buffer_period - 1) fprintf(infh, "\n");
+      } // if test period
     } // for i
   } // if hanning
 
@@ -386,11 +552,21 @@ void spectrum(char* buffer, double* han, fftw_plan p, double* in, fftw_complex* 
 
   // for testing, save transform output
   if (args.test_period) {
-    int i;
-    for (i = 1; i < args.audio_buffer_period / 2; i++) {
-      double val = 20.0 * log10f(2.0 * sqrtf(out[i][0]*out[i][0] + out[i][1]*out[i][1]) / args.audio_buffer_period);
-      fprintf(outfh, "%f\n", val);
+    unsigned int i;
+    double phases[args.audio_buffer_period];
+    for (i = 0; i < args.audio_buffer_period; i++) {
+      double absval = 20.0 * log10f(2.0 * sqrtf(out[i][0]*out[i][0] + out[i][1]*out[i][1]) / args.audio_buffer_period);
+      fprintf(outfh, "%f\t", absval);
+      double phase = atan(out[i][1]/out[i][0]);
+      phases[i] = phase;
+      //fprintf(outphfh, "%f\t", phase);
     } // for i
+    unwrap(phases, args.audio_buffer_period);
+    for (i = 0; i < args.audio_buffer_period; i++) {
+      fprintf(outphfh, "%f\t", phases[i]);
+    } // for i
+    fprintf(outphfh, "\n");
+    fprintf(outfh, "\n");
   } // if test period
 
   if (args.ascii_waterfall && current - prevwater > 50000) {
@@ -406,7 +582,6 @@ void spectrum(char* buffer, double* han, fftw_plan p, double* in, fftw_complex* 
   static unsigned int pwmoff[16];
   int pwmindex;
   for (pwmindex = 0; pwmindex < 16; pwmindex++) {
-    // normalize by the number of frames in a period and the hanning factor
     unsigned int binindex = bins[pwmindex];
     unsigned int width = binwidths[pwmindex];
     if (binindex == 0) {
@@ -419,6 +594,7 @@ void spectrum(char* buffer, double* han, fftw_plan p, double* in, fftw_complex* 
     double amp = 0;
     int ampbinindex = binindex;
     for (j = 0; j < width; j++) {
+    // normalize by the number of frames in a period and the hanning factor
       double mag = 2.0 * sqrtf(out[binindex + j][0] * out[binindex + j][0] + out[binindex + j][1] * out[binindex + j][1]) / args.audio_buffer_period;
       double thisamp = 20 * log10f(mag);
       if (thisamp > amp) {
@@ -440,7 +616,9 @@ void spectrum(char* buffer, double* han, fftw_plan p, double* in, fftw_complex* 
         mins[pwmindex] = ((a - 1) * mins[pwmindex] + amp) / a;
       }
   
-      int minmin = binindex == 1 ? 38 : 15;
+      int minmin = 15;
+      if (binindex == 1) minmin = 38;
+      if (binindex == 2) minmin = 37;
       if (mins[pwmindex] < minmin) {
         mins[pwmindex] = minmin;
       } // if minmax
@@ -484,6 +662,7 @@ void spectrum(char* buffer, double* han, fftw_plan p, double* in, fftw_complex* 
       } // for pwmindex
     }
   } // if autocontract
+/*
   if (current - prevstats > 3000000) {
     unsigned int diff = current - prevstats;
     double ms = (double) diff / 1000.0 / loop;
@@ -497,6 +676,10 @@ void spectrum(char* buffer, double* han, fftw_plan p, double* in, fftw_complex* 
     prevstats = current;
     loop = 0;
   }
+*/
+  if (args.vocoder) {
+    vocoder(in, pi);
+  } // if vocoder
 } // spectrum
 
 
@@ -508,7 +691,9 @@ int main(int argc, char **argv) {
   signal(SIGINT, intHandler);
 
   // ALSA init
-  handle = initALSA(&args, &buffer);
+  snd_pcm_t** handles = initALSA(&args, &buffer);
+  handle = handles[0];
+  playhandle = handles[1];
 
   // libPCA9685 init
   fd = initPCA9685(args);
@@ -517,10 +702,11 @@ int main(int argc, char **argv) {
   // the buffer period may be bigger than the audio period
   int N = args.audio_buffer_period;
   printf("N %d\n", N);
-  fftw_plan p;
-  double in[N];
-  fftw_complex *out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N);
-  p = fftw_plan_dft_r2c_1d(N, in, out, FFTW_ESTIMATE);
+  fftw_plan p, pi;
+  fftw_complex* in = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N);
+  fftw_complex* out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N);
+  p = fftw_plan_dft_1d(N, in, out, FFTW_FORWARD, FFTW_ESTIMATE);
+  pi = fftw_plan_dft_1d(N, in, out, FFTW_BACKWARD, FFTW_ESTIMATE);
   double *han;
   if (args.fft_hanning) han = hanning(N);
 
@@ -529,20 +715,28 @@ int main(int argc, char **argv) {
 
   printf("loops  ms    hz\n");
 
-  int recorded_periods = 0;
+  unsigned int recorded_periods = 0;
   bool initialized = false;
   speed_scaler = 1024.0 / args.audio_period;
+  if (args.test_period) {
+    infh = fopen("input.dat", "w");
+    inhfh = fopen("inputwin.dat", "w");
+    outfh = fopen("outputspec.dat", "w");
+    outphfh = fopen("outputphase.dat", "w");
+    outplay = fopen("output.dat", "w");
+    outwav = fopen("outputwav.dat", "w");
+  } // if test period
   while (1) {
     current = Microseconds();
     if (args.audio_overlap && recorded_periods > 0) {
       // shift prior data to the left, record into buffer one hop from the end
       // move buffer + one hop to buffer
       char* dst = buffer;
-      char* src = buffer + 2 * args.audio_channels * args.audio_period;
-      int length = args.audio_buffer_size - 2 * args.audio_channels * args.audio_period;
+      char* src = buffer + args.audio_bytes * args.audio_channels * args.audio_period;
+      int length = args.audio_buffer_size - args.audio_bytes * args.audio_channels * args.audio_period;
       memmove(dst, src, length);
     } // overlap
-    char* onehopfromend = buffer + args.audio_buffer_size - 2 * args.audio_channels * args.audio_period;
+    char* onehopfromend = buffer + args.audio_buffer_size - args.audio_bytes * args.audio_channels * args.audio_period;
     rc = snd_pcm_readi(handle, onehopfromend, args.audio_period);
     if (rc == -EPIPE) {
       fprintf(stderr, "overrun occurred\n");
@@ -559,7 +753,7 @@ int main(int argc, char **argv) {
       if (!initialized) {
         initialized = true;
         printf("done buffering\n");
-        printf("%d %d %d %d\n", recorded_periods, args.audio_buffer_period, args.audio_period, args.audio_buffer_period / args.audio_period);
+        printf("periods %d buffer period %d audio period %d buffer period / audio period %d\n", recorded_periods, args.audio_buffer_period, args.audio_period, args.audio_buffer_period / args.audio_period);
       }
 
       if (args.mode == 1) {
@@ -567,12 +761,12 @@ int main(int argc, char **argv) {
       } // if mode 1
 
       else if (args.mode == 2) {
-        spectrum(buffer, han, p, in, out);
+        spectrum(buffer, han, p, pi, in, out);
       } // if mode 2
     } // else good audio read
 
     loop++;
     // for testing, to process only one period
-    if (args.test_period) exit(0);
+    //if (args.test_period) exit(0);
   } // while 1
 } // main
