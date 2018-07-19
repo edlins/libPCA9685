@@ -15,9 +15,9 @@
 // globals, defined here only for intHandler() to cleanup
 audiopwm args;
 int fd;
-char *buffer;
-char *playbuffer;
-snd_pcm_t *handle;
+char *inbuf;
+char *outbuf;
+snd_pcm_t *rechandle;
 snd_pcm_t *playhandle;
 // verbosity flag
 bool verbose = false;
@@ -47,9 +47,9 @@ void intHandler(int dummy) {
   PCA9685_setAllPWM(fd, args.pwm_addr, _PCA9685_MINVAL, _PCA9685_MINVAL);
 
   // cleanup alsa
-  snd_pcm_drain(handle);
-  snd_pcm_close(handle);
-  //free(buffer);
+  snd_pcm_drain(rechandle);
+  snd_pcm_close(rechandle);
+  //free(inbuf);
 
   // cleanup fftw
   //fftw_destroy_plan(p);
@@ -419,7 +419,7 @@ void vocoder(fftw_complex* out, fftw_complex* in, fftw_plan pi) {
   for (unsigned int i = 0; i < args.audio_period; i++) {
     //printf("%.0f %.0f ", in[i][0], in[i][1]);
     double descale = in[i][0] / args.audio_buffer_period;
-    insert_sample(playbuffer, i, descale);
+    insert_sample(outbuf, i, descale);
   } // for i
   //printf("\n");
 
@@ -427,7 +427,7 @@ void vocoder(fftw_complex* out, fftw_complex* in, fftw_plan pi) {
     //for (unsigned int i = 0; i < args.audio_period * args.audio_channels * args.audio_bytes; i++) {
     for (unsigned int i = 0; i < args.audio_period; i++) {
       fprintf(outplay, "%f ", in[i][0]);
-      fprintf(outwav, "%f ", extract_sample(playbuffer, i));
+      fprintf(outwav, "%f ", extract_sample(outbuf, i));
       if (i == args.audio_period - 1) {
         fprintf(outplay, "\n");
         fprintf(outwav, "\n");
@@ -437,9 +437,9 @@ void vocoder(fftw_complex* out, fftw_complex* in, fftw_plan pi) {
 
   // debug
   //printf("out ");
-  //dumpbuffer(playbuffer, outsize);
+  //dumpbuffer(outbuf, outsize);
 
-  int rc = snd_pcm_writei(playhandle, playbuffer, args.audio_period);
+  int rc = snd_pcm_writei(playhandle, outbuf, args.audio_period);
   if (rc == -EPIPE) {
     // EPIPE means underrun
     fprintf(stderr, "underrun occurred\n");
@@ -716,9 +716,8 @@ int main(int argc, char **argv) {
   signal(SIGINT, intHandler);
 
   // ALSA init
-  handle = initALSA(0, &args, &buffer);
-  playhandle;
-  if (args.vocoder) playhandle = initALSA(1, &args, &playbuffer);
+  rechandle = initALSA(0, &args, &inbuf);
+  if (args.vocoder) playhandle = initALSA(1, &args, &outbuf);
 
   // libPCA9685 init
   fd = initPCA9685(args);
@@ -756,14 +755,14 @@ int main(int argc, char **argv) {
     if (args.audio_overlap && recorded_periods > 0) {
       // shift prior data to the left, record into buffer one hop from the end
       // move buffer + one hop to buffer
-      char* dst = buffer;
-      char* src = buffer + args.audio_bytes * args.audio_channels * args.audio_period;
+      char* dst = inbuf;
+      char* src = inbuf + args.audio_bytes * args.audio_channels * args.audio_period;
       int length = args.audio_buffer_size - args.audio_bytes * args.audio_channels * args.audio_period;
       memmove(dst, src, length);
     } // overlap
-    char* onehopfromend = buffer + args.audio_buffer_size - args.audio_bytes * args.audio_channels * args.audio_period;
-    //printf("handle %d ptr %d size %d\n", handle, onehopfromend, args.audio_period);
-    rc = snd_pcm_readi(handle, onehopfromend, args.audio_period);
+    char* onehopfromend = inbuf + args.audio_buffer_size - args.audio_bytes * args.audio_channels * args.audio_period;
+    //printf("handle %d ptr %d size %d\n", rechandle, onehopfromend, args.audio_period);
+    rc = snd_pcm_readi(rechandle, onehopfromend, args.audio_period);
 
     // debug
     //printf("in  ");
@@ -771,7 +770,7 @@ int main(int argc, char **argv) {
 
     if (rc == -EPIPE) {
       fprintf(stderr, "overrun occurred\n");
-      snd_pcm_prepare(handle);
+      snd_pcm_prepare(rechandle);
     } else if (rc < 0) {
       fprintf(stderr, "error from read: %s\n", snd_strerror(rc));
     } else if (rc != (int) args.audio_period) {
@@ -788,11 +787,11 @@ int main(int argc, char **argv) {
       }
 
       if (args.mode == 1) {
-        level(buffer);
+        level(inbuf);
       } // if mode 1
 
       else if (args.mode == 2) {
-        spectrum(buffer, han, p, pi, in, out);
+        spectrum(inbuf, han, p, pi, in, out);
       } // if mode 2
     } // else good audio read
 
