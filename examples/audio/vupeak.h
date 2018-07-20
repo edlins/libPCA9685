@@ -11,6 +11,7 @@ typedef struct audiopwms {
   unsigned int audio_buffer_period;
   unsigned int audio_overlap;
   unsigned int audio_bytes;
+  unsigned int pwm_fd;
   unsigned int pwm_bus;
   unsigned int pwm_addr;
   unsigned int pwm_freq;
@@ -18,6 +19,9 @@ typedef struct audiopwms {
   unsigned int pwm_smoothing;
   bool fft_hanning;
   bool test_period;
+  bool save_fourier;
+  bool save_timeseries;
   bool ascii_waterfall;
   bool vocoder;
+  bool robotize;
 } audiopwm;
