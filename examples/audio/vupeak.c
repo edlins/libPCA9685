@@ -25,6 +25,7 @@ int loop = 0;
 bool autoexpand = true;
 bool autocontract = true;
 FILE* spectrogramfh;
+FILE* phasogramfh;
 
 
 unsigned Microseconds(void) {
@@ -553,11 +554,12 @@ void spectrum(char* inbuf, char* outbuf, double* han, fftw_plan p, fftw_plan pi,
   } // mins is NULL
 
   // window for fftw
+  double samples[args.audio_buffer_period];
   for (unsigned int i = 0; i < args.audio_buffer_period; i++) {
     // TODO: save samples so they can be recalled
     //       after window function applied
-    double sample = extract_sample(inbuf, i);
-    in[i][0] = sample;
+    samples[i] = extract_sample(inbuf, i);
+    in[i][0] = samples[i];
     in[i][1] = 0;
   } // for frame
 
@@ -574,7 +576,7 @@ void spectrum(char* inbuf, char* outbuf, double* han, fftw_plan p, fftw_plan pi,
     if (args.fft_hanning) winfh = fopen("win.dat", "w");
     FILE* recwinfh = fopen("recwin.dat", "w");
     for (unsigned int i = 0; i < args.audio_buffer_period; i++) {
-      fprintf(recfh, "%.0f\n", extract_sample(inbuf, i));
+      fprintf(recfh, "%.0f\n", samples[i]);
       if (args.fft_hanning) fprintf(winfh, "%f\n", han[i]);
       fprintf(recwinfh, "%.0f\n", in[i][0]);
     } // for i
@@ -586,35 +588,29 @@ void spectrum(char* inbuf, char* outbuf, double* han, fftw_plan p, fftw_plan pi,
   double mags[args.audio_buffer_period];
   double phases[args.audio_buffer_period];
   for (unsigned int i = 0; i < args.audio_buffer_period; i++) {
+    // normalize by the number of frames in a period and the hanning factor
     mags[i] = 20.0 * log10f(2.0 * sqrtf(out[i][0]*out[i][0] + out[i][1]*out[i][1]) / args.audio_buffer_period);
-    phases[i] = atan(out[i][1]/out[i][0]);
+    phases[i] = atan2(out[i][1], out[i][0]);
   } // for i
 
   // for testing, save transform output
   if (args.test_period) {
     FILE* spectrumfh = fopen("spectrum.dat", "w");
     FILE* phasefh = fopen("phase.dat", "w");
-    FILE* unwrapphasefh = fopen("unwrapphase.dat", "w");
+    //FILE* unwrapphasefh = fopen("unwrapphase.dat", "w");
     unsigned int i;
-    double phases[args.audio_buffer_period];
+    //unwrap(phases, args.audio_buffer_period);
     for (i = 0; i < args.audio_buffer_period; i++) {
-      phases[i] = atan(out[i][1]/out[i][0]);
-    } // for i
-    unwrap(phases, args.audio_buffer_period);
-    for (i = 0; i < args.audio_buffer_period; i++) {
-      double absval = 20.0 * log10f(2.0 * sqrtf(out[i][0]*out[i][0] + out[i][1]*out[i][1]) / args.audio_buffer_period);
-      fprintf(spectrumfh, "%d\n", (int) absval);
-      double phase = atan(out[i][1]/out[i][0]);
-      fprintf(phasefh, "%f\n", phase);
-      fprintf(unwrapphasefh, "%f\n", phases[i]);
+      fprintf(spectrumfh, "%d\n", (int) mags[i]);
+      fprintf(phasefh, "%f\n", phases[i]);
+      //fprintf(unwrapphasefh, "%f\n", phases[i]);
     } // for i
   } // if test period
 
   if (args.ascii_waterfall && current - prevwater > 100000) {
     int i;
     for (i = 1; i < 40; i++) {
-      double val = 20.0 * log10f(2.0 * sqrtf(out[i][0]*out[i][0] + out[i][1]*out[i][1]) / args.audio_buffer_period);
-      printf("%s", representation(val));
+      printf("%s", representation(mags[i]));
     } // for i
     printf("\n");
     prevwater = current;
@@ -622,18 +618,19 @@ void spectrum(char* inbuf, char* outbuf, double* han, fftw_plan p, fftw_plan pi,
 
   if (args.save_fourier) {
     char sgbuf[16384] = "";
+    char pgbuf[16384] = "";
     for (unsigned int i = 0; i < args.audio_buffer_period / 8; i++) {
-      //double mag = 20.0 * log10f(2.0 * sqrt(out[i][0]* out[i][0] + out[i][1]*out[i][1]) / args.audio_buffer_period);
-      //fprintf(spectrogramfh, "%d\t", (int) mag);
       sprintf(sgbuf + strlen(sgbuf), "%d\t", (int) mags[i]);
+      sprintf(pgbuf + strlen(pgbuf), "%f\t", phases[i]);
     } // for i
     fprintf(spectrogramfh, "%s\n", sgbuf);
+    fprintf(phasogramfh, "%s\n", pgbuf);
   } // if save fourier
 
   static unsigned int pwmoff[16];
   int pwmindex;
   for (pwmindex = 0; pwmindex < 16; pwmindex++) {
-    unsigned int binindex = bins[pwmindex];
+    int binindex = bins[pwmindex];
     unsigned int width = binwidths[pwmindex];
     if (binindex == -1) {
       pwmoff[pwmindex] = 0;
@@ -645,9 +642,8 @@ void spectrum(char* inbuf, char* outbuf, double* han, fftw_plan p, fftw_plan pi,
     double amp = 0;
     int ampbinindex = binindex;
     for (j = 0; j < width; j++) {
-    // normalize by the number of frames in a period and the hanning factor
-      double mag = 2.0 * sqrtf(out[binindex + j][0] * out[binindex + j][0] + out[binindex + j][1] * out[binindex + j][1]) / args.audio_buffer_period;
-      double thisamp = 20 * log10f(mag);
+      // if more than one bin, find largest bin
+      double thisamp = mags[binindex];
       if (thisamp > amp) {
         amp = thisamp;
         ampbinindex = binindex + j;
@@ -772,6 +768,7 @@ int main(int argc, char **argv) {
   speed_scaler = 1024.0 / args.audio_period;
   if (args.save_fourier) {
     spectrogramfh = fopen("spectrogram.dat", "w");
+    phasogramfh = fopen("phasogram.dat", "w");
   } // if save fourier
   while (1) {
     current = Microseconds();
