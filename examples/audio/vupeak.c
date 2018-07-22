@@ -24,6 +24,7 @@ unsigned int current;
 int loop = 0;
 bool autoexpand = true;
 bool autocontract = true;
+FILE* spectrogramfh;
 
 
 unsigned Microseconds(void) {
@@ -200,7 +201,7 @@ where\n\
 
   opterr = 0;
   int c;
-  while ((c = getopt(argc, argv, "m:d:P:p:r:c:o:B:b:a:f:vDs:htwVR")) != -1) {
+  while ((c = getopt(argc, argv, "m:d:P:p:r:c:o:B:b:a:f:vDs:htwVRF")) != -1) {
     switch (c) {
       case 'm':
         args.mode = 0;
@@ -264,6 +265,9 @@ where\n\
         break;
       case 'R':
         args.robotize = true;
+        break;
+      case 'F':
+        args.save_fourier = true;
         break;
       case '?':
         fprintf(stdout, "%s", usage);
@@ -384,6 +388,7 @@ double extract_sample(char* buffer, int frame) {
     tmp = (long) ((char*) buffer)[index];
     tmp |= ((char*) buffer)[index + 1] << 8;
     if (tmp > 32768) tmp -= 65535;
+    if (tmp == 32767) fprintf(stderr, "clip\n");
     //printf("ex %d %d %d %ld %f\n", frame, buffer[index], buffer[index + 1], tmp, (double) tmp);
   }
   return (double) tmp;
@@ -459,7 +464,7 @@ void unwrap(double p[], int N) {
     double dps[MAX_LENGTH];    
     double dp_corr[MAX_LENGTH];
     double cumsum[MAX_LENGTH];
-    double cutoff = M_PI;               /* default value in matlab */
+    double cutoff = M_PI/2;               /* default value in matlab */
     int j;
 
     assert(N <= MAX_LENGTH);
@@ -506,8 +511,10 @@ void unwrap(double p[], int N) {
 void spectrum(char* inbuf, char* outbuf, double* han, fftw_plan p, fftw_plan pi, fftw_complex* in, fftw_complex* out) {
   static int prevwater;
   static int prevstats;
-  unsigned int bins[16] = {0,0,1, 0,2,2, 0,3,0, 4,4,0, 20,0,0};
-  unsigned int binwidths[16] = {0,0,1, 0,1,1, 0,1,0, 16,16,0, 20,0,0};
+  // line level noise in the lab 1024 @ 44100
+  // 0:<42 1:<37 all others:<15
+  int bins[16] = {-1,-1,0, -1,1,1, -1,2,-1, 3,3,-1, 4,-1,-1};
+  unsigned int binwidths[16] = {0,0,1, 0,1,1, 0,1,0, 1,1,0, 1,0,0};
   static double* mins = NULL;
   static double* maxs = NULL;
   if (mins == NULL) {
@@ -563,11 +570,12 @@ void spectrum(char* inbuf, char* outbuf, double* han, fftw_plan p, fftw_plan pi,
 
   if (args.test_period) {
     FILE* recfh = fopen("rec.dat", "w");
-    FILE* winfh = fopen("win.dat", "w");
+    FILE* winfh;
+    if (args.fft_hanning) winfh = fopen("win.dat", "w");
     FILE* recwinfh = fopen("recwin.dat", "w");
     for (unsigned int i = 0; i < args.audio_buffer_period; i++) {
       fprintf(recfh, "%.0f\n", extract_sample(inbuf, i));
-      fprintf(winfh, "%f\n", han[i]);
+      if (args.fft_hanning) fprintf(winfh, "%f\n", han[i]);
       fprintf(recwinfh, "%.0f\n", in[i][0]);
     } // for i
   } // if test period
@@ -575,20 +583,34 @@ void spectrum(char* inbuf, char* outbuf, double* han, fftw_plan p, fftw_plan pi,
   // fftw
   fftw_execute(p);
 
+  double mags[args.audio_buffer_period];
+  double phases[args.audio_buffer_period];
+  for (unsigned int i = 0; i < args.audio_buffer_period; i++) {
+    mags[i] = 20.0 * log10f(2.0 * sqrtf(out[i][0]*out[i][0] + out[i][1]*out[i][1]) / args.audio_buffer_period);
+    phases[i] = atan(out[i][1]/out[i][0]);
+  } // for i
+
   // for testing, save transform output
   if (args.test_period) {
     FILE* spectrumfh = fopen("spectrum.dat", "w");
     FILE* phasefh = fopen("phase.dat", "w");
+    FILE* unwrapphasefh = fopen("unwrapphase.dat", "w");
     unsigned int i;
+    double phases[args.audio_buffer_period];
+    for (i = 0; i < args.audio_buffer_period; i++) {
+      phases[i] = atan(out[i][1]/out[i][0]);
+    } // for i
+    unwrap(phases, args.audio_buffer_period);
     for (i = 0; i < args.audio_buffer_period; i++) {
       double absval = 20.0 * log10f(2.0 * sqrtf(out[i][0]*out[i][0] + out[i][1]*out[i][1]) / args.audio_buffer_period);
-      fprintf(spectrumfh, "%f\n", absval);
+      fprintf(spectrumfh, "%d\n", (int) absval);
       double phase = atan(out[i][1]/out[i][0]);
       fprintf(phasefh, "%f\n", phase);
+      fprintf(unwrapphasefh, "%f\n", phases[i]);
     } // for i
   } // if test period
 
-  if (args.ascii_waterfall && current - prevwater > 50000) {
+  if (args.ascii_waterfall && current - prevwater > 100000) {
     int i;
     for (i = 1; i < 40; i++) {
       double val = 20.0 * log10f(2.0 * sqrtf(out[i][0]*out[i][0] + out[i][1]*out[i][1]) / args.audio_buffer_period);
@@ -598,12 +620,22 @@ void spectrum(char* inbuf, char* outbuf, double* han, fftw_plan p, fftw_plan pi,
     prevwater = current;
   } // if waterfall
 
+  if (args.save_fourier) {
+    char sgbuf[16384] = "";
+    for (unsigned int i = 0; i < args.audio_buffer_period / 8; i++) {
+      //double mag = 20.0 * log10f(2.0 * sqrt(out[i][0]* out[i][0] + out[i][1]*out[i][1]) / args.audio_buffer_period);
+      //fprintf(spectrogramfh, "%d\t", (int) mag);
+      sprintf(sgbuf + strlen(sgbuf), "%d\t", (int) mags[i]);
+    } // for i
+    fprintf(spectrogramfh, "%s\n", sgbuf);
+  } // if save fourier
+
   static unsigned int pwmoff[16];
   int pwmindex;
   for (pwmindex = 0; pwmindex < 16; pwmindex++) {
     unsigned int binindex = bins[pwmindex];
     unsigned int width = binwidths[pwmindex];
-    if (binindex == 0) {
+    if (binindex == -1) {
       pwmoff[pwmindex] = 0;
       continue;
     } // if index
@@ -636,8 +668,8 @@ void spectrum(char* inbuf, char* outbuf, double* han, fftw_plan p, fftw_plan pi,
       }
   
       int minmin = 15;
-      if (binindex == 1) minmin = 38;
-      if (binindex == 2) minmin = 37;
+      if (binindex == 0) minmin = 42;
+      if (binindex == 1) minmin = 37;
       if (mins[pwmindex] < minmin) {
         mins[pwmindex] = minmin;
       } // if minmax
@@ -738,6 +770,9 @@ int main(int argc, char **argv) {
   unsigned int recorded_periods = 0;
   bool initialized = false;
   speed_scaler = 1024.0 / args.audio_period;
+  if (args.save_fourier) {
+    spectrogramfh = fopen("spectrogram.dat", "w");
+  } // if save fourier
   while (1) {
     current = Microseconds();
     if (args.audio_overlap && recorded_periods > 0) {
