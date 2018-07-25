@@ -125,15 +125,19 @@ snd_pcm_t* initALSA(int dir, audiopwm *args, char **bufferPtr) {
 
 
 
+// hanningz, w[0] = 0, w[N] != 0
 double *hanning(int N) {
   int i;
   double *window = (double *) malloc(sizeof(double) * N);
   int M = N % 2 == 0 ? N / 2 : (N + 1) / 2;
   if (args.verbosity) fprintf(stdout, "hanning %d %d\n", N, M);
-  for (i = 0; i < M; i++) {
-    window[i] = 0.5 * (1 - cos(2 * M_PI * i / (N - 1)));
-    window[N - i - 1] = window[i];
-    if (args.verbosity >= 9) printf("%d: %f  %d: %f\n", i, window[i], N - i - 1, window[N - i - 1]);
+  //for (i = 0; i < M; i++) {
+  for (i = 0; i < N; i++) {
+    //window[i] = 0.5 * (1 - cos(2 * M_PI * i / (N - 1)));
+    window[i] = 0.5 * (1 - cos(2 * M_PI * i / N));
+    //window[N - i - 1] = window[i];
+    //if (args.verbosity >= 9) printf("%d: %f  %d: %f\n", i, window[i], N - i - 1, window[N - i - 1]);
+    if (args.verbosity >= 9) printf("%d: %f\n", i, window[i]);
   }
   if (args.verbosity >= 9) {
     for (i = 0; i < N; i++) {
@@ -445,7 +449,7 @@ void unwrap(double p[], int N) {
     double dps[MAX_LENGTH];    
     double dp_corr[MAX_LENGTH];
     double cumsum[MAX_LENGTH];
-    double cutoff = M_PI / 4;               /* default value in matlab */
+    double cutoff = M_PI;               /* default value in matlab */
     int j;
 
     assert(N <= MAX_LENGTH);
@@ -453,21 +457,21 @@ void unwrap(double p[], int N) {
    // MATLAB: dp = diff(p, 1, 1);
     for (j = 0; j < N-1; j++) {
       dp[j] = p[j+1] - p[j];
-      if (args.verbosity) fprintf(stderr, "%d dp %f\n", j, dp[j]);
+      //if (args.verbosity) fprintf(stderr, "%d dp %f\n", j, dp[j]);
    }
       
    // equivalent phase variation in [-pi, pi]
    // MATLAB: dps = mod(dp+dp,2*pi) - pi;
     for (j = 0; j < N-1; j++) {
-      dps[j] = (dp[j]+M_PI) - floor((dp[j]+M_PI) / (2*M_PI))*(2*M_PI) - M_PI;
-      if (args.verbosity) fprintf(stderr, "%d dps %f\n", j, dps[j]);
+      //dps[j] = (dp[j]+M_PI) - floor((dp[j]+M_PI) / (2*M_PI))*(2*M_PI) - M_PI;
+      dps[j] = dp[j];
+      //if (args.verbosity) fprintf(stderr, "%d dps %f\n", j, dps[j]);
     }
 
    // preserve variation sign for +pi vs. -pi
    // MATLAB: dps(dps==pi & dp>0,:) = pi;
     for (j = 0; j < N-1; j++) {
-      if ((dps[j] == -M_PI) && (dp[j] > 0))
-        dps[j] = M_PI;
+      dps[j] = (dp[j]+M_PI) - floor((dp[j]+M_PI) / (2*M_PI))*(2*M_PI) - M_PI;
       //if (args.verbosity) fprintf(stderr, "%d dps %f\n", j, dps[j]);
    }
 
@@ -475,7 +479,7 @@ void unwrap(double p[], int N) {
    // MATLAB: dp_corr = dps - dp;
     for (j = 0; j < N-1; j++) {
       dp_corr[j] = dps[j] - dp[j];
-      if (args.verbosity) fprintf(stderr, "%d dp_corr %f\n", j, dp_corr[j]);
+      //if (args.verbosity) fprintf(stderr, "%d dp_corr %f\n", j, dp_corr[j]);
     }
       
    // Ignore correction when incremental variation is smaller than cutoff
@@ -483,7 +487,7 @@ void unwrap(double p[], int N) {
     for (j = 0; j < N-1; j++) {
       if (fabs(dp[j]) < cutoff)
         dp_corr[j] = 0;
-      else if (args.verbosity) fprintf(stderr, "unwrap dp %f >= cutoff %f\n", fabs(dp[j]), cutoff);
+      else if (args.verbosity) fprintf(stderr, "%d dp %f >= cutoff %f\n", j, fabs(dp[j]), cutoff);
       if (args.verbosity) fprintf(stderr, "%d dp_corr %f\n", j, dp_corr[j]);
     }
 
@@ -492,16 +496,72 @@ void unwrap(double p[], int N) {
     cumsum[0] = dp_corr[0];
     for (j = 1; j < N-1; j++) {
       cumsum[j] = cumsum[j-1] + dp_corr[j];
-      if (args.verbosity) fprintf(stderr, "%d cumsum %f\n", j, cumsum[j]);
+      //if (args.verbosity) fprintf(stderr, "%d cumsum %f\n", j, cumsum[j]);
     }
 
    // Integrate corrections and add to P to produce smoothed phase values
    // MATLAB: p(2:m,:) = p(2:m,:) + cumsum(dp_corr,1);
     for (j = 1; j < N; j++) {
       p[j] += cumsum[j-1];
-      if (args.verbosity) fprintf(stderr, "%d p %f\n", j, p[j]);
+      //if (args.verbosity) fprintf(stderr, "%d p %f\n", j, p[j]);
     }
 }
+
+
+// real value fftshift needed for zero-phase windows
+void fftshift(fftw_complex* vals, int N) {
+  for (int i = 0; i < N / 2; i++) {
+    // only shift the real components
+    // as this should be real-valued data
+    double tmp = vals[i][0];
+    vals[i][0] = vals[N/2+i][0];
+    vals[N/2+i][0] = tmp;
+  } // for i
+} // fftshift
+
+
+void unwrap2(double w[], int N) {
+  float cutoff = 2 * M_PI;
+  float mult = 1;
+  //for (int j = 0; j < 2; j++) {
+  for (int i = 1; i < N - 1; i++) {
+    double dp = w[i + 1] - w[i];
+    if (args.verbosity && i < 100) fprintf(stderr, "%f %f %f\n", w[i], w[i + 1], dp);
+    while (fabs(dp) >= cutoff) {
+      if (dp < 0) {
+        w[i + 1] += mult * cutoff;
+      } else {
+        w[i + 1] -= mult * cutoff;
+      } // check sign
+      if (args.verbosity && i < 100) fprintf(stderr, "-> %f ", w[i + 1]);
+      dp = w[i + 1] - w[i];
+    } // if discontinuous
+    if (args.verbosity && i < 100) fprintf(stderr, "\n");
+  } // for i
+  //} // for j
+  if (args.verbosity) {
+    for (int i = 0; i < N; i++) {
+      fprintf(stderr, "%f  ", w[i]);
+    } // for i
+    fprintf(stderr, "\n");
+  } // if verbose
+}
+
+
+fftw_complex* padexpand(fftw_complex* in) {
+  fftw_complex* out = (fftw_complex*) malloc(sizeof(fftw_complex) * args.fft_period * 2);
+  for (int i = 0; i < args.fft_period * 2; i++) {
+    out[i][0] = 0;
+    out[i][1] = 0;
+  } // for i
+  for (int i = 0; i < args.fft_period / 2; i++) {
+    out[i][0] = in[i][0];
+  } // for i
+  for (int i = args.fft_period / 2 + 1; i < args.fft_period; i++) {
+    out[i + args.fft_period][0] = in[i][0];
+  } // for i
+  return out;
+} // padexpand
 
 
 void spectrum(char* inbuf, char* outbuf, double* han, fftw_plan p, fftw_plan pi, fftw_complex* in, fftw_complex* out) {
@@ -565,6 +625,8 @@ void spectrum(char* inbuf, char* outbuf, double* han, fftw_plan p, fftw_plan pi,
     } // for i
   } // if hanning
 
+  fftshift(in, args.fft_period);
+
   if (args.test_period) {
     FILE* recfh = fopen("rec.dat", "w");
     FILE* winfh;
@@ -573,6 +635,8 @@ void spectrum(char* inbuf, char* outbuf, double* han, fftw_plan p, fftw_plan pi,
     for (unsigned int i = 0; i < args.fft_period; i++) {
       fprintf(recfh, "%.0f\n", samples[i]);
       if (args.fft_hanning) fprintf(winfh, "%f\n", han[i]);
+    } // for i
+    for (unsigned int i = 0; i < args.fft_period; i++) {
       fprintf(recwinfh, "%.0f\n", in[i][0]);
     } // for i
   } // if test period
@@ -585,18 +649,19 @@ void spectrum(char* inbuf, char* outbuf, double* han, fftw_plan p, fftw_plan pi,
   double unwrapphases[args.fft_period];
   for (unsigned int i = 0; i < args.fft_period; i++) {
     // normalize by the number of frames in a period and the hanning factor
-    mags[i] = 20.0 * log10f(2.0 * sqrtf(out[i][0]*out[i][0] + out[i][1]*out[i][1]) / args.fft_period);
-    phases[i] = atan2(out[i][1], out[i][0]);
+    mags[i] = 20.0 * log10f(2.0 * sqrtf(out[i][0]*out[i][0] + out[i][1]*out[i][1]) / (args.fft_period));
+    //phases[i] = atan2(out[i][1], out[i][0]);
+    phases[i] = atan(out[i][1]/out[i][0]);
     unwrapphases[i] = phases[i];
   } // for i
 
+  unwrap(unwrapphases, args.fft_period);
   // for testing, save transform output
   if (args.test_period) {
     FILE* spectrumfh = fopen("spectrum.dat", "w");
     FILE* phasefh = fopen("phase.dat", "w");
     FILE* unwrapphasefh = fopen("unwrapphase.dat", "w");
     unsigned int i;
-    unwrap(unwrapphases, args.fft_period);
     for (i = 0; i < args.fft_period; i++) {
       fprintf(spectrumfh, "%d\n", (int) mags[i]);
       fprintf(phasefh, "%f\n", phases[i]);
@@ -614,9 +679,11 @@ void spectrum(char* inbuf, char* outbuf, double* han, fftw_plan p, fftw_plan pi,
   } // if waterfall
 
   if (args.save_fourier) {
-    char sgbuf[16384] = "";
-    char pgbuf[16384] = "";
-    char upgbuf[16384] = "";
+/*
+    int len = 32565;
+    char sgbuf[len];
+    char pgbuf[len];
+    char upgbuf[len];
     for (unsigned int i = 0; i < args.fft_period; i++) {
       sprintf(sgbuf + strlen(sgbuf), "%d\t", (int) mags[i]);
       sprintf(pgbuf + strlen(pgbuf), "%f\t", phases[i]);
@@ -625,6 +692,15 @@ void spectrum(char* inbuf, char* outbuf, double* han, fftw_plan p, fftw_plan pi,
     fprintf(spectrogramfh, "%s\n", sgbuf);
     fprintf(phasogramfh, "%s\n", pgbuf);
     fprintf(unwrapphasogramfh, "%s\n", upgbuf);
+*/
+    for (unsigned int i = 0; i < args.fft_period; i++) {
+      fprintf(spectrogramfh, "%d\t", (int) mags[i]);
+      fprintf(phasogramfh, "%f\t", phases[i]);
+      fprintf(unwrapphasogramfh, "%f\t", unwrapphases[i]);
+    } // for i
+    fprintf(spectrogramfh, "\n");
+    fprintf(phasogramfh, "\n");
+    fprintf(unwrapphasogramfh, "\n");
   } // if save fourier
 
   static unsigned int pwmoff[16];
@@ -758,6 +834,8 @@ int main(int argc, char **argv) {
   fftw_complex* out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N);
   p = fftw_plan_dft_1d(N, in, out, FFTW_FORWARD, FFTW_ESTIMATE);
   pi = fftw_plan_dft_1d(N, out, in, FFTW_BACKWARD, FFTW_ESTIMATE);
+  //p = fftw_plan_dft_r2c_1d(N, inr, out, FFTW_ESTIMATE);
+  //pi = fftw_plan_dft_c2r_1d(N, out, inr, FFTW_ESTIMATE);
   double *han;
   if (args.fft_hanning) han = hanning(N);
 
