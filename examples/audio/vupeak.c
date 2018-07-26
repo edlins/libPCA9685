@@ -154,7 +154,7 @@ void process_args(int argc, char **argv) {
 Usage: vupeak [-m level|spectrum] [-d audio device] [-n audio fft period]\n\
               [-r audio rate] [-c audio channels] [-H audio hop period] [-B audio bytes] [-P audio playback device]\n\
               [-b pwm bus] [-a pwm address] [-f pwm frequency]\n\
-              [-D] [-s pwm smoothing] [-h] [-t] [-w] [-V] [-R] [-v verbosity]\n\
+              [-D] [-s pwm smoothing] [-h] [-t] [-w] [-V] [-R] [-v verbosity] [-A]\n\
 where\n\
   -m sets the mode of audio processing (spectrum)\n\
   -d sets the audio device (default)\n\
@@ -175,6 +175,7 @@ where\n\
   -V sets the vocoder to true (false)\n\
   -R sets robotize to true (false)\n\
   -v sets the verbosity (0)\n\
+  -A sets the original atan() to true (0)\n\
 ";
 
   // default values
@@ -200,10 +201,11 @@ where\n\
   args.vocoder = false;
   args.robotize = false;
   args.verbosity = 0;
+  args.orig_atan = false;
 
   opterr = 0;
   int c;
-  while ((c = getopt(argc, argv, "m:d:P:n:r:c:p:H:B:b:a:f:Ds:htwVRFv:")) != -1) {
+  while ((c = getopt(argc, argv, "m:d:P:n:r:c:p:H:B:b:a:f:Ds:htwVRFv:A")) != -1) {
     switch (c) {
       case 'm':
         args.mode = 0;
@@ -273,6 +275,9 @@ where\n\
         break;
       case 'F':
         args.save_fourier = true;
+        break;
+      case 'A':
+        args.orig_atan = true;
         break;
       case '?':
         fprintf(stdout, "%s", usage);
@@ -548,6 +553,18 @@ void unwrap2(double w[], int N) {
 }
 
 
+// looks for jumps > 90 (=~ 180 += 20ish) and corrects with +-180
+void unwrap3(double w[], int N) {
+  for (int i = 1; i < N; i++) {
+    double delta = w[i] - w[i-1];
+    if (delta > M_PI / 2) w[i] -= M_PI;
+    else if (delta < -M_PI / 2) w[i] += M_PI;
+    if (w[i] > M_PI) w[i] -= M_PI;
+    else if (w[i] < -M_PI) w[i] += M_PI;
+  } // for i
+} // unwrap3
+
+
 fftw_complex* padexpand(fftw_complex* in) {
   fftw_complex* out = (fftw_complex*) malloc(sizeof(fftw_complex) * args.fft_period * 2);
   for (int i = 0; i < args.fft_period * 2; i++) {
@@ -650,19 +667,27 @@ void spectrum(char* inbuf, char* outbuf, double* han, fftw_plan p, fftw_plan pi,
   for (unsigned int i = 0; i < args.fft_period; i++) {
     // normalize by the number of frames in a period and the hanning factor
     mags[i] = 20.0 * log10f(2.0 * sqrtf(out[i][0]*out[i][0] + out[i][1]*out[i][1]) / (args.fft_period));
-    //phases[i] = atan2(out[i][1], out[i][0]);
-    phases[i] = atan(out[i][1]/out[i][0]);
+    if (args.orig_atan) {
+      phases[i] = atan(out[i][1]/out[i][0]);
+    } else {
+      if (mags[i] < 50) phases[i] = 0;
+      else phases[i] = atan2(out[i][1], out[i][0]);
+    }
     unwrapphases[i] = phases[i];
   } // for i
 
-  unwrap(unwrapphases, args.fft_period);
+  unwrap3(unwrapphases, args.fft_period);
   // for testing, save transform output
   if (args.test_period) {
+    FILE* realfh = fopen("real.dat", "w");
+    FILE* imagfh = fopen("imag.dat", "w");
     FILE* spectrumfh = fopen("spectrum.dat", "w");
     FILE* phasefh = fopen("phase.dat", "w");
     FILE* unwrapphasefh = fopen("unwrapphase.dat", "w");
     unsigned int i;
     for (i = 0; i < args.fft_period; i++) {
+      fprintf(realfh, "%f\n", out[i][0]);
+      fprintf(imagfh, "%f\n", out[i][1]);
       fprintf(spectrumfh, "%d\n", (int) mags[i]);
       fprintf(phasefh, "%f\n", phases[i]);
       fprintf(unwrapphasefh, "%f\n", unwrapphases[i]);

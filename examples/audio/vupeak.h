@@ -25,4 +25,5 @@ typedef struct audiopwms {
   bool vocoder;
   bool robotize;
   unsigned int verbosity;
+  bool orig_atan;
 } audiopwm;
