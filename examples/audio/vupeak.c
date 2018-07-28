@@ -670,7 +670,7 @@ void spectrum(char* inbuf, char* outbuf, double* han, fftw_plan p, fftw_plan pi,
     if (args.orig_atan) {
       phases[i] = atan(out[i][1]/out[i][0]);
     } else {
-      if (mags[i] < 50) phases[i] = 0;
+      if (mags[i] < 15) phases[i] = 0;
       else phases[i] = atan2(out[i][1], out[i][0]);
     }
     unwrapphases[i] = phases[i];
@@ -810,7 +810,7 @@ void spectrum(char* inbuf, char* outbuf, double* han, fftw_plan p, fftw_plan pi,
       } // for pwmindex
     }
   } // if autocontract
-/*
+
   if (current - prevstats > 3000000) {
     unsigned int diff = current - prevstats;
     double ms = (double) diff / 1000.0 / loop;
@@ -824,7 +824,7 @@ void spectrum(char* inbuf, char* outbuf, double* han, fftw_plan p, fftw_plan pi,
     prevstats = current;
     loop = 0;
   }
-*/
+
   if (args.vocoder) {
     vocoder(outbuf, out, in, pi);
   } // if vocoder
