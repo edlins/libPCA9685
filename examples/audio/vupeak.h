@@ -27,3 +27,11 @@ typedef struct audiopwms {
   unsigned int verbosity;
   bool orig_atan;
 } audiopwm;
+
+#define VVOCODER 0x01
+#define VMINMAX 0x02
+#define VPWM 0x04
+#define VREC 0x08
+#define VOVERLAPADD 0x10
+#define VWIN 0x20
+#define VZERO 0x40
