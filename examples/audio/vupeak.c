@@ -371,21 +371,24 @@ void level(char* buffer) {
 
 
 void insert_sample(char* buffer, int frame, long value) {
+  long orig = value;
+  long modified = value;
   int index = args.audio_bytes * args.audio_channels * frame;
   if (args.audio_bytes == 1) {
-    if (value <= 0) value += 255;
-    buffer[index] = value;
+    if (modified <= 0) modified += 255;
+    buffer[index] = modified;
     if (args.audio_channels == 2) {
       buffer[index + 1] = 0;
     }
   } else if (args.audio_bytes == 2) {
-    if (value <= 0) value += 65535;
-    buffer[index] = value % 256;
-    buffer[index + 1] = value / 256;
+    if (modified <= 0) modified += 65535;
+    buffer[index] = modified % 256;
+    buffer[index + 1] = modified / 256;
     if (args.audio_channels == 2) {
       buffer[index + 2] = 0;
       buffer[index + 3] = 0;
     } // if channels
+    //if (frame == 0) printf("in %d %d %d %ld %f\n", frame, buffer[index], buffer[index + 1], orig, (double) modified);
   } // if bytes
 } // insert sample
 
@@ -393,19 +396,22 @@ void insert_sample(char* buffer, int frame, long value) {
 double extract_sample(char* buffer, int frame) {
   // extract a signed int from the unsigned first channel of the frame
   int index = args.audio_bytes * args.audio_channels * frame;
-  long tmp;
+  long orig;
+  long modified;
   if (args.audio_bytes == 1) {
-    tmp = (long) ((char*) buffer)[index];
-    if (tmp > 128) tmp -= 255;
+    orig = (long) ((char*) buffer)[index];
+    modified = orig;
+    if (modified > 128) modified -= 255;
     //printf("ex %d %d %f\n", frame, buffer[index], tmp);
   } else if (args.audio_bytes == 2) {
-    tmp = (long) ((char*) buffer)[index];
-    tmp |= ((char*) buffer)[index + 1] << 8;
-    if (tmp > 32768) tmp -= 65535;
-    if (tmp == 32767) fprintf(stderr, "clip\n");
-    //printf("ex %d %d %d %ld %f\n", frame, buffer[index], buffer[index + 1], tmp, (double) tmp);
+    orig = (long) ((char*) buffer)[index];
+    orig |= ((char*) buffer)[index + 1] << 8;
+    modified = orig;
+    if (modified > 32768) modified -= 65535;
+    if (modified == 32767) fprintf(stderr, "clip\n");
+    //if (frame == 0) printf("ex %d %d %d %ld %f\n", frame, buffer[index], buffer[index + 1], orig, (double) modified);
   }
-  return (double) tmp;
+  return (double) modified;
 } // extract sample
 
 
@@ -417,10 +423,19 @@ void dumpbuffer(char* buffer, int n) {
 } // dumpbuffer
 
 
-void vocoder(char* outbuf, fftw_complex* out, fftw_complex* in, fftw_plan pi) {
-  int outsize = args.fft_period * args.audio_channels * args.audio_bytes;
-  //printf("outsize %d\n", outsize);
+// real value fftshift needed for zero-phase windows
+void fftshift(fftw_complex* vals, int N) {
+  for (int i = 0; i < N / 2; i++) {
+    // only shift the real components
+    // as this should be real-valued data
+    double tmp = vals[i][0];
+    vals[i][0] = vals[N/2+i][0];
+    vals[N/2+i][0] = tmp;
+  } // for i
+} // fftshift
 
+
+void vocoder(char* outbuf, fftw_complex* out, fftw_complex* in, fftw_plan pi, double* han) {
   if (args.robotize) {
     for (unsigned int i = 0; i < args.fft_period; i++) {
       out[i][1] = 0;
@@ -428,9 +443,23 @@ void vocoder(char* outbuf, fftw_complex* out, fftw_complex* in, fftw_plan pi) {
   } // for i
 
   fftw_execute(pi);
+  fftshift(in, args.fft_period);
+
+  FILE* pbfh;
+  if (args.test_period) {
+    pbfh = fopen("pb.dat", "w");
+    //FILE* pbwinfh = fopen("pbwin.dat", "w");
+  } // if testperiod
 
   for (unsigned int i = 0; i < args.fft_period; i++) {
     double descale = in[i][0] / args.fft_period;
+    //descale = in[i][0];
+    if (args.test_period) {
+      fprintf(pbfh, "%.0f\n", descale);
+    } // if test period
+    if (args.fft_hanning) {
+      descale *= han[i];
+    } // if hanning
     insert_sample(outbuf, i, descale);
   } // for i
 
@@ -511,18 +540,6 @@ void unwrap(double p[], int N) {
       //if (args.verbosity) fprintf(stderr, "%d p %f\n", j, p[j]);
     }
 }
-
-
-// real value fftshift needed for zero-phase windows
-void fftshift(fftw_complex* vals, int N) {
-  for (int i = 0; i < N / 2; i++) {
-    // only shift the real components
-    // as this should be real-valued data
-    double tmp = vals[i][0];
-    vals[i][0] = vals[N/2+i][0];
-    vals[N/2+i][0] = tmp;
-  } // for i
-} // fftshift
 
 
 void unwrap2(double w[], int N) {
@@ -642,8 +659,6 @@ void spectrum(char* inbuf, char* outbuf, double* han, fftw_plan p, fftw_plan pi,
     } // for i
   } // if hanning
 
-  fftshift(in, args.fft_period);
-
   if (args.test_period) {
     FILE* recfh = fopen("rec.dat", "w");
     FILE* winfh;
@@ -651,14 +666,13 @@ void spectrum(char* inbuf, char* outbuf, double* han, fftw_plan p, fftw_plan pi,
     FILE* recwinfh = fopen("recwin.dat", "w");
     for (unsigned int i = 0; i < args.fft_period; i++) {
       fprintf(recfh, "%.0f\n", samples[i]);
-      if (args.fft_hanning) fprintf(winfh, "%f\n", han[i]);
-    } // for i
-    for (unsigned int i = 0; i < args.fft_period; i++) {
       fprintf(recwinfh, "%.0f\n", in[i][0]);
+      if (args.fft_hanning) fprintf(winfh, "%f\n", han[i]);
     } // for i
   } // if test period
 
   // fftw
+  fftshift(in, args.fft_period);
   fftw_execute(p);
 
   double mags[args.fft_period];
@@ -815,18 +829,20 @@ void spectrum(char* inbuf, char* outbuf, double* han, fftw_plan p, fftw_plan pi,
     unsigned int diff = current - prevstats;
     double ms = (double) diff / 1000.0 / loop;
     printf("%d %0.2f %0.2f  ", loop, ms, 1000.0/ms);
+/*
     int j;
     for (j = 0; j < 16; j++) {
       if (bins[j] == 0) continue;
       printf("%3.0f-%-3.0f ", mins[j], maxs[j]);
     } // for j
+*/
     printf("\n");
     prevstats = current;
     loop = 0;
   }
 
   if (args.vocoder) {
-    vocoder(outbuf, out, in, pi);
+    vocoder(outbuf, out, in, pi, han);
   } // if vocoder
 } // spectrum
 
