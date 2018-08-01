@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 3.0)
 
 project(audio)
+
 add_executable(6735l1 6735l1.c)
 target_link_libraries(6735l1 asound)
 add_executable(6735l2 6735l2.c)
@@ -10,6 +11,7 @@ target_link_libraries(6735l3 asound)
 add_executable(6735l4 6735l4.c)
 target_link_libraries(6735l4 asound)
 
+
 add_executable(vocrec vocrec.c)
 target_link_libraries(vocrec asound fftw3)
 add_executable(vocplay vocplay.c)
@@ -18,8 +20,12 @@ target_link_libraries(vocplay asound fftw3)
 add_executable(vupeak vupeak.c)
 target_link_libraries(vupeak asound PCA9685 fftw3 m)
 target_compile_options(vupeak PRIVATE -O3)
+
 add_executable(hello_fft.bin hello_fft.c mailbox.c gpu_fft.c gpu_fft_base.c gpu_fft_twiddles.c gpu_fft_shaders.c gpu_fft.h mailbox.h)
 target_link_libraries(hello_fft.bin rt m dl)
+
+add_executable(analysis analysis.c)
+target_link_libraries(analysis fftw3 m)
 
 add_custom_target(audio)
 add_dependencies(audio 6735l1 6735l2 6735l3 6735l4 vupeak)

@@ -35,3 +35,4 @@ typedef struct audiopwms {
 #define VOVERLAPADD 0x10
 #define VWIN 0x20
 #define VZERO 0x40
+#define VPB 0x80
