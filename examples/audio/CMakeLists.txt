@@ -19,7 +19,7 @@ target_link_libraries(vocplay asound fftw3)
 
 add_executable(vupeak vupeak.c)
 target_link_libraries(vupeak asound PCA9685 fftw3 m)
-target_compile_options(vupeak PRIVATE -O3)
+#target_compile_options(vupeak PRIVATE -O3)
 
 add_executable(hello_fft.bin hello_fft.c mailbox.c gpu_fft.c gpu_fft_base.c gpu_fft_twiddles.c gpu_fft_shaders.c gpu_fft.h mailbox.h)
 target_link_libraries(hello_fft.bin rt m dl)

@@ -10,6 +10,7 @@
 #include <math.h>
 #include <sys/time.h>
 #include <unistd.h>
+#include <stdint.h>
 #include "config.h"
 
 // globals, defined here only for intHandler() to cleanup
@@ -389,30 +390,25 @@ void level(char* buffer) {
 } // level
 
 
-double extract_sample(char* buffer, int frame) {
+double extract_sample(char* buffer, int frame, int bytes, int channels) {
   // extract a signed int from the unsigned first channel of the frame
-  int index = args.audio_bytes * args.audio_channels * frame;
-  long orig;
-  long modified;
-  if (args.audio_bytes == 1) {
-    orig = (long) ((char*) buffer)[index];
-    modified = orig;
-    if (modified > 128) modified -= 255;
-    //printf("ex %d %d %f\n", frame, buffer[index], tmp);
-  } else if (args.audio_bytes == 2) {
-    orig = (long) ((char*) buffer)[index];
-    orig |= ((char*) buffer)[index + 1] << 8;
-    modified = orig;
-    if (modified > 32768) modified -= 65535;
-    if (modified == 32767) fprintf(stderr, "clip\n");
-    if (frame == 0) printf("ex %d %d %d %ld %f\n", frame, buffer[index], buffer[index + 1], orig, (double) modified);
-  }
-  return (double) modified;
+  long sample = 0;
+  for (int bytenum = bytes - 1; bytenum >= 0; bytenum--) {
+    int index = frame * bytes * channels + bytenum;
+    uint8_t byteval = (uint8_t) buffer[index];
+    sample <<= 8;
+    sample |= (byteval & 0xFF);
+    //fprintf(stderr, "buffer[%d] = %02x ", index, byteval);
+  } // for bytenum
+  long value = sample;
+  if (value > (1 << 8 * bytes) / 2) value -= 1 << 8 * bytes;
+  //fprintf(stderr, "frame %d sample %ld value %ld\n", frame, sample, value);
+  return (double) value;
 } // extract sample
 
 
 void overlap_add_sample(char* buffer, int frame, long value) {
-  long prev = extract_sample(buffer, frame);
+  long prev = extract_sample(buffer, frame, args.audio_bytes, args.audio_channels);
   long orig = value;
   long modified = value;
   int index = args.audio_bytes * args.audio_channels * frame;
@@ -458,11 +454,9 @@ void insert_sample(char* buffer, int frame, long value) {
 } // insert sample
 
 
-void dumpbuffer(char* buffer, int frames, int bytes, int channels) {
-  for (int i = 0; i < frames * bytes * channels; i++) {
-  //for (int i = 0; i < n; i++) {
-    //printf("%.0f ", extract_sample(buffer, i));
-    printf("%d ", buffer[i]);
+void dumpbuffer(fftw_complex* buffer, int frames, int bytes, int channels) {
+  for (int i = 0; i < frames; i++) {
+    printf("%.0f ", buffer[i][0]);
   } // for i
   printf("\n");
 } // dumpbuffer
@@ -559,12 +553,12 @@ void vocoder(char* outbuf, fftw_complex* out, fftw_complex* in, fftw_plan pi, do
     } // if verbosity
     if (args.test_period) {
       for (int i = 0; i < args.audio_period; i++) {
-        fprintf(pbfh, "%.0f\n", extract_sample(outbuf, i));
+        fprintf(pbfh, "%.0f\n", extract_sample(outbuf, i, args.audio_bytes, args.audio_channels));
       } // for i
     } // if test period
     if (args.save_timeseries) {
       for (unsigned int i = 0; i < args.audio_period; i++) {
-        double sample = extract_sample(outbuf, i);
+        double sample = extract_sample(outbuf, i, args.audio_bytes, args.audio_channels);
         fprintf(pbtsfh, "%.0f\n", sample);
         if (args.verbosity & VPB) fprintf(stderr, "%.0f ", sample);
       } // for i
@@ -708,7 +702,19 @@ fftw_complex* padexpand(fftw_complex* in) {
 } // padexpand
 
 
-void spectrum(char* inbuf, char* outbuf, char* pbbuf, double* han, fftw_plan p, fftw_plan pi, fftw_complex* in, fftw_complex* out) {
+void spectrum(fftw_complex* fftout, int n) {
+  static unsigned int pwmon[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  unsigned int pwmoff[16];
+  for (int i = 0; i < 16; i++) {
+    double mag = 20.0 * log10f(2.0 * sqrtf(fftout[i][0] * fftout[i][0] + fftout[i][1] * fftout[i][1]) / n);
+    //double phase = atan(fftout[i][1] / fftout[i][0]);
+    double ratio = (mag - 42) / (100 - 42);
+    pwmoff[i] = _PCA9685_MAXVAL * ratio;
+    //fprintf(stderr, "%d %.0f %.0f %.0f %d\n", i, fftout[i][0], fftout[i][1], mag, pwmoff[i]);
+  } // for i
+  PCA9685_setPWMVals(args.pwm_fd, args.pwm_addr, pwmon, pwmoff);
+} // spectrum
+/*
   static int prevwater;
   static int prevstats;
   // line level noise in the lab 1024 @ 44100
@@ -757,7 +763,7 @@ void spectrum(char* inbuf, char* outbuf, char* pbbuf, double* han, fftw_plan p, 
   for (unsigned int i = 0; i < args.fft_period; i++) {
     // TODO: save samples so they can be recalled
     //       after window function applied
-    samples[i] = extract_sample(inbuf, i);
+    samples[i] = extract_sample(inbuf, i, args.audio_bytes, args.audio_channels);
     // save the last (newest) hop
     if (args.save_timeseries && i >= args.fft_period - args.fft_hop_period) {
       fprintf(rectsfh, "%.0f\n", samples[i]);
@@ -929,13 +935,13 @@ void spectrum(char* inbuf, char* outbuf, char* pbbuf, double* han, fftw_plan p, 
     unsigned int diff = current - prevstats;
     double ms = (double) diff / 1000.0 / loop;
     printf("%d %0.2f %0.2f  ", loop, ms, 1000.0/ms);
-/*
-    int j;
-    for (j = 0; j < 16; j++) {
-      if (bins[j] == 0) continue;
-      printf("%3.0f-%-3.0f ", mins[j], maxs[j]);
-    } // for j
-*/
+
+    //int j;
+    //for (j = 0; j < 16; j++) {
+      //if (bins[j] == 0) continue;
+      //printf("%3.0f-%-3.0f ", mins[j], maxs[j]);
+    //} // for j
+
     printf("\n");
     prevstats = current;
     loop = 0;
@@ -945,6 +951,37 @@ void spectrum(char* inbuf, char* outbuf, char* pbbuf, double* han, fftw_plan p, 
     vocoder(pbbuf, out, in, pi, han);
   } // if vocoder
 } // spectrum
+*/
+
+
+void set_reals(fftw_complex* c, int16_t* r, int n) {
+  //fprintf(stderr, "set_reals: c %p r %p n %d\n", c, r, n);
+  for (int i = 0; i < n; i++) {
+    c[i][0] = r[i];
+    c[i][1] = 0;
+  } // for i
+} // set_reals
+
+
+void window(fftw_complex* buffer, double* window, int n) {
+  //fprintf(stderr, "window: buffer %p window %p n %d\n", buffer, window, n);
+  for (int i = 0; i < n; i++) {
+    buffer[i][0] *= window[i];
+  } // for i
+} // window
+
+
+void hopadvance(int16_t* dest, int16_t* src, int size) {
+  //fprintf(stderr, "hopadvance: dest %p src %p size %d\n", dest, src, size);
+  memmove(dest, src, size * sizeof(int16_t));
+} // shift
+
+
+void save(FILE* fh, int16_t* buffer, int n) {
+  for (int i = 0; i < n; i++) {
+    fprintf(fh, "%d\n", buffer[i]);
+  } // for i
+} // save
 
 
 int main(int argc, char **argv) {
@@ -955,41 +992,23 @@ int main(int argc, char **argv) {
   signal(SIGINT, intHandler);
 
   // ALSA init
-  char* recbuf;
-  rechandle = initALSA(0, &args, &recbuf);
-  char* pbbuf;
-  if (args.vocoder) playhandle = initALSA(1, &args, &pbbuf);
+  char* rb;
+  rechandle = initALSA(0, &args, &rb);
+  char* pb;
+  if (args.vocoder) playhandle = initALSA(1, &args, &pb);
 
   // libPCA9685 init
   initPCA9685();
 
   // fftw init
-  
-  int N = args.fft_period;
-  if (args.verbosity) fprintf(stderr, "init fft: fft period %d fft buffer size %d\n", args.fft_period, args.fft_period * args.audio_channels * args.audio_bytes);
-  int inframes = args.fft_period;
-  int inbytes = inframes * args.audio_channels * args.audio_bytes;
-  char* inbuf = (char*) malloc(inbytes);
-  if (args.verbosity & VREC) fprintf(stderr, "inbuf %d frames %d bytes at %p\n", inframes, inbytes, inbuf);
-  // outbuf must be larger than audio period so that the tails of any inverse transorms
-  // that don't fit in the audio period will be preserved for later shifting in
-  int outframes = 2 * args.fft_period - args.fft_hop_period;
-  int outbytes = outframes * args.audio_channels * args.audio_bytes;
-  char* outbuf = (char*) malloc(outbytes);
-  if (args.verbosity & VPB) fprintf(stderr, "outbuf %d frames %d bytes at %p\n", outframes, outbytes, outbuf);
-  fftw_plan p, pi;
-  fftw_complex* in = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N);
-  fftw_complex* out = (fftw_complex*) fftw_malloc(sizeof(fftw_complex) * N);
-  p = fftw_plan_dft_1d(N, in, out, FFTW_FORWARD, FFTW_ESTIMATE);
-  pi = fftw_plan_dft_1d(N, out, in, FFTW_BACKWARD, FFTW_ESTIMATE);
-  //p = fftw_plan_dft_r2c_1d(N, inr, out, FFTW_ESTIMATE);
-  //pi = fftw_plan_dft_c2r_1d(N, out, inr, FFTW_ESTIMATE);
+  fftw_complex* fib = (fftw_complex*) malloc(args.fft_period * sizeof(fftw_complex));
+  fftw_complex* fob = (fftw_complex*) malloc(args.fft_period * sizeof(fftw_complex));
+  int16_t* sb = (int16_t*) malloc(args.fft_period * sizeof(int16_t));
+  fftw_plan planfwd = fftw_plan_dft_1d(args.fft_period, fib, fob, FFTW_FORWARD, FFTW_ESTIMATE);
+  //pi = fftw_plan_dft_1d(args.fft_period, fob, fib, FFTW_BACKWARD, FFTW_ESTIMATE);
   double *han;
-  if (args.fft_hanning) han = hanning(N);
+  if (args.fft_hanning) han = hanning(args.fft_period);
 
-  printf("loops  ms    hz\n");
-  bool initialized = false;
-  speed_scaler = 1024.0 / args.fft_hop_period;
   if (args.save_fourier) {
     spectrogramfh = fopen("spectrogram.dat", "w");
     phasogramfh = fopen("phasogram.dat", "w");
@@ -1000,29 +1019,27 @@ int main(int argc, char **argv) {
     pbtsfh = fopen("pbts.dat", "w");
   } // if save timeseries
 
-  // init hopnum to force an initial recording
-  unsigned int audiohops = args.audio_period / args.fft_hop_period;
-  unsigned int ffthops = 0;
-  //int audio_offset = args.audio_period;
-  //int fourier_offset = 0;
+  int audio_offset = args.audio_period;
+  int fourier_offset = 0;
   while (1) {
     current = Microseconds();
-    if (args.fft_hop_period != args.fft_period) {
-      // TODO: optimize with circular buffer to minimize memmove()s
-      // shift input buffer data to the left by one hop period
-      char* dst = inbuf;
-      char* src = inbuf + args.fft_hop_period * args.audio_channels * args.audio_bytes;
-      int shiftlength = (args.fft_period - args.fft_hop_period) * args.audio_bytes * args.audio_channels;
-      if (args.verbosity & VREC) fprintf(stderr, "shift %d bytes from %p to %p\n", shiftlength, src, dst);
-      memmove(dst, src, shiftlength);
-    } // shift
 
-    if (audiohops * args.fft_hop_period >= args.audio_period) {
+    // if fourier buffer full, transform then shift
+    if (fourier_offset == args.fft_period) {
+      set_reals(fib, sb, args.fft_period);
+      if (args.fft_hanning) window(fib, han, args.fft_period);
+      fftw_execute(planfwd);
+      spectrum(fob, args.fft_period);
+      hopadvance(sb, sb + args.fft_hop_period, args.fft_period - args.fft_hop_period);
+      fourier_offset -= args.fft_hop_period;
+    } // if fourier buffer full
+
+    // if audio buffer empty, read pcm
+    if (audio_offset == args.audio_period) {
+      //fprintf(stderr, "main: calling readi\n");
       bool goodaudio = false;
-      int rc;
       while (!goodaudio) {
-        if (args.verbosity & VREC) fprintf(stderr, "record %d frames into %p\n", args.audio_period, recbuf);
-        rc = snd_pcm_readi(rechandle, recbuf, args.audio_period);
+        int rc = snd_pcm_readi(rechandle, rb, args.audio_period);
         if (rc == -EPIPE) {
           fprintf(stderr, "overrun occurred\n");
           snd_pcm_prepare(rechandle);
@@ -1033,50 +1050,19 @@ int main(int argc, char **argv) {
         } else {
           goodaudio = true;
         } // if problems
-      } // while !goodaudio
-      if (args.verbosity & VREC) {
-        fprintf(stderr, "got %d frames\n", rc);
-        //dumpbuffer(recbuf, args.audio_period);
-      } // if verbose
-      audiohops = 0;
-    } // if we need audio
+      } // while not good audio
+      audio_offset = 0;
+    } // if audio buffer empty
 
-    // copy one hop period from record buffer into end of input buffer
-    // src = recording buffer + numhops * hop period into buffer
-    char* src = recbuf + audiohops * args.fft_hop_period * args.audio_bytes * args.audio_channels;
-    int copylength = args.fft_hop_period * args.audio_channels * args.audio_bytes;
-    char* dst = inbuf + args.fft_period * args.audio_channels * args.audio_bytes - copylength;
-    if (args.verbosity & VREC) fprintf(stderr, "copy %d bytes from %p in %p to %p in %p\n", copylength, src, recbuf, dst, inbuf);
-    memcpy(dst, src, copylength);
-    audiohops++;
-    ffthops++;
+    // copy a frame
+    //fprintf(stderr, "rb %p %d -> sb %p %d\n", rb, audio_offset, sb, fourier_offset);
+    double sample = extract_sample(rb, audio_offset, args.audio_bytes, args.audio_channels);
+    sb[fourier_offset] = sample;
+    if (args.save_timeseries) fprintf(rectsfh, "%.0f\n", sample);
 
-    if (args.verbosity & VREC) {
-      printf("in %p\n", inbuf);
-      dumpbuffer(inbuf, args.fft_period);
-    } // if verbose
-
-    if (!initialized && ffthops < args.fft_period / args.fft_hop_period) {
-      if (args.verbosity & VREC) printf("buffering one fft hop\n");
-      continue;
-    }
-    if (!initialized) {
-      initialized = true;
-      printf("done buffering\n");
-      printf("fft hops %d fft period %d hop period %d fft period / hop period %d\n",
-        ffthops, args.fft_period, args.fft_hop_period, args.fft_period / args.fft_hop_period);
-    }
-
-    if (args.mode == 1) {
-      level(inbuf);
-    } // if mode 1
-
-    else if (args.mode == 2) {
-      spectrum(inbuf, outbuf, pbbuf, han, p, pi, in, out);
-    } // if mode 2
-
-    loop++;
-    // for testing, to process only one period
+    // increment the offsets for the next frame
+    audio_offset++;
+    fourier_offset++;
     if (args.test_period && loop >= args.audio_period / args.fft_hop_period) exit(0);
-  } // while 1
+  } // while
 } // main
