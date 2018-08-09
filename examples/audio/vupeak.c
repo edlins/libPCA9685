@@ -403,6 +403,7 @@ double extract_sample(char* buffer, int frame, int bytes, int channels) {
   long value = sample;
   if (value > (1 << 8 * bytes) / 2) value -= 1 << 8 * bytes;
   //fprintf(stderr, "frame %d sample %ld value %ld\n", frame, sample, value);
+  if (value == (1 << 8 * bytes) / 2) fprintf(stderr, "clip\n");
   return (double) value;
 } // extract sample
 
@@ -702,18 +703,184 @@ fftw_complex* padexpand(fftw_complex* in) {
 } // padexpand
 
 
+typedef struct {
+    double r;       // a fraction between 0 and 1
+    double g;       // a fraction between 0 and 1
+    double b;       // a fraction between 0 and 1
+} rgb;
+
+typedef struct {
+    double h;       // angle in degrees
+    double s;       // a fraction between 0 and 1
+    double v;       // a fraction between 0 and 1
+} hsv;
+
+static hsv   rgb2hsv(rgb in);
+static rgb   hsv2rgb(hsv in);
+
+hsv rgb2hsv(rgb in)
+{
+    hsv         out;
+    double      min, max, delta;
+
+    min = in.r < in.g ? in.r : in.g;
+    min = min  < in.b ? min  : in.b;
+
+    max = in.r > in.g ? in.r : in.g;
+    max = max  > in.b ? max  : in.b;
+
+    out.v = max;                                // v
+    delta = max - min;
+    if (delta < 0.00001)
+    {
+        out.s = 0;
+        out.h = 0; // undefined, maybe nan?
+        return out;
+    }
+    if( max > 0.0 ) { // NOTE: if Max is == 0, this divide would cause a crash
+        out.s = (delta / max);                  // s
+    } else {
+        // if max is 0, then r = g = b = 0              
+        // s = 0, h is undefined
+        out.s = 0.0;
+        out.h = NAN;                            // its now undefined
+        return out;
+    }
+    if( in.r >= max )                           // > is bogus, just keeps compilor happy
+        out.h = ( in.g - in.b ) / delta;        // between yellow & magenta
+    else
+    if( in.g >= max )
+        out.h = 2.0 + ( in.b - in.r ) / delta;  // between cyan & yellow
+    else
+        out.h = 4.0 + ( in.r - in.g ) / delta;  // between magenta & cyan
+
+    out.h *= 60.0;                              // degrees
+
+    if( out.h < 0.0 )
+        out.h += 360.0;
+
+    return out;
+}
+
+
+rgb hsv2rgb(hsv in)
+{
+    double      hh, p, q, t, ff;
+    long        i;
+    rgb         out;
+
+    if(in.s <= 0.0) {       // < is bogus, just shuts up warnings
+        out.r = in.v;
+        out.g = in.v;
+        out.b = in.v;
+        return out;
+    }
+    hh = in.h;
+    if(hh >= 360.0) hh = 0.0;
+    hh /= 60.0;
+    i = (long)hh;
+    ff = hh - i;
+    p = in.v * (1.0 - in.s);
+    q = in.v * (1.0 - (in.s * ff));
+    t = in.v * (1.0 - (in.s * (1.0 - ff)));
+
+    switch(i) {
+    case 0:
+        out.r = in.v;
+        out.g = t;
+        out.b = p;
+        break;
+    case 1:
+        out.r = q;
+        out.g = in.v;
+        out.b = p;
+        break;
+    case 2:
+        out.r = p;
+        out.g = in.v;
+        out.b = t;
+        break;
+
+    case 3:
+        out.r = p;
+        out.g = q;
+        out.b = in.v;
+        break;
+    case 4:
+        out.r = t;
+        out.g = p;
+        out.b = in.v;
+        break;
+    case 5:
+    default:
+        out.r = in.v;
+        out.g = p;
+        out.b = q;
+        break;
+    }
+    return out;     
+}
+
+
+//double mins[16] = {100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100};
+double mins[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+double maxs[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+double minmins[5] = { 43, 38, 18, 14, 11};
+// works well with n=1024 @ 44100:
+//static int pwmbins[16] = {-1,-1,0, -1,1,1, -1,2,-1, 3,3,-1, 4,-1,-1, -1};
+// works well with n=4096 @ 44100:
+static int pwmbins[16] = {0,1,2, 3,4,5, 6,7,8, 9,10,11, 12,13,14, -1};
+//static int pwmbins[16] = {2, 3,4,5, 6,7,8, 9,10,11, 12,13,14,15,16 -1};
+//static int pwmbins[16] = {-1,-1,0, -1,1,2, -1,3,-1, 4,5,-1, 6,-1,-1, -1};
+static double factor = 0.80;
 void spectrum(fftw_complex* fftout, int n) {
   static unsigned int pwmon[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-  unsigned int pwmoff[16];
-  for (int i = 0; i < 16; i++) {
-    double mag = 20.0 * log10f(2.0 * sqrtf(fftout[i][0] * fftout[i][0] + fftout[i][1] * fftout[i][1]) / n);
-    //double phase = atan(fftout[i][1] / fftout[i][0]);
-    double ratio = (mag - 42) / (100 - 42);
-    pwmoff[i] = _PCA9685_MAXVAL * ratio;
-    //fprintf(stderr, "%d %.0f %.0f %.0f %d\n", i, fftout[i][0], fftout[i][1], mag, pwmoff[i]);
+  unsigned int pwmoff[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+  double ratios[16];
+  for (int pwmindex = 0; pwmindex < 16; pwmindex++) {
+    int binindex = pwmbins[pwmindex];
+    if (binindex == -1) { 
+      continue;
+    } // if binindex -1
+    double mag = 20.0 * log10f(2.0 * sqrtf(fftout[binindex][0] * fftout[binindex][0] + fftout[binindex][1] * fftout[binindex][1]) / n);
+    //double phase = atan(fftout[binindex][1] / fftout[binindex][0]);
+    if (mag > maxs[pwmindex]) {
+      maxs[pwmindex] = mag;
+      fprintf(stderr, "%d >= %.0f\n", pwmindex, mag + 1.0);
+    } // if mag >
+    else maxs[pwmindex] -= 0.01;
+    //if (mag < mins[pwmindex]) {
+      //mins[pwmindex] = mag;
+      //fprintf(stderr, "%d <= %.0f\n", pwmindex, mag - 1.0);
+    //} // if mag <
+    //else mins[pwmindex] += 0.01;
+    //if (mins[pwmindex] < minmins[binindex]) mins[pwmindex] = minmins[binindex];
+    if (maxs[pwmindex] - mins[pwmindex] < 55) maxs[pwmindex] = mins[pwmindex] + 55;
+    double low = mins[pwmindex] + factor * (maxs[pwmindex] - mins[pwmindex]);
+    double ratio = (mag - low) / (maxs[pwmindex] - low);
+    if (ratio < 0) ratio = 0;
+    //if (ratio < 0.04) ratio = 0.04;
+    ratios[pwmindex] = ratio;
+    pwmoff[pwmindex] = _PCA9685_MAXVAL * ratio;
+    //if (binindex != -1) fprintf(stderr, "%d %.0f-%.0f %.0f %.2f %d\n", pwmindex, mins[pwmindex], maxs[pwmindex], mag, ratios[pwmindex], pwmoff[pwmindex]);
   } // for i
+  for (int headindex = 0; headindex < 5; headindex++) {
+    rgb rgbfake;
+    rgbfake.r = ratios[headindex * 3];
+    rgbfake.g = ratios[headindex * 3 + 1];
+    rgbfake.b = ratios[headindex * 3 + 2];
+    hsv hsvfake = rgb2hsv(rgbfake);
+    hsvfake.s = 1.0;
+    rgb rgbactual = hsv2rgb(hsvfake);
+    pwmoff[headindex * 3] = rgbactual.r * hsvfake.v * _PCA9685_MAXVAL;
+    pwmoff[headindex * 3 + 1] = rgbactual.g * hsvfake.v * _PCA9685_MAXVAL;
+    pwmoff[headindex * 3 + 2] = rgbactual.b * hsvfake.v * _PCA9685_MAXVAL;
+    //fprintf(stderr, "%.2f %.2f %.2f   %.2f %.2f %.2f   %.2f %.2f %.2f\n",
+       //rgbfake.r, rgbfake.g, rgbfake.b, hsvfake.h, hsvfake.s, hsvfake.v, rgbactual.r, rgbactual.g, rgbactual.b);
+  } // for headindex
   PCA9685_setPWMVals(args.pwm_fd, args.pwm_addr, pwmon, pwmoff);
 } // spectrum
+
 /*
   static int prevwater;
   static int prevstats;
@@ -984,6 +1151,25 @@ void save(FILE* fh, int16_t* buffer, int n) {
 } // save
 
 
+void audiorec(snd_pcm_t* recdev, char* recbuf, int n) {
+  //fprintf(stderr, "audiorec: recdev %p recbuf %p size %d\n", recdev, recbuf, n);
+  bool goodaudio = false;
+  while (!goodaudio) {
+    int rc = snd_pcm_readi(recdev, recbuf, n);
+    if (rc == -EPIPE) {
+      fprintf(stderr, "overrun occurred\n");
+      snd_pcm_prepare(rechandle);
+    } else if (rc < 0) {
+      fprintf(stderr, "error from read: %s\n", snd_strerror(rc));
+    } else if (rc != n) {
+      fprintf(stderr, "short read, read %d frames\n", rc);
+    } else {
+      goodaudio = true;
+    } // if problems
+  } // while not good audio
+} // audiorec
+
+
 int main(int argc, char **argv) {
   //setvbuf(stdout, NULL, _IONBF, 0);
   fprintf(stdout, "vupeak %d.%d\n", libPCA9685_VERSION_MAJOR, libPCA9685_VERSION_MINOR);
@@ -1005,7 +1191,7 @@ int main(int argc, char **argv) {
   fftw_complex* fob = (fftw_complex*) malloc(args.fft_period * sizeof(fftw_complex));
   int16_t* sb = (int16_t*) malloc(args.fft_period * sizeof(int16_t));
   fftw_plan planfwd = fftw_plan_dft_1d(args.fft_period, fib, fob, FFTW_FORWARD, FFTW_ESTIMATE);
-  //pi = fftw_plan_dft_1d(args.fft_period, fob, fib, FFTW_BACKWARD, FFTW_ESTIMATE);
+  //fftw_plan planbwd = fftw_plan_dft_1d(args.fft_period, fob, fib, FFTW_BACKWARD, FFTW_ESTIMATE);
   double *han;
   if (args.fft_hanning) han = hanning(args.fft_period);
 
@@ -1028,6 +1214,7 @@ int main(int argc, char **argv) {
     if (fourier_offset == args.fft_period) {
       set_reals(fib, sb, args.fft_period);
       if (args.fft_hanning) window(fib, han, args.fft_period);
+      fftshift(fib, args.fft_period);
       fftw_execute(planfwd);
       spectrum(fob, args.fft_period);
       hopadvance(sb, sb + args.fft_hop_period, args.fft_period - args.fft_hop_period);
@@ -1036,21 +1223,7 @@ int main(int argc, char **argv) {
 
     // if audio buffer empty, read pcm
     if (audio_offset == args.audio_period) {
-      //fprintf(stderr, "main: calling readi\n");
-      bool goodaudio = false;
-      while (!goodaudio) {
-        int rc = snd_pcm_readi(rechandle, rb, args.audio_period);
-        if (rc == -EPIPE) {
-          fprintf(stderr, "overrun occurred\n");
-          snd_pcm_prepare(rechandle);
-        } else if (rc < 0) {
-          fprintf(stderr, "error from read: %s\n", snd_strerror(rc));
-        } else if (rc != (int) args.audio_period) {
-          fprintf(stderr, "short read, read %d frames\n", rc);
-        } else {
-          goodaudio = true;
-        } // if problems
-      } // while not good audio
+      audiorec(rechandle, rb, args.audio_period);
       audio_offset = 0;
     } // if audio buffer empty
 
