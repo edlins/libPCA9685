@@ -826,13 +826,20 @@ rgb hsv2rgb(hsv in)
 double mins[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 double maxs[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 double minmins[5] = { 43, 38, 18, 14, 11};
+int abshuemin = 240;
+int abshuemax = 0;
+int huemaxs[5] = { 0, 0, 0, 0, 0 };
+int huemins[5] = { 360, 360, 360, 360, 360 };
 // works well with n=1024 @ 44100:
 //static int pwmbins[16] = {-1,-1,0, -1,1,1, -1,2,-1, 3,3,-1, 4,-1,-1, -1};
 // works well with n=4096 @ 44100:
-static int pwmbins[16] = {0,1,2, 3,4,5, 6,7,8, 9,10,11, 12,13,14, -1};
+//static int pwmbins[16] = {-1,-1,0, -1,-1,-1, -1,1,-1, -1,-1,-1, 2,-1,-1, -1};
+//static int pwmbins[16] = {0,1,2, 3,4,5, 6,7,8, 9,10,11, 12,13,14, -1};
+static int pwmbins[16] = {0,1,2, -1,-1,-1, -1,-1,-1, -1,-1,-1, -1,-1,-1, -1};
 //static int pwmbins[16] = {2, 3,4,5, 6,7,8, 9,10,11, 12,13,14,15,16 -1};
 //static int pwmbins[16] = {-1,-1,0, -1,1,2, -1,3,-1, 4,5,-1, 6,-1,-1, -1};
-static double factor = 0.80;
+int hues[5] = {0, 0, 0, 0, 0};
+static double factor = 0.90;
 void spectrum(fftw_complex* fftout, int n) {
   static unsigned int pwmon[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
   unsigned int pwmoff[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -840,20 +847,19 @@ void spectrum(fftw_complex* fftout, int n) {
   for (int pwmindex = 0; pwmindex < 16; pwmindex++) {
     int binindex = pwmbins[pwmindex];
     if (binindex == -1) { 
+      ratios[pwmindex] = 0;
       continue;
     } // if binindex -1
     double mag = 20.0 * log10f(2.0 * sqrtf(fftout[binindex][0] * fftout[binindex][0] + fftout[binindex][1] * fftout[binindex][1]) / n);
     //double phase = atan(fftout[binindex][1] / fftout[binindex][0]);
     if (mag > maxs[pwmindex]) {
       maxs[pwmindex] = mag;
-      fprintf(stderr, "%d >= %.0f\n", pwmindex, mag + 1.0);
+      //fprintf(stderr, "%d >= %.0f\n", pwmindex, mag + 1.0);
     } // if mag >
-    else maxs[pwmindex] -= 0.01;
     //if (mag < mins[pwmindex]) {
       //mins[pwmindex] = mag;
       //fprintf(stderr, "%d <= %.0f\n", pwmindex, mag - 1.0);
     //} // if mag <
-    //else mins[pwmindex] += 0.01;
     //if (mins[pwmindex] < minmins[binindex]) mins[pwmindex] = minmins[binindex];
     if (maxs[pwmindex] - mins[pwmindex] < 55) maxs[pwmindex] = mins[pwmindex] + 55;
     double low = mins[pwmindex] + factor * (maxs[pwmindex] - mins[pwmindex]);
@@ -864,12 +870,30 @@ void spectrum(fftw_complex* fftout, int n) {
     pwmoff[pwmindex] = _PCA9685_MAXVAL * ratio;
     //if (binindex != -1) fprintf(stderr, "%d %.0f-%.0f %.0f %.2f %d\n", pwmindex, mins[pwmindex], maxs[pwmindex], mag, ratios[pwmindex], pwmoff[pwmindex]);
   } // for i
+/*
+  static int j = 0;
   for (int headindex = 0; headindex < 5; headindex++) {
+    if (pwmbins[headindex * 3] == -1 || pwmbins[headindex * 3 + 1] == -1 || pwmbins[headindex * 3 + 2] == -1) continue;
     rgb rgbfake;
     rgbfake.r = ratios[headindex * 3];
     rgbfake.g = ratios[headindex * 3 + 1];
     rgbfake.b = ratios[headindex * 3 + 2];
     hsv hsvfake = rgb2hsv(rgbfake);
+    if (hsvfake.h < huemins[headindex]) huemins[headindex] = hsvfake.h;
+    if (hsvfake.h > huemaxs[headindex]) huemaxs[headindex] = hsvfake.h;
+    //double hsvratio = hsvfake.h / 360.0;
+    double hsvratio = (hsvfake.h - huemins[headindex]) / (huemaxs[headindex] - huemins[headindex]);
+    //hsvfake.h = 360 * headindex / 5 + hsvfake.h / 5;
+    int size = abshuemax - abshuemin;
+    int hue = abshuemin + hsvratio * size;
+    if (hue != abshuemin && j > 20) {
+      fprintf(stderr, "%d %.1f %.1f %.1f %d - %d %.0f %.1f %d\n", headindex, rgbfake.r, rgbfake.g, rgbfake.b, huemins[headindex], huemaxs[headindex], hsvfake.h, hsvratio, hue);
+      j = 0;
+    } // if headindex
+    j++;
+    //hues[headindex] = (hues[headindex] * 59 + hue) / 60;
+    hues[headindex] = hue;
+    hsvfake.h = hues[headindex];
     hsvfake.s = 1.0;
     rgb rgbactual = hsv2rgb(hsvfake);
     pwmoff[headindex * 3] = rgbactual.r * hsvfake.v * _PCA9685_MAXVAL;
@@ -878,6 +902,7 @@ void spectrum(fftw_complex* fftout, int n) {
     //fprintf(stderr, "%.2f %.2f %.2f   %.2f %.2f %.2f   %.2f %.2f %.2f\n",
        //rgbfake.r, rgbfake.g, rgbfake.b, hsvfake.h, hsvfake.s, hsvfake.v, rgbactual.r, rgbactual.g, rgbactual.b);
   } // for headindex
+*/
   PCA9685_setPWMVals(args.pwm_fd, args.pwm_addr, pwmon, pwmoff);
 } // spectrum
 
