@@ -304,10 +304,10 @@ where\n\
   if (args.mode == 1) {
     fprintf(stdout, "'level' mode suggested args: -o 0 -p 256 -r 192000\n");
   } // if mode
-  if (args.fft_hop_period > args.audio_period) {
-    fprintf(stderr, "ERROR: fft hop period cannot be larger than than audio period (yet)\n");
-    exit(-1);
-  } // if hop too large
+  //if (args.fft_hop_period > args.audio_period) {
+    //fprintf(stderr, "ERROR: fft hop period cannot be larger than than audio period (yet)\n");
+    //exit(-1);
+  //} // if hop too large
   if (args.verbosity) {
     fprintf(stderr, "verbosity: ");
     for (int i = 0; i < 16; i++) {
@@ -718,21 +718,16 @@ typedef struct {
 static hsv   rgb2hsv(rgb in);
 static rgb   hsv2rgb(hsv in);
 
-hsv rgb2hsv(rgb in)
-{
+hsv rgb2hsv(rgb in) {
     hsv         out;
     double      min, max, delta;
-
     min = in.r < in.g ? in.r : in.g;
     min = min  < in.b ? min  : in.b;
-
     max = in.r > in.g ? in.r : in.g;
     max = max  > in.b ? max  : in.b;
-
     out.v = max;                                // v
     delta = max - min;
-    if (delta < 0.00001)
-    {
+    if (delta < 0.00001) {
         out.s = 0;
         out.h = 0; // undefined, maybe nan?
         return out;
@@ -743,7 +738,7 @@ hsv rgb2hsv(rgb in)
         // if max is 0, then r = g = b = 0              
         // s = 0, h is undefined
         out.s = 0.0;
-        out.h = NAN;                            // its now undefined
+        out.h = 0;                            // its now undefined
         return out;
     }
     if( in.r >= max )                           // > is bogus, just keeps compilor happy
@@ -753,22 +748,17 @@ hsv rgb2hsv(rgb in)
         out.h = 2.0 + ( in.b - in.r ) / delta;  // between cyan & yellow
     else
         out.h = 4.0 + ( in.r - in.g ) / delta;  // between magenta & cyan
-
     out.h *= 60.0;                              // degrees
-
     if( out.h < 0.0 )
         out.h += 360.0;
-
     return out;
 }
 
 
-rgb hsv2rgb(hsv in)
-{
+rgb hsv2rgb(hsv in) {
     double      hh, p, q, t, ff;
     long        i;
     rgb         out;
-
     if(in.s <= 0.0) {       // < is bogus, just shuts up warnings
         out.r = in.v;
         out.g = in.v;
@@ -783,7 +773,6 @@ rgb hsv2rgb(hsv in)
     p = in.v * (1.0 - in.s);
     q = in.v * (1.0 - (in.s * ff));
     t = in.v * (1.0 - (in.s * (1.0 - ff)));
-
     switch(i) {
     case 0:
         out.r = in.v;
@@ -800,7 +789,6 @@ rgb hsv2rgb(hsv in)
         out.g = in.v;
         out.b = t;
         break;
-
     case 3:
         out.r = p;
         out.g = q;
@@ -822,328 +810,68 @@ rgb hsv2rgb(hsv in)
 }
 
 
-//double mins[16] = {100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100};
-double mins[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-double maxs[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-double minmins[5] = { 43, 38, 18, 14, 11};
-int abshuemin = 240;
-int abshuemax = 0;
-int huemaxs[5] = { 0, 0, 0, 0, 0 };
-int huemins[5] = { 360, 360, 360, 360, 360 };
-// works well with n=1024 @ 44100:
-//static int pwmbins[16] = {-1,-1,0, -1,1,1, -1,2,-1, 3,3,-1, 4,-1,-1, -1};
-// works well with n=4096 @ 44100:
-//static int pwmbins[16] = {-1,-1,0, -1,-1,-1, -1,1,-1, -1,-1,-1, 2,-1,-1, -1};
-//static int pwmbins[16] = {0,1,2, 3,4,5, 6,7,8, 9,10,11, 12,13,14, -1};
-static int pwmbins[16] = {0,1,2, -1,-1,-1, -1,-1,-1, -1,-1,-1, -1,-1,-1, -1};
-//static int pwmbins[16] = {2, 3,4,5, 6,7,8, 9,10,11, 12,13,14,15,16 -1};
-//static int pwmbins[16] = {-1,-1,0, -1,1,2, -1,3,-1, 4,5,-1, 6,-1,-1, -1};
-int hues[5] = {0, 0, 0, 0, 0};
-static double factor = 0.90;
+// noise at N=512 @ 44100 hz ~ 35% output line level
+static double noise[16] = {54,50,47,44,40,39,35,35,34,34,31,32,30,28,28,27};
+static double maxs[16] = {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0};
+double hueminval = 240;
+double huemaxval = 0;
+static double hues[5] = {0,0,0,0,0};
+static double maxhues[5] = {0,0,0,0,0};
+static double minhues[5] = {360,360,360,360,360};
+int statloops = 10;
 void spectrum(fftw_complex* fftout, int n) {
   static unsigned int pwmon[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
   unsigned int pwmoff[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-  double ratios[16];
-  for (int pwmindex = 0; pwmindex < 16; pwmindex++) {
-    int binindex = pwmbins[pwmindex];
-    if (binindex == -1) { 
-      ratios[pwmindex] = 0;
-      continue;
-    } // if binindex -1
-    double mag = 20.0 * log10f(2.0 * sqrtf(fftout[binindex][0] * fftout[binindex][0] + fftout[binindex][1] * fftout[binindex][1]) / n);
-    //double phase = atan(fftout[binindex][1] / fftout[binindex][0]);
-    if (mag > maxs[pwmindex]) {
-      maxs[pwmindex] = mag;
-      //fprintf(stderr, "%d >= %.0f\n", pwmindex, mag + 1.0);
-    } // if mag >
-    //if (mag < mins[pwmindex]) {
-      //mins[pwmindex] = mag;
-      //fprintf(stderr, "%d <= %.0f\n", pwmindex, mag - 1.0);
-    //} // if mag <
-    //if (mins[pwmindex] < minmins[binindex]) mins[pwmindex] = minmins[binindex];
-    if (maxs[pwmindex] - mins[pwmindex] < 55) maxs[pwmindex] = mins[pwmindex] + 55;
-    double low = mins[pwmindex] + factor * (maxs[pwmindex] - mins[pwmindex]);
-    double ratio = (mag - low) / (maxs[pwmindex] - low);
-    if (ratio < 0) ratio = 0;
-    //if (ratio < 0.04) ratio = 0.04;
-    ratios[pwmindex] = ratio;
-    pwmoff[pwmindex] = _PCA9685_MAXVAL * ratio;
-    //if (binindex != -1) fprintf(stderr, "%d %.0f-%.0f %.0f %.2f %d\n", pwmindex, mins[pwmindex], maxs[pwmindex], mag, ratios[pwmindex], pwmoff[pwmindex]);
-  } // for i
-/*
+  double relmags[16];
   static int j = 0;
+  for (int pwmindex = 0; pwmindex < 3; pwmindex++) {
+    double mag = 20.0 * log10f(2.0 * sqrtf(fftout[pwmindex][0] * fftout[pwmindex][0] + fftout[pwmindex][1] * fftout[pwmindex][1]) / n);
+    if (mag > maxs[pwmindex]) maxs[pwmindex] = mag;
+    double relmag = 0;
+    if (mag > noise[pwmindex] && maxs[pwmindex] > noise[pwmindex]) {
+      relmag = (mag - noise[pwmindex]) / (maxs[pwmindex] - noise[pwmindex]);
+    } // if max > noise
+    relmags[pwmindex] = relmag;
+    if (j > statloops) {
+      //fprintf(stderr, "%.0f-%.0f %.0f %.2f ", noise[pwmindex], maxs[pwmindex], mag, relmag);
+      //fprintf(stderr, "%-3.2f ", relmag);
+    } // if j
+  } // for pwmindex
   for (int headindex = 0; headindex < 5; headindex++) {
-    if (pwmbins[headindex * 3] == -1 || pwmbins[headindex * 3 + 1] == -1 || pwmbins[headindex * 3 + 2] == -1) continue;
-    rgb rgbfake;
-    rgbfake.r = ratios[headindex * 3];
-    rgbfake.g = ratios[headindex * 3 + 1];
-    rgbfake.b = ratios[headindex * 3 + 2];
-    hsv hsvfake = rgb2hsv(rgbfake);
-    if (hsvfake.h < huemins[headindex]) huemins[headindex] = hsvfake.h;
-    if (hsvfake.h > huemaxs[headindex]) huemaxs[headindex] = hsvfake.h;
-    //double hsvratio = hsvfake.h / 360.0;
-    double hsvratio = (hsvfake.h - huemins[headindex]) / (huemaxs[headindex] - huemins[headindex]);
-    //hsvfake.h = 360 * headindex / 5 + hsvfake.h / 5;
-    int size = abshuemax - abshuemin;
-    int hue = abshuemin + hsvratio * size;
-    if (hue != abshuemin && j > 20) {
-      fprintf(stderr, "%d %.1f %.1f %.1f %d - %d %.0f %.1f %d\n", headindex, rgbfake.r, rgbfake.g, rgbfake.b, huemins[headindex], huemaxs[headindex], hsvfake.h, hsvratio, hue);
-      j = 0;
-    } // if headindex
-    j++;
-    //hues[headindex] = (hues[headindex] * 59 + hue) / 60;
-    hues[headindex] = hue;
-    hsvfake.h = hues[headindex];
-    hsvfake.s = 1.0;
-    rgb rgbactual = hsv2rgb(hsvfake);
-    pwmoff[headindex * 3] = rgbactual.r * hsvfake.v * _PCA9685_MAXVAL;
-    pwmoff[headindex * 3 + 1] = rgbactual.g * hsvfake.v * _PCA9685_MAXVAL;
-    pwmoff[headindex * 3 + 2] = rgbactual.b * hsvfake.v * _PCA9685_MAXVAL;
-    //fprintf(stderr, "%.2f %.2f %.2f   %.2f %.2f %.2f   %.2f %.2f %.2f\n",
-       //rgbfake.r, rgbfake.g, rgbfake.b, hsvfake.h, hsvfake.s, hsvfake.v, rgbactual.r, rgbactual.g, rgbactual.b);
+    rgb fakergb;
+    fakergb.r = relmags[0];
+    fakergb.g = relmags[1];
+    fakergb.b = relmags[2];
+    hsv fakehsv = rgb2hsv(fakergb);
+    double orighue = fakehsv.h;
+    fakehsv.s = 1.0;
+    // 120 - 160 for N=512
+    if (fakehsv.h < 160) fakehsv.h = 160;
+    if (fakehsv.h > 190) fakehsv.h = 190;
+    if (fakehsv.h < minhues[headindex]) minhues[headindex] = fakehsv.h;
+    if (fakehsv.h > maxhues[headindex]) maxhues[headindex] = fakehsv.h;
+    double relhue = 0;
+    if (maxhues[headindex] - minhues[headindex] != 0) {
+      relhue = (fakehsv.h - minhues[headindex]) / (maxhues[headindex] - minhues[headindex]);
+    } // if not zero
+    double outhue = hueminval + relhue * (huemaxval - hueminval);
+    hues[headindex] = (outhue + hues[headindex] * 19.0) / 20.0;
+    //hues[headindex] = outhue;
+    fakehsv.h = (int) hues[headindex];
+    rgb outrgb = hsv2rgb(fakehsv);
+    pwmoff[headindex * 3] = (int) (outrgb.r * _PCA9685_MAXVAL);
+    pwmoff[headindex * 3 + 1] = (int) (outrgb.g * _PCA9685_MAXVAL);
+    pwmoff[headindex * 3 + 2] = (int) (outrgb.b * _PCA9685_MAXVAL);
+    if (j > statloops) {
+      //fprintf(stderr, "%3.0f-%3.0f %3.0f %3.0f %3.0f ", minhues[headindex], maxhues[headindex], orighue, outhue, fakehsv.h);
+    } // if j
   } // for headindex
-*/
+  if (j++ > statloops) {
+    //fprintf(stderr, "\n");
+    j = 0;
+  } // if j
   PCA9685_setPWMVals(args.pwm_fd, args.pwm_addr, pwmon, pwmoff);
 } // spectrum
-
-/*
-  static int prevwater;
-  static int prevstats;
-  // line level noise in the lab 1024 @ 44100
-  // 0:<42 1:<37 all others:<15
-  int bins[16] = {-1,-1,0, -1,1,1, -1,2,-1, 3,3,-1, 4,-1,-1};
-  unsigned int binwidths[16] = {0,0,1, 0,1,1, 0,1,0, 1,1,0, 1,0,0};
-  static double* mins = NULL;
-  static double* maxs = NULL;
-  if (mins == NULL) {
-    mins = (double*) malloc(sizeof(double) * 16);
-    maxs = (double*) malloc(sizeof(double) * 16);
-    int i;
-    for (i = 0; i < 16; i++) {
-      if (autoexpand) {
-        mins[i] = 100;  maxs[i] = 0;
-      } else {
-        mins[i] = 70;  maxs[i] = 90;
-        unsigned int min;
-        unsigned int max;
-        switch(i) {
-          case 0: min = 38; max = 92; break;
-          case 1: min = 38; max = 92; break;
-          case 2: min = 38; max = 92; break;
-          case 3: min = 30; max = 88; break;
-          case 4: min = 30; max = 88; break;
-          case 5: min = 30; max = 88; break;
-          case 6: min = 80; max = 83; break;
-          case 7: min = 80; max = 83; break;
-          case 8: min = 80; max = 83; break;
-          case 9: min = 60; max = 86; break;
-          case 10: min = 60; max = 86; break;
-          case 11: min = 60; max = 86; break;
-          case 12: min = 74; max = 76; break;
-          case 13: min = 74; max = 76; break;
-          case 14: min = 74; max = 76; break;
-          case 15: min = 0; max = 0; break;
-        } // switch
-        mins[i] = min;
-        maxs[i] = max;
-      } // else not autoexpand
-    } // for i
-  } // mins is NULL
-
-  // window for fftw
-  double samples[args.fft_period];
-  for (unsigned int i = 0; i < args.fft_period; i++) {
-    // TODO: save samples so they can be recalled
-    //       after window function applied
-    samples[i] = extract_sample(inbuf, i, args.audio_bytes, args.audio_channels);
-    // save the last (newest) hop
-    if (args.save_timeseries && i >= args.fft_period - args.fft_hop_period) {
-      fprintf(rectsfh, "%.0f\n", samples[i]);
-    } // if save timeseries
-    in[i][0] = samples[i];
-    in[i][1] = 0;
-  } // for frame
-
-  // apply hanning window
-  if (args.fft_hanning) {
-    for (unsigned int i = 0; i < args.fft_period; i++) {
-      in[i][0] *= han[i];
-    } // for i
-  } // if hanning
-
-  if (args.test_period) {
-    FILE* recfh = fopen("rec.dat", "w");
-    FILE* winfh;
-    if (args.fft_hanning) winfh = fopen("win.dat", "w");
-    FILE* recwinfh = fopen("recwin.dat", "w");
-    for (unsigned int i = 0; i < args.fft_period; i++) {
-      fprintf(recfh, "%.0f\n", samples[i]);
-      fprintf(recwinfh, "%.0f\n", in[i][0]);
-      if (args.fft_hanning) fprintf(winfh, "%f\n", han[i]);
-    } // for i
-  } // if test period
-
-  // fftw
-  fftshift(in, args.fft_period);
-  fftw_execute(p);
-
-  double mags[args.fft_period];
-  double phases[args.fft_period];
-  double unwrapphases[args.fft_period];
-  for (unsigned int i = 0; i < args.fft_period; i++) {
-    // normalize by the number of frames in a period and the hanning factor
-    mags[i] = 20.0 * log10f(2.0 * sqrtf(out[i][0]*out[i][0] + out[i][1]*out[i][1]) / (args.fft_period));
-    if (args.orig_atan) {
-      phases[i] = atan(out[i][1]/out[i][0]);
-    } else {
-      if (mags[i] < 15) phases[i] = 0;
-      else phases[i] = atan2(out[i][1], out[i][0]);
-    }
-    unwrapphases[i] = phases[i];
-  } // for i
-
-  unwrap3(unwrapphases, args.fft_period);
-  // for testing, save transform output
-  if (args.test_period) {
-    FILE* realfh = fopen("real.dat", "w");
-    FILE* imagfh = fopen("imag.dat", "w");
-    FILE* spectrumfh = fopen("spectrum.dat", "w");
-    FILE* phasefh = fopen("phase.dat", "w");
-    FILE* unwrapphasefh = fopen("unwrapphase.dat", "w");
-    unsigned int i;
-    for (i = 0; i < args.fft_period; i++) {
-      fprintf(realfh, "%f\n", out[i][0]);
-      fprintf(imagfh, "%f\n", out[i][1]);
-      fprintf(spectrumfh, "%d\n", (int) mags[i]);
-      fprintf(phasefh, "%f\n", phases[i]);
-      fprintf(unwrapphasefh, "%f\n", unwrapphases[i]);
-    } // for i
-  } // if test period
-
-  if (args.ascii_waterfall && current - prevwater > 100000) {
-    int i;
-    for (i = 1; i < 40; i++) {
-      printf("%s", representation(mags[i]));
-    } // for i
-    printf("\n");
-    prevwater = current;
-  } // if waterfall
-
-  if (args.save_fourier) {
-    for (unsigned int i = 0; i < args.fft_period; i++) {
-      fprintf(spectrogramfh, "%d\t", (int) mags[i]);
-      fprintf(phasogramfh, "%f\t", phases[i]);
-      fprintf(unwrapphasogramfh, "%f\t", unwrapphases[i]);
-    } // for i
-    fprintf(spectrogramfh, "\n");
-    fprintf(phasogramfh, "\n");
-    fprintf(unwrapphasogramfh, "\n");
-  } // if save fourier
-
-  static unsigned int pwmoff[16];
-  int pwmindex;
-  for (pwmindex = 0; pwmindex < 16; pwmindex++) {
-    int binindex = bins[pwmindex];
-    unsigned int width = binwidths[pwmindex];
-    if (binindex == -1) {
-      pwmoff[pwmindex] = 0;
-      continue;
-    } // if index
-
-    // determine the 'amp' for each pwm index
-    unsigned int j;
-    double amp = 0;
-    int ampbinindex = binindex;
-    for (j = 0; j < width; j++) {
-      // if more than one bin, find largest bin
-      double thisamp = mags[binindex];
-      if (thisamp > amp) {
-        amp = thisamp;
-        ampbinindex = binindex + j;
-      } // if thisamp
-    } // for j
-
-    if (autoexpand) {
-      int a = 3;
-      a *= speed_scaler;
-      if (args.verbosity & VMINMAX) printf("check: amp %f mins[%d] %f maxs[%d] %f\n", amp, pwmindex, mins[pwmindex], pwmindex, maxs[pwmindex]);
-      if (amp > maxs[pwmindex]) {
-        maxs[pwmindex] = ((a - 1) * maxs[pwmindex] + amp) / a;
-        if (args.verbosity & VMINMAX) printf("maxs[%d] %f amp %f newmax %f\n", pwmindex, maxs[pwmindex], amp, ((a - 1) * maxs[pwmindex] + amp) / a);
-      }
-      if (amp < mins[pwmindex]) {
-        if (args.verbosity & VMINMAX) printf("mins[%d] %f amp %f newmin %f\n", pwmindex, mins[pwmindex], amp, ((a - 1) * mins[pwmindex] + amp) / a);
-        mins[pwmindex] = ((a - 1) * mins[pwmindex] + amp) / a;
-      }
-  
-      int minmin = 15;
-      if (binindex == 0) minmin = 42;
-      if (binindex == 1) minmin = 37;
-      if (mins[pwmindex] < minmin) {
-        mins[pwmindex] = minmin;
-      } // if minmax
-      int minmax = minmin + 15;
-      if (maxs[pwmindex] < minmax) {
-        maxs[pwmindex] = minmax;
-      } // if minmax
-    } // if autoexpand
-
-    if (args.verbosity & VMINMAX) fprintf(stdout, "%2d:%3d %f-%f -> ", ampbinindex, (int) amp, mins[pwmindex], maxs[pwmindex]);
-    if (amp > mins[pwmindex]) {
-      double ratio = (amp - mins[pwmindex]) / (maxs[pwmindex] - mins[pwmindex]);
-      if (ratio > 1.0) ratio = 1.0;
-      if (ratio < 0.0) ratio = 0.0;
-      ratio *= ratio;
-      ratio *= ratio;
-      ratio *= ratio;
-      ratio *= ratio;
-      ratio *= ratio;
-      if (args.verbosity & VMINMAX) printf(" %0.2f ", ratio);
-      double val = _PCA9685_MAXVAL * ratio;
-      if (val > 4096) val = 4096;
-      int alpha = args.pwm_smoothing;
-      alpha *= speed_scaler;
-      double scaled = val < pwmoff[pwmindex] ? ((alpha - 1) * pwmoff[pwmindex] + val) / alpha : val;
-      pwmoff[pwmindex] = (unsigned int) scaled;
-    } else {
-      pwmoff[pwmindex] = 0;
-    } // if amp
-    if (args.verbosity & VPWM) fprintf(stdout, "%d:%u\n", pwmindex, pwmoff[pwmindex]);
-  } // for i
-  // update the pwms
-  unsigned int pwmon[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-  PCA9685_setPWMVals(args.pwm_fd, args.pwm_addr, pwmon, pwmoff);
-
-  if (autocontract) {
-    { int pwmindex;
-      for (pwmindex = 0; pwmindex < 16; pwmindex++) {
-        mins[pwmindex] += 0.01 / speed_scaler;
-        maxs[pwmindex] -= 0.1 / speed_scaler;
-      } // for pwmindex
-    }
-  } // if autocontract
-
-  if (current - prevstats > 3000000) {
-    unsigned int diff = current - prevstats;
-    double ms = (double) diff / 1000.0 / loop;
-    printf("%d %0.2f %0.2f  ", loop, ms, 1000.0/ms);
-
-    //int j;
-    //for (j = 0; j < 16; j++) {
-      //if (bins[j] == 0) continue;
-      //printf("%3.0f-%-3.0f ", mins[j], maxs[j]);
-    //} // for j
-
-    printf("\n");
-    prevstats = current;
-    loop = 0;
-  }
-
-  if (args.vocoder) {
-    vocoder(pbbuf, out, in, pi, han);
-  } // if vocoder
-} // spectrum
-*/
 
 
 void set_reals(fftw_complex* c, int16_t* r, int n) {
