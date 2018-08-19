@@ -818,13 +818,15 @@ double huemaxval = 0;
 static double hues[5] = {0,0,0,0,0};
 static double maxhues[5] = {0,0,0,0,0};
 static double minhues[5] = {360,360,360,360,360};
+static double maxvalue[5] = {0,0,0,0,0};
+static double minvalue[5] = {255,255,255,255,255};
 int statloops = 10;
 void spectrum(fftw_complex* fftout, int n) {
   static unsigned int pwmon[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
   unsigned int pwmoff[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
   double relmags[16];
   static int j = 0;
-  for (int pwmindex = 0; pwmindex < 3; pwmindex++) {
+  for (int pwmindex = 0; pwmindex < 16; pwmindex++) {
     double mag = 20.0 * log10f(2.0 * sqrtf(fftout[pwmindex][0] * fftout[pwmindex][0] + fftout[pwmindex][1] * fftout[pwmindex][1]) / n);
     if (mag > maxs[pwmindex]) maxs[pwmindex] = mag;
     double relmag = 0;
@@ -837,31 +839,87 @@ void spectrum(fftw_complex* fftout, int n) {
       //fprintf(stderr, "%-3.2f ", relmag);
     } // if j
   } // for pwmindex
+
   for (int headindex = 0; headindex < 5; headindex++) {
-    rgb fakergb;
-    fakergb.r = relmags[0];
-    fakergb.g = relmags[1];
-    fakergb.b = relmags[2];
-    hsv fakehsv = rgb2hsv(fakergb);
-    double orighue = fakehsv.h;
-    fakehsv.s = 1.0;
-    // 120 - 160 for N=512
-    if (fakehsv.h < 160) fakehsv.h = 160;
-    if (fakehsv.h > 190) fakehsv.h = 190;
-    if (fakehsv.h < minhues[headindex]) minhues[headindex] = fakehsv.h;
-    if (fakehsv.h > maxhues[headindex]) maxhues[headindex] = fakehsv.h;
-    double relhue = 0;
-    if (maxhues[headindex] - minhues[headindex] != 0) {
-      relhue = (fakehsv.h - minhues[headindex]) / (maxhues[headindex] - minhues[headindex]);
-    } // if not zero
-    double outhue = hueminval + relhue * (huemaxval - hueminval);
-    hues[headindex] = (outhue + hues[headindex] * 19.0) / 20.0;
-    //hues[headindex] = outhue;
-    fakehsv.h = (int) hues[headindex];
-    rgb outrgb = hsv2rgb(fakehsv);
-    pwmoff[headindex * 3] = (int) (outrgb.r * _PCA9685_MAXVAL);
-    pwmoff[headindex * 3 + 1] = (int) (outrgb.g * _PCA9685_MAXVAL);
-    pwmoff[headindex * 3 + 2] = (int) (outrgb.b * _PCA9685_MAXVAL);
+    bool threebin = false;
+    bool twobin = true;
+    if (twobin) {
+      int testhead = 0;
+      double lowbin = relmags[testhead * 2 + 1];
+      double highbin = relmags[testhead * 2 + 2];
+      double value = atan2(highbin, lowbin);
+      if (value < 0.61) value = 0.61;
+      if (value > 0.72) value = 0.72;
+      double average = (lowbin + highbin) / 2.0;
+      //int rawhue = average * 360;
+      //if (rawhue < minhues[headindex]) minhues[headindex] = rawhue;
+      //if (rawhue > maxhues[headindex]) maxhues[headindex] = rawhue;
+      //int hue = ((double) rawhue - minhues[headindex]) / (maxhues[headindex] - minhues[headindex]) * 360;
+      //minavg[headindex] += 0.1;
+      //maxavg[headindex] -= 0.1;
+      //if (average < 0.75) continue;
+      if (value < minvalue[headindex]) minvalue[headindex] = value;
+      if (value > maxvalue[headindex]) maxvalue[headindex] = value;
+      double relative = (value - minvalue[headindex]) / (maxvalue[headindex] - minvalue[headindex]);
+      int hue = hueminval + relative * (huemaxval - hueminval);
+      hues[headindex] = (hues[headindex] * 9.0 + hue) / 10;
+      hsv outhsv;
+      outhsv.h = hues[headindex];
+      //outhsv.h = hue;
+      outhsv.s = 1.0;
+      outhsv.v = average;
+      rgb outrgb = hsv2rgb(outhsv);
+      pwmoff[headindex * 3 + 0] = outrgb.r * _PCA9685_MAXVAL;
+      pwmoff[headindex * 3 + 1] = outrgb.g * _PCA9685_MAXVAL;
+      pwmoff[headindex * 3 + 2] = outrgb.b * _PCA9685_MAXVAL;
+      //fprintf(stderr, "%d %.2f,%.2f %.2f %.2f %.2f-%.2f=%.2f %.2f %d\n", testhead, lowbin, highbin, average, value, minvalue[headindex], maxvalue[headindex], relative, hues[headindex], hue);
+    } // if twobin
+
+    if (threebin) {
+      rgb fakergb;
+      int testhead = 0;
+      if (headindex == 0) testhead = 0;
+      else if (headindex == 4) testhead = 1;
+      else continue;
+      fakergb.r = relmags[testhead * 3 + 0];
+      fakergb.g = relmags[testhead * 3 + 1];
+      fakergb.b = relmags[testhead * 3 + 2];
+      hsv fakehsv = rgb2hsv(fakergb);
+      double orighue = fakehsv.h;
+      fakehsv.s = 1.0;
+      // 120 - 160 for N=512
+      if (args.fft_period == 1024) {
+        if (testhead == 0) {
+          if (fakehsv.h < 160) fakehsv.h = 160;
+          if (fakehsv.h > 190) fakehsv.h = 190;
+        }
+      } else if (args.fft_period = 512) {
+        if (testhead == 0) {
+          if (fakehsv.h < 120) fakehsv.h = 120;
+          if (fakehsv.h > 160) fakehsv.h = 160;
+        } else if (testhead == 1) { // D.O.D MIX 006
+          if (fakehsv.h < 140) fakehsv.h = 140;
+          if (fakehsv.h > 180) fakehsv.h = 180;
+        } else if (testhead == 2) { //
+          if (fakehsv.h < 140) fakehsv.h = 140;
+          if (fakehsv.h > 180) fakehsv.h = 180;
+        }
+      }
+      if (fakehsv.h < minhues[headindex]) minhues[headindex] = fakehsv.h;
+      if (fakehsv.h > maxhues[headindex]) maxhues[headindex] = fakehsv.h;
+      double relhue = 0;
+      if (maxhues[headindex] - minhues[headindex] != 0) {
+        relhue = (fakehsv.h - minhues[headindex]) / (maxhues[headindex] - minhues[headindex]);
+      } // if not zero
+      double outhue = hueminval + relhue * (huemaxval - hueminval);
+      hues[headindex] = (outhue + hues[headindex] * 29.0) / 30.0;
+      //hues[headindex] = outhue;
+      fakehsv.h = (int) hues[headindex];
+      rgb outrgb = hsv2rgb(fakehsv);
+      pwmoff[headindex * 3] = (int) (outrgb.r * _PCA9685_MAXVAL);
+      pwmoff[headindex * 3 + 1] = (int) (outrgb.g * _PCA9685_MAXVAL);
+      pwmoff[headindex * 3 + 2] = (int) (outrgb.b * _PCA9685_MAXVAL);
+    } // if threebin
     if (j > statloops) {
       //fprintf(stderr, "%3.0f-%3.0f %3.0f %3.0f %3.0f ", minhues[headindex], maxhues[headindex], orighue, outhue, fakehsv.h);
     } // if j
@@ -870,7 +928,10 @@ void spectrum(fftw_complex* fftout, int n) {
     //fprintf(stderr, "\n");
     j = 0;
   } // if j
-  PCA9685_setPWMVals(args.pwm_fd, args.pwm_addr, pwmon, pwmoff);
+  if (PCA9685_setPWMVals(args.pwm_fd, args.pwm_addr, pwmon, pwmoff) == -1) {
+    fprintf(stderr, "ERROR: PCA9685_setPWMVals() returned -1, exiting\n");
+    exit(-1);
+  } // if setPWMVals
 } // spectrum
 
 
