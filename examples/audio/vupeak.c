@@ -76,10 +76,10 @@ snd_pcm_t* initALSA(int dir, audiopwm *args, char **bufferPtr) {
   snd_pcm_hw_params_t* params;
 
   if (dir == 0) {
-    fprintf(stderr, "init capture: ");
+    fprintf(stdout, "init capture: ");
     rc = snd_pcm_open(&handle, args->audio_device, SND_PCM_STREAM_CAPTURE, 0);
   } else {
-    fprintf(stderr, "init playback: ");
+    fprintf(stdout, "init playback: ");
     rc = snd_pcm_open(&handle, args->audio_device, SND_PCM_STREAM_PLAYBACK, 0);
   } // if dir
 
@@ -819,8 +819,8 @@ static double hues[5] = {0,0,0,0,0};
 static double values[5] = {0,0,0,0,0};
 static double maxhues[5] = {0,0,0,0,0};
 static double minhues[5] = {360,360,360,360,360};
-static double maxvalue[5] = {0,0,0,0,0};
-static double minvalue[5] = {255,255,255,255,255};
+static double maxangle[5] = {0,0,0,0,0};
+static double minangle[5] = {255,255,255,255,255};
 int statloops = 30;
 double factor = 0.0;
 void spectrum(fftw_complex* fftout, int n) {
@@ -839,6 +839,7 @@ void spectrum(fftw_complex* fftout, int n) {
     if (mag > floor && maxs[pwmindex] > floor) {
       relmag = (mag - floor) / litrange;
     } // if max > noise
+    //relmags[pwmindex] = (relmags[pwmindex] * 99.0 + relmag) / 100.0;
     relmags[pwmindex] = relmag;
     if (j > statloops) {
       //fprintf(stderr, "%.0f-%.0f %.0f %.2f ", noise[pwmindex], maxs[pwmindex], mag, relmag);
@@ -850,48 +851,63 @@ void spectrum(fftw_complex* fftout, int n) {
     bool threebin = false;
     bool twobin = !threebin;
     if (twobin) {
-      int testhead;
-      testhead = 0;
-      double lowbin = relmags[testhead * 2 + 1];
-      double highbin = relmags[testhead * 2 + 2];
-      double value = atan2(highbin, lowbin);
+      int firstbin;
+      firstbin = 1;
+      double lowbin = relmags[firstbin + 0];
+      double highbin = relmags[firstbin + 1];
+      double angle = atan2(highbin, lowbin);
 
       // good values for factor = 1.0
       //if (value < 0.60) value = 0.60;
       //if (value > 0.72) value = 0.72;
 
       // good values for factor = 1.0
-      if (value < 0.55) value = 0.55;
-      if (value > 0.568) value = 0.568;
+      if (firstbin == 0) {
+        if (angle < 1.474) angle = 1.474;
+        else if (angle > 1.4740000001) angle = 1.4740000001;
+      } else if (firstbin == 1) {
+        //if (angle < 0.53) angle = 0.53;
+        if (angle < 0.599) angle = 0.599;
+        else if (angle > 0.70) {
+          angle = 0.60;
+          lowbin = 0;
+          highbin = 0;
+        } // if angle
+        else if (angle > 0.60) angle = 0.60;
+      } else if (firstbin == 2) {
+        if (angle < 1.0) angle = 1.0;
+        if (angle > 1.01) angle = 1.01;
+      } // if firstbin
 
+      // TODO: use smoothed values for min/max!
       double average = (lowbin + highbin) / 2.0;
-      //if (average > 1) average = 1;
-      if (value < minvalue[headindex]) minvalue[headindex] = value;
-      if (value > maxvalue[headindex]) maxvalue[headindex] = value;
-      double relative = (value - minvalue[headindex]) / (maxvalue[headindex] - minvalue[headindex]);
+      double max = lowbin > highbin ? lowbin : highbin;
+      if (angle < minangle[headindex]) minangle[headindex] = angle;
+      if (angle > maxangle[headindex]) maxangle[headindex] = angle;
+      double relative = (angle - minangle[headindex]) / (maxangle[headindex] - minangle[headindex]);
 
-      //double relative = 2 * value / (M_PI / 2.0);
-      if (relative > 1) relative -= 1;
-      int hue = hueminval + relative * (huemaxval - hueminval);
-      hue = (int) hue % 360;
-      hues[headindex] = (hues[headindex] * 39.0 + hue) / 40;
-      //hues[headindex] = hue;
+      if (max > 0.1) {
+        int hue = hueminval + relative * (huemaxval - hueminval);
+        hues[headindex] = (hues[headindex] * 19.0 + hue) / 20.0;
+      }
 
       hsv outhsv;
       outhsv.h = hues[headindex];
       if (outhsv.h < 0) outhsv.h += 360;
-      //outhsv.h = hue;
       outhsv.s = 1.0;
-      double valuefactor = 0.2;
-      double outvalue = (average - valuefactor) * 1.0 / (1.0 - valuefactor);
-      //outhsv.v = (values[headindex] * 7.0 + outvalue) / 8.0;
-      outhsv.v = outvalue;
+      double valuefactor = 0.00;
+      double outvalue = (max - valuefactor) * 1.0 / (1.0 - valuefactor);
+      values[headindex] = (values[headindex] * 2.0 + outvalue) / 3.0;
+      //values[headindex] = outvalue;
+      outhsv.v = values[headindex];
+
       rgb outrgb = hsv2rgb(outhsv);
       pwmoff[headindex * 3 + 0] = outrgb.r * _PCA9685_MAXVAL;
       pwmoff[headindex * 3 + 1] = outrgb.g * _PCA9685_MAXVAL;
       pwmoff[headindex * 3 + 2] = outrgb.b * _PCA9685_MAXVAL;
-      if (j == statloops && average > 0)
-        fprintf(stderr, "%.2f %.2f %.2f %d %.0f\n", average, value, relative, hue, hues[headindex]);
+      //fprintf(stderr, "%.3f %.3f\n", outhsv.h, outhsv.v);
+      //if (j == statloops && average > 0)
+        //fprintf(stderr, "%.2f %.2f %.2f %d %.0f\n", average, value, relative, hue, hues[headindex]);
       //fprintf(stderr, "%d %.2f,%.2f %.2f %.2f %.2f-%.2f=%.2f %.2f %d\n", testhead, lowbin, highbin, average, value, minvalue[headindex], maxvalue[headindex], relative, hues[headindex], hue);
     } // if twobin
 
@@ -963,10 +979,12 @@ void hopadvance(int16_t* dest, int16_t* src, int size) {
 } // shift
 
 
-void save(FILE* fh, int16_t* buffer, int n) {
+void save_complex(FILE* fh, fftw_complex* buffer, int n) {
   for (int i = 0; i < n; i++) {
-    fprintf(fh, "%d\n", buffer[i]);
+    double mag = 20.0 * log10f(2.0 * sqrtf(buffer[i][0] * buffer[i][0] + buffer[i][1] * buffer[i][1]) / n);
+    fprintf(fh, "%.0f ", mag);
   } // for i
+  fprintf(fh, "\n");
 } // save
 
 
@@ -1038,6 +1056,9 @@ int main(int argc, char **argv) {
       spectrum(fob, args.fft_period);
       hopadvance(sb, sb + args.fft_hop_period, args.fft_period - args.fft_hop_period);
       fourier_offset -= args.fft_hop_period;
+      if (args.save_fourier) {
+        save_complex(spectrogramfh, fob, args.fft_period);
+      } // if save fourier
     } // if fourier buffer full
 
     // if audio buffer empty, read pcm
