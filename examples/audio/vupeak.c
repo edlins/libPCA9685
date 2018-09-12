@@ -403,7 +403,7 @@ double extract_sample(char* buffer, int frame, int bytes, int channels) {
   long value = sample;
   if (value > (1 << 8 * bytes) / 2) value -= 1 << 8 * bytes;
   //fprintf(stderr, "frame %d sample %ld value %ld\n", frame, sample, value);
-  if (value == (1 << 8 * bytes) / 2) fprintf(stderr, "clip\n");
+  if (value == (1 << 8 * bytes) / 2) fprintf(stderr, "c");
   return (double) value;
 } // extract sample
 
@@ -823,6 +823,9 @@ static double maxangle[5] = {0,0,0,0,0};
 static double minangle[5] = {255,255,255,255,255};
 int statloops = 30;
 double factor = 0.0;
+double angle = 0;
+double smoothangle = 0;
+int smoothing = 80;
 void spectrum(fftw_complex* fftout, int n) {
   static unsigned int pwmon[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
   unsigned int pwmoff[16] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
@@ -830,7 +833,9 @@ void spectrum(fftw_complex* fftout, int n) {
   static int j = 0;
   for (int pwmindex = 0; pwmindex < 16; pwmindex++) {
     double mag = 20.0 * log10f(2.0 * sqrtf(fftout[pwmindex][0] * fftout[pwmindex][0] + fftout[pwmindex][1] * fftout[pwmindex][1]) / n);
-    if (mag > maxs[pwmindex]) maxs[pwmindex] = mag;
+    if (mag > maxs[pwmindex]) {
+      maxs[pwmindex] = mag;
+    } // if mag
     double range = maxs[pwmindex] - noise[pwmindex];
     double relmag = 0;
     double floor = maxs[pwmindex] - range * (1.0 - factor);
@@ -841,6 +846,9 @@ void spectrum(fftw_complex* fftout, int n) {
     } // if max > noise
     //relmags[pwmindex] = (relmags[pwmindex] * 99.0 + relmag) / 100.0;
     relmags[pwmindex] = relmag;
+    //if (relmag >= 0.96 && pwmindex == 1) {
+      //fprintf(stderr, "%d %0.2f\n", pwmindex, relmag);
+    //} // if relmag
     if (j > statloops) {
       //fprintf(stderr, "%.0f-%.0f %.0f %.2f ", noise[pwmindex], maxs[pwmindex], mag, relmag);
       //fprintf(stderr, "%-3.2f ", relmag);
@@ -853,42 +861,61 @@ void spectrum(fftw_complex* fftout, int n) {
     if (twobin) {
       int firstbin;
       firstbin = 1;
-      double lowbin = relmags[firstbin + 0];
-      double highbin = relmags[firstbin + 1];
-      double angle = atan2(highbin, lowbin);
+      int secondbin = firstbin + 1;
+      double lowbin = relmags[firstbin];
+      double highbin = relmags[secondbin];
+      angle = atan2(highbin, lowbin);
 
-      // good values for factor = 1.0
-      //if (value < 0.60) value = 0.60;
-      //if (value > 0.72) value = 0.72;
+      if (args.fft_period == 512) {
+        // good values for factor = 1.0
+        //if (value < 0.60) value = 0.60;
+        //if (value > 0.72) value = 0.72;
 
-      // good values for factor = 1.0
-      if (firstbin == 0) {
-        if (angle < 1.474) angle = 1.474;
-        else if (angle > 1.4740000001) angle = 1.4740000001;
-      } else if (firstbin == 1) {
-        //if (angle < 0.53) angle = 0.53;
-        if (angle < 0.599) angle = 0.599;
-        else if (angle > 0.70) {
-          angle = 0.60;
-          lowbin = 0;
-          highbin = 0;
-        } // if angle
-        else if (angle > 0.60) angle = 0.60;
-      } else if (firstbin == 2) {
-        if (angle < 1.0) angle = 1.0;
-        if (angle > 1.01) angle = 1.01;
-      } // if firstbin
+        // good values for factor = 1.0
+        if (firstbin == 0) {
+          if (angle < 1.474) angle = 1.474;
+          else if (angle > 1.4740000001) angle = 1.4740000001;
+        } else if (firstbin == 1) {
+          if (angle < 0.53) angle = 0.53;
+          //if (angle < 0.599) angle = 0.599;
+          else if (angle > 0.70) {
+            angle = 0.60;
+            lowbin = 0;
+            highbin = 0;
+          } // if angle
+          else if (angle > 0.60) angle = 0.60;
+        } else if (firstbin == 2) {
+          if (angle < 1.0) angle = 1.0;
+          if (angle > 1.01) angle = 1.01;
+        } // if firstbin
+      }
 
-      // TODO: use smoothed values for min/max!
+      else if (args.fft_period == 64) {
+        if (firstbin == 1) {
+          if (angle < 0.50) angle = 0.50;
+          //else if (angle > 0.85) {
+            //angle = 0.85;
+            //lowbin = 0;
+            //highbin = 0;
+          //} // if angle
+          else if (angle > 0.70) angle = 0.70;
+        }
+      }
+
+      // TODO: use smoothed values for minangle/maxangle
+      // or smooth angle before comparing to minangle/maxangle
+      smoothangle = ((smoothing - 1) * smoothangle + angle) / (double) smoothing;
+      if (smoothangle < minangle[headindex]) minangle[headindex] = angle;
+      if (smoothangle > maxangle[headindex]) maxangle[headindex] = angle;
+      double relative = (smoothangle - minangle[headindex]) / (maxangle[headindex] - minangle[headindex]);
+
       double average = (lowbin + highbin) / 2.0;
       double max = lowbin > highbin ? lowbin : highbin;
-      if (angle < minangle[headindex]) minangle[headindex] = angle;
-      if (angle > maxangle[headindex]) maxangle[headindex] = angle;
-      double relative = (angle - minangle[headindex]) / (maxangle[headindex] - minangle[headindex]);
-
       if (max > 0.1) {
         int hue = hueminval + relative * (huemaxval - hueminval);
-        hues[headindex] = (hues[headindex] * 19.0 + hue) / 20.0;
+        // already smoothed
+        //hues[headindex] = (hues[headindex] * 19.0 + hue) / 20.0;
+        hues[headindex] = hue;
       }
 
       hsv outhsv;
@@ -897,7 +924,7 @@ void spectrum(fftw_complex* fftout, int n) {
       outhsv.s = 1.0;
       double valuefactor = 0.00;
       double outvalue = (max - valuefactor) * 1.0 / (1.0 - valuefactor);
-      values[headindex] = (values[headindex] * 2.0 + outvalue) / 3.0;
+      values[headindex] = (values[headindex] * 3.0 + outvalue) / 4.0;
       //values[headindex] = outvalue;
       outhsv.v = values[headindex];
 
