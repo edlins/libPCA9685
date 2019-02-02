@@ -30,7 +30,7 @@ int initHardware(int adpt, int addr, int freq) {
 
 
 int main(void) {
-  //_PCA9685_DEBUG = 1;
+  //_PCA9685_DEBUG = 1;	// uncomment to show debug info
   fprintf(stdout, "quickstart %d.%d\n", libPCA9685_VERSION_MAJOR, libPCA9685_VERSION_MINOR);
   int adpt = 1;
   int freq = 200;
