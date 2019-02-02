@@ -70,7 +70,7 @@ int PCA9685_initPWM(int fd, unsigned char addr, unsigned int freq) {
 
   // send a software reset to get defaults, resets all devices on bus
   unsigned char resetval = _PCA9685_RESETVAL;
-  ret = _PCA9685_writeI2CRaw(fd, _PCA9685_GENCALLADDR, 1, &resetval);
+  ret = _PCA9685_writeI2CRaw(fd, addr, 1, &resetval);
   if (ret != 0) {
     fprintf(stderr, "PCA9685_initPWM(): _PCA9685_writeI2CRaw() returned %d\n", ret);
     return -1;
