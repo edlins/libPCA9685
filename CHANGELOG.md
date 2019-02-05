@@ -8,7 +8,8 @@
 ### Changed
 - **examples/olaclient/**: change from sysvinit to systemd, pathing, README
 - **.travis.yml**: move sysvinit and ldconfig commands to CMakeLists.txt's
-- **CMakeLists.txt: fix version to 0.8
+- **CMakeLists.txt**: fix version to 0.8
+- **PCA9685.c**: Changed _PCA9685_GENCALL to specific device address in PCA9685_initPWM() 
 
 ### Removed
 

@@ -257,7 +257,7 @@ FUNCTIONS
         freq:        PWM frequency for the PCA9685 (24 - 1526, in Hz)
         returns:     zero for success, non-zero for failure
 
-        Performs an all-devices software reset on an I2C bus, turns off
+        Performs a device software reset on the PCA9685 device, turns off
         all PWM outputs on a PCA9685 device, sets the PWM frequency on the
         PCA9685, and sets the MODE1 register to 0x20 (auto-increment).
 

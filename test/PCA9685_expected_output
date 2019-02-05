@@ -16,7 +16,7 @@ passed
 testFailInitPWM
 PCA9685_initPWM(): starting on fd -1, addr 0x40, freq 200
 _PCA9685_ioctl(): fd = -1 request = RDWR data.nmesgs = 1
-_PCA9685_ioctl(): msg 0:   msg.addr = 0x00 msg.flags = 0x00 msg.len = 1 *msg.buf = 0x06 
+_PCA9685_ioctl(): msg 0:   msg.addr = 0x40 msg.flags = 0x00 msg.len = 1 *msg.buf = 0x06 
 PCA9685_initPWM(): reset complete on fd -1
 PCA9685_setPWMVal(): reg fa, on 00, off 00
 _PCA9685_writeI2CReg(): 40:fa:01 00
@@ -61,7 +61,7 @@ _PCA9685_ioctl(): msg 0:   msg.addr = 0x40 msg.flags = 0x00 msg.len = 2 *msg.buf
 PCA9685_initPWM(): mode2 set to 0x04 on fd -1, addr 0x40
 PCA9685_initPWM(): starting on fd 0, addr 0x10, freq 200
 _PCA9685_ioctl(): fd = 0 request = RDWR data.nmesgs = 1
-_PCA9685_ioctl(): msg 0:   msg.addr = 0x00 msg.flags = 0x00 msg.len = 1 *msg.buf = 0x06 
+_PCA9685_ioctl(): msg 0:   msg.addr = 0x10 msg.flags = 0x00 msg.len = 1 *msg.buf = 0x06 
 PCA9685_initPWM(): reset complete on fd 0
 PCA9685_setPWMVal(): reg fa, on 00, off 00
 _PCA9685_writeI2CReg(): 10:fa:01 00
@@ -109,7 +109,7 @@ passed
 testInitPWM
 PCA9685_initPWM(): starting on fd 0, addr 0x40, freq 200
 _PCA9685_ioctl(): fd = 0 request = RDWR data.nmesgs = 1
-_PCA9685_ioctl(): msg 0:   msg.addr = 0x00 msg.flags = 0x00 msg.len = 1 *msg.buf = 0x06 
+_PCA9685_ioctl(): msg 0:   msg.addr = 0x40 msg.flags = 0x00 msg.len = 1 *msg.buf = 0x06 
 PCA9685_initPWM(): reset complete on fd 0
 PCA9685_setPWMVal(): reg fa, on 00, off 00
 _PCA9685_writeI2CReg(): 40:fa:01 00
