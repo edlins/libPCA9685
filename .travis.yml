@@ -32,8 +32,7 @@ script:
 # install and verify examples/olaclient
   - cd examples/olaclient
   - sudo make install
-# something broken with olaclient, exiting with no log
-#  - cat /var/log/olaclient.log
+  - cat /var/log/olaclient.log
   - cd ../..
 
 # install and verify examples/audio
