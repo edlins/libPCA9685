@@ -4,7 +4,7 @@ After=olad.service
 
 [Service]
 User=olad
-ExecStart=/usr/local/bin/olaclient
+ExecStart=/bin/sh -c '/usr/local/bin/olaclient 2>&1 >> /var/log/olaclient.log'
 Restart=always
 
 [Install]
