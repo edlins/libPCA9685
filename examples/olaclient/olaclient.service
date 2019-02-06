@@ -3,7 +3,7 @@ Description=olaclient service
 After=olad.service
 
 [Service]
-User=olad
+User=root
 ExecStart=/bin/sh -ce '/usr/local/bin/olaclient >> /var/log/olaclient.log 2>&1'
 Restart=always
 
