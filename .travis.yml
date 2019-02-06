@@ -35,7 +35,7 @@ script:
   - echo 'running olaclient'
   - /usr/local/bin/olaclient
   - echo 'running olaclient with redirect'
-  - /usr/local/bin/olaclient 2>&1 >> /var/log/olaclient.log
+  - sudo /usr/local/bin/olaclient 2>&1 >> /var/log/olaclient.log
   - echo 'done running olaclient'
   - cat /var/log/olaclient.log
   - cd ../..
