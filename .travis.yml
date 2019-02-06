@@ -32,13 +32,13 @@ script:
 # install and verify examples/olaclient
   - cd examples/olaclient
   - sudo make install
-  - echo 'running olaclient'
-  - /usr/local/bin/olaclient || echo "caught failure"
-  - echo 'creating log file'
-  - sudo touch /var/log/olaclient.log
-  - echo 'running olaclient with redirect'
-  - sudo /bin/sh -ce '/usr/local/bin/olaclient 2>&1 >> /var/log/olaclient.log'
-  - echo 'done running olaclient'
+  #- echo 'running olaclient'
+  #- /usr/local/bin/olaclient || echo 'caught failure'
+  #- echo 'creating log file'
+  #- sudo touch /var/log/olaclient.log
+  #- echo 'running sudo olaclient with redirect'
+  - sudo /bin/sh -ce '/usr/local/bin/olaclient 2>&1 >> /var/log/olaclient.log' || echo 'caught failure'
+  #- echo 'done running olaclient'
   - cat /var/log/olaclient.log
   - cd ../..
 
