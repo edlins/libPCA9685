@@ -32,12 +32,10 @@ script:
 # install and verify examples/olaclient
   - cd examples/olaclient
   - sudo make install
+  - echo 'olaclient.log:' && cat /var/log/olaclient.log
   - echo 'running sudo olaclient with redirect'
   - sudo /bin/sh -ce '/usr/local/bin/olaclient 2>&1 >> /var/log/olaclientmanual.log' || echo 'caught failure'
   - echo 'olaclientmanual.log:' && cat /var/log/olaclientmanual.log
-  - echo 'olaclient.log:' && cat /var/log/olaclient.log
-  - echo 'restart:' && sudo /bin/systemctl restart olaclient.service
-  - echo 'status:' && sudo /bin/systemctl status olaclient.service
   - cd ../..
 
 # install and verify examples/audio
