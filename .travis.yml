@@ -32,6 +32,9 @@ script:
 # install and verify examples/olaclient
   - cd examples/olaclient
   - sudo make install
+  - echo 'running olaclient`
+  - /usr/local/bin/olaclient
+  - echo 'done running olaclient'
   - cat /var/log/olaclient.log
   - cd ../..
 
