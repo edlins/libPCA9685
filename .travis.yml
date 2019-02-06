@@ -36,6 +36,8 @@ script:
   - sudo /bin/sh -ce '/usr/local/bin/olaclient 2>&1 >> /var/log/olaclientmanual.log' || echo 'caught failure'
   - echo 'olaclientmanual.log:' && cat /var/log/olaclientmanual.log
   - echo 'olaclient.log:' && cat /var/log/olaclient.log
+  - echo 'audit.log:' && cat /var/log/audit/audit.log
+  - echo 'semanage:' && semanage fcontext --list
   - cd ../..
 
 # install and verify examples/audio
