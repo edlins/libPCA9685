@@ -1,3 +1,5 @@
+// get alsa info and print
+
 #include <alsa/asoundlib.h>
 
 int main() {

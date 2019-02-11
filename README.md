@@ -305,8 +305,48 @@ FUNCTIONS
 
 
         ----------------------------------------------------------------
+        int PCA9685_setPWMVal(int fd, unsigned char addr, unsigned char reg,
+                              unsigned int on, unsigned int off);
+        ----------------------------------------------------------------
+        fd:          file descriptor for an I2C bus
+        addr:        I2C slave address of the PCA9685
+        reg:         register in the PCA9685 to update
+        on:          value used to set the register's on value
+        off:         value used to set the register's off value
+        returns:     zero for success, non-zero for failure
+
+        Updates one LED's register values on a PCA9685 device based on an on and
+        off value.
+        Each LED has a pair of ON registers and a pair of OFF registers.
+        This function sets the ON and OFF values for a single LED, starting at
+        register reg, to the low 12-bits of the corresponding values in the on
+        and off values (turn on at a delay offset between 0 and 4095, and turn
+        Larger differences between on and off correspond to longer
+        pulse widths which correspond to brighter intensities.
+        off-on <= 0 is full off and off-on >= 4095 is full on.
+
+
+        ----------------------------------------------------------------
+        int PCA9685_getPWMVal(int fd, unsigned char addr, unsigned char reg,
+                               unsigned int* on, unsigned int* off);
+        ----------------------------------------------------------------
+        fd:          file descriptor for an I2C bus
+        addr:        I2C slave address of the PCA9685
+        reg:         register in the PCA9685 to read
+        onVals:      array to populate with the LEDnON register values
+        offVals:     array to populate with the LEDnOFF register values
+        returns:     zero for success, non-zero for failure
+
+        Reads one LED's registers and populates the on and off values
+        with the 12-bit register values.
+        For a validated update, call PCA9685_setPWMVal with two values to
+        write, then call PCA9685_getPWMVals with two values to read, and
+        then compare the written and read values and they should be
+        identical.
+
+        ----------------------------------------------------------------
         int PCA9685_setAllPWM(int fd, unsigned char addr,
-                               unsigned int on, unsigned int off);
+                              unsigned int on, unsigned int off);
         ----------------------------------------------------------------
         fd:          file descriptor for an I2C bus
         addr:        I2C slave address of the PCA9685
@@ -315,7 +355,7 @@ FUNCTIONS
         returns:     zero for success, non-zero for failure
 
         Updates ALLLEDREG register values on a PCA9685 device based on an
-        array of length _PCA9685_CHANS (16).
+        on and off value.
         The ALLLEDREG PWM channel has a pair of ON registers and a pair of OFF
         registers.
         This function sets the ON and OFF values to the low
@@ -330,4 +370,3 @@ TODO
 
         CPack release packages
         multiple buses and devices
-        ola client example
