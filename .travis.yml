@@ -32,9 +32,11 @@ script:
 # install and verify examples/olaclient
   - cd examples/olaclient
   - sudo make install
+  - cat /var/log/olaclient.log
   - cd ../..
 
 # install and verify examples/audio
   - cd examples/audio
   - sudo make install
+  - cat /var/log/vupeak.log
   - cd ../..
