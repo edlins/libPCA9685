@@ -2,7 +2,8 @@
 Description=vupeak service
 
 [Service]
-ExecStart=/bin/sh -ce '/usr/local/bin/vupeak > /var/log/vupeak.log 2>&1'
+#/usr/local/bin/vupeak -c 1 -B 2 -r 44100 -h -H 128 -p 128 -n 512
+ExecStart=/bin/sh -ce '/usr/local/bin/vupeak -c 1 -B 2 -r 44100 -h -H 128 -p 128 -n 512 > /var/log/vupeak.log 2>&1'
 Restart=always
 
 [Install]
