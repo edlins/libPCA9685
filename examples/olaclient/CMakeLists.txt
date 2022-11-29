@@ -8,6 +8,10 @@ target_link_libraries(olaclient PCA9685)
 target_link_libraries(olaclient ola)
 target_link_libraries(olaclient olacommon)
 
+set(THREADS_PREFER_PTHREAD_FLAG ON)
+find_package(Threads REQUIRED)
+target_link_libraries(olaclient Threads::Threads)
+
 install(TARGETS olaclient DESTINATION bin)
 install(FILES olaclient.service DESTINATION /etc/systemd/system)
 
