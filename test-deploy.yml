@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: pca9685
+  labels:
+    app: pca9685
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: pca9685
+  template:
+    metadata:
+      labels:
+        app: pca9685
+    spec:
+      nodeName: tanis02
+      containers:
+        - name: pca9685
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: "400m"
+          image: nargetdev/pca9685:v0.0.0
+          securityContext:
+            privileged: true
+          imagePullPolicy: Always
+          command:
+            - "/PCA9685/build/examples/olaclient/olaclient"
+        - name: ola
+          image: nargetdev/ola:v0.1.0
+          imagePullPolicy: Always
+          securityContext:
+            privileged: true
+          resources:
+            limits:
+              memory: "512Mi"
+              cpu: 400m
+          # ports:
+          #   - containerPort: 9090
+          #   - containerPort: 9010
+          #   - containerPort: 7890
+            # - containerPort: 6454
+            # - containerPort: 5568
