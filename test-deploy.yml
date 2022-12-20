@@ -28,7 +28,7 @@ spec:
           command:
             - "/PCA9685/build/examples/olaclient/olaclient"
         - name: ola
-          image: nargetdev/ola:v0.1.0
+          image: nargetdev/ola:v0.1.2
           imagePullPolicy: Always
           securityContext:
             privileged: true
