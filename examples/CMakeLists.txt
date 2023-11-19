@@ -1,9 +1,10 @@
 project(examples)
 # build the examples
 add_subdirectory(olaclient)
-add_subdirectory(PCA9685demo)
-add_subdirectory(quickstart)
-add_subdirectory(audio)
+#add_subdirectory(PCA9685demo)
+#add_subdirectory(quickstart)
+#add_subdirectory(audio)
 
 add_custom_target(examples)
-add_dependencies(examples olaclient PCA9685demo quickstart audio)
+add_dependencies(examples olaclient)
+# PCA9685demo quickstart audio)
