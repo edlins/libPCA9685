@@ -1,0 +1,64 @@
+name: Build and Test
+
+on:
+  push:
+    branches:
+      - master
+      - develop
+  pull_request:
+    branches:
+      - master
+      - develop
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        os: [ubuntu-20.04]
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v2
+
+    - name: Update and install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y --no-install-recommends libola-dev --allow-unauthenticated
+        sudo apt-get install -y --no-install-recommends libncurses5-dev
+        sudo apt-get install -y --no-install-recommends libasound2-dev
+        sudo apt-get install -y --no-install-recommends libfftw3-dev
+        sudo apt-get install -y --no-install-recommends systemd
+
+    - name: Create build directory
+      run: mkdir build
+
+    - name: Configure with CMake
+      run: cmake .
+
+    - name: Build
+      run: make
+
+    - name: Install
+      run: sudo make install
+
+    - name: Build and run PCA9685test
+      run: make PCA9685test && ctest -V
+
+    - name: Build examples
+      run: make examples
+
+    - name: Install and verify examples/olaclient
+      run: |
+        cd examples/olaclient
+        sudo make install
+        cat /var/log/olaclient.log
+        cd ../..
+
+    - name: Install and verify examples/audio
+      run: |
+        cd examples/audio
+        sudo make install
+        cat /var/log/vupeak.log
+        cd ../..
