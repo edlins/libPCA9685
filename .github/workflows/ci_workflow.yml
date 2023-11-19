@@ -22,9 +22,6 @@ jobs:
     - name: Checkout code
       uses: actions/checkout@v2
 
-    #- name: Add OLA repository
-    #  run: sudo add-apt-repository -y ppa:voltvisionfrenchy/ola
-
     - name: Update and install dependencies
       run: |
         sudo apt-get update
