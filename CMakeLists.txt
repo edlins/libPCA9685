@@ -27,5 +27,5 @@ add_subdirectory(examples EXCLUDE_FROM_ALL)
 enable_testing()
 add_test(run_test sh -xc "./test/PCA9685test -td 1 40 > PCA9685_actual_output" 2>&1)
 add_test(list_all sh -xc "ls -alR" 2>&1)
-add_test(diff_output sh -xc "diff ../test/PCA9685_expected_output ./PCA9685_actual_output" 2>&1)
+add_test(diff_output sh -xc "diff ./test/PCA9685_expected_output ./PCA9685_actual_output" 2>&1)
 
