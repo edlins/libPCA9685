@@ -40,7 +40,7 @@ echo "= Adding g++"
 echo ""
 echo "= Cloning libPCA9685"
 # develop branch:
-/usr/bin/git clone -b develop git://github.com/edlins/libPCA9685 /usr/local/src/libPCA9685
+/usr/bin/git clone -b develop https://github.com/edlins/libPCA9685 /usr/local/src/libPCA9685
 # default branch (master):
 #/usr/bin/git clone git://github.com/edlins/libPCA9685 /usr/local/src/libPCA9685
 
