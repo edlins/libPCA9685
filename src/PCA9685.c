@@ -549,13 +549,12 @@ int _PCA9685_writeI2CReg(int fd, unsigned char addr, unsigned char startReg,
 
   // pass the new buffer to the raw writer 
   ret = _PCA9685_writeI2CRaw(fd, addr, len+1, rawBuf);
+  free(rawBuf);
   if (ret != 0) {
     fprintf(stderr, "_PCA9685_writeI2CReg(): _PCA9685_writeI2CRaw() returned ");
     fprintf(stderr, "%d on addr %02x reg %02x\n", ret, addr, startReg);
     return -1;
   } // if 
-
-  free(rawBuf);
 
   return 0;
 } // _PCA9685_writeI2CReg 
